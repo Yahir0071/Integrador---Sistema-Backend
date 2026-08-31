@@ -28,9 +28,8 @@ public class Venta {
     @Column(name = "fecha_venta", nullable = false)
     private LocalDateTime fechaVenta = LocalDateTime.now();
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "metodo_pago", nullable = false, length = 30)
-    private MetodoPago metodoPago;
+    @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Pago> pagos = new ArrayList<>();
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal total = BigDecimal.ZERO;

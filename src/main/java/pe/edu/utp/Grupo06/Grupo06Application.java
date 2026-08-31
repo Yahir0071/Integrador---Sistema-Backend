@@ -12,5 +12,4 @@ public class Grupo06Application {
 		SpringApplication.run(Grupo06Application.class, args);
 	}
 
-		Scanner sc = new Scanner(System.in);
 }

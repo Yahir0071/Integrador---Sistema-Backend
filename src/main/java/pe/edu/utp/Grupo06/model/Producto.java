@@ -2,6 +2,7 @@ package pe.edu.utp.Grupo06.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import pe.edu.utp.Grupo06.model.enums.UnidadMedida;
 
 import java.math.BigDecimal;
 
@@ -49,4 +50,8 @@ public class Producto {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "proveedor_id")
     private Proveedor proveedor;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "unidad_medida", nullable = false, length = 20)
+    private UnidadMedida unidadMedida;
 }
