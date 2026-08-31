@@ -20,13 +20,13 @@ public class Producto {
     private Long id;
 
     @Column(nullable = false, unique = true, length = 50)
-    private String codigo;//SQL-208
+    private String codigo;
 
     @Column(nullable = false, length = 150)
-    private String nombre;//Dildo
+    private String nombre;
 
     @Column(length = 255)
-    private String descripcion;//Sirve para metersele a un hombre/chica
+    private String descripcion;
 
     @Column(name = "precio_compra", nullable = false, precision = 10, scale = 2)
     private BigDecimal precioCompra;
