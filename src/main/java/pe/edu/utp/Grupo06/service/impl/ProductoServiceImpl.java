@@ -1,0 +1,93 @@
+package pe.edu.utp.Grupo06.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import pe.edu.utp.Grupo06.model.Producto;
+import pe.edu.utp.Grupo06.repository.ProductoRepository;
+import pe.edu.utp.Grupo06.service.IAlertaReposicionService;
+import pe.edu.utp.Grupo06.service.IProductoService;
+
+import java.util.List;
+
+@Service
+public class ProductoServiceImpl implements IProductoService {
+
+    @Autowired
+    private ProductoRepository productoRepository;
+
+    @Autowired
+    private IAlertaReposicionService alertaReposicionService;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Producto> listarTodos() {
+        return productoRepository.findAll();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Producto> listarActivos() {
+        return productoRepository.findByEstadoTrue();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Producto> listarPorCategoria(Long categoriaId) {
+        return productoRepository.findByCategoriaIdAndEstadoTrue(categoriaId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Producto> listarConBajoStock() {
+        return productoRepository.findProductosConBajoStock();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Producto buscarPorId(Long id) {
+        return productoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Producto buscarPorCodigo(String codigo) {
+        return productoRepository.findByCodigo(codigo)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado con código: " + codigo));
+    }
+
+    @Override
+    @Transactional
+    public Producto registrar(Producto producto) {
+        Producto guardado = productoRepository.save(producto);
+        alertaReposicionService.verificarYGenerarAlerta(guardado.getId());
+        return guardado;
+    }
+
+    @Override
+    @Transactional
+    public Producto actualizar(Long id, Producto producto) {
+        Producto existente = buscarPorId(id);
+        existente.setNombre(producto.getNombre());
+        existente.setDescripcion(producto.getDescripcion());
+        existente.setPrecioCompra(producto.getPrecioCompra());
+        existente.setPrecioVenta(producto.getPrecioVenta());
+        existente.setStockMinimo(producto.getStockMinimo());
+        existente.setCategoria(producto.getCategoria());
+        existente.setProveedor(producto.getProveedor());
+        existente.setEstado(producto.getEstado());
+
+        Producto actualizado = productoRepository.save(existente);
+        alertaReposicionService.verificarYGenerarAlerta(actualizado.getId());
+        return actualizado;
+    }
+
+    @Override
+    @Transactional
+    public void eliminar(Long id) {
+        Producto producto = buscarPorId(id);
+        producto.setEstado(false);
+        productoRepository.save(producto);
+    }
+}
