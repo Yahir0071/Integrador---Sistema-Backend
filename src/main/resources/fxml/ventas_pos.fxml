@@ -15,11 +15,15 @@
             <Label text="Seleccione los productos para añadir al ticket de venta" styleClass="sub-title"/>
         </VBox>
 
-        <!-- Buscador -->
+        <!-- Buscador y Selector de Cantidad -->
         <HBox spacing="10" alignment="CENTER_LEFT">
             <TextField fx:id="txtBuscarProducto" promptText="🔍 Buscar por nombre o código..." prefHeight="38" HBox.hgrow="ALWAYS"
                        style="-fx-background-radius: 6px; -fx-border-color: #cbd5e1; -fx-border-radius: 6px;"/>
-            <Button text="➕ Añadir Seleccionado" onAction="#handleAnadirAlCarrito"
+            
+            <Label text="Cant:" style="-fx-font-weight: bold; -fx-text-fill: #334155;"/>
+            <Spinner fx:id="spnCantidad" prefWidth="80" prefHeight="38" editable="true"/>
+
+            <Button text="➕ Añadir al Carrito" onAction="#handleAnadirAlCarrito"
                     styleClass="btn, btn-primary" style="-fx-font-weight: bold; -fx-cursor: hand;"/>
         </HBox>
 

@@ -211,8 +211,12 @@ public class ProductosViewController {
         dialog.getDialogPane().getButtonTypes().addAll(btnGuardarType, ButtonType.CANCEL);
 
         VBox form = new VBox(10);
-        TextField txtCod = new TextField();
-        txtCod.setPromptText("Ej: PROD-101");
+        
+        // Generar sugerencia de código correlativo automático (RF01)
+        long totalProds = productoService.listarTodos().size() + 1;
+        String codigoSugerido = String.format("PROD-%04d", totalProds);
+
+        TextField txtCod = new TextField(codigoSugerido);
         TextField txtNom = new TextField();
         txtNom.setPromptText("Nombre del producto");
         TextField txtPCompra = new TextField();
@@ -220,6 +224,7 @@ public class ProductosViewController {
         TextField txtPVenta = new TextField();
         txtPVenta.setPromptText("0.00");
         TextField txtStockMin = new TextField("5");
+        
         ComboBox<Categoria> cbCat = new ComboBox<>();
         cbCat.getItems().setAll(categoriaService.listarActivas());
         cbCat.setConverter(new javafx.util.StringConverter<>() {
@@ -236,17 +241,41 @@ public class ProductosViewController {
         if (!cbCat.getItems().isEmpty()) {
             cbCat.setValue(cbCat.getItems().get(0));
         }
+
+        Button btnNuevaCat = new Button("➕ Crear Categoría");
+        btnNuevaCat.setStyle("-fx-background-color: #e0f2fe; -fx-text-fill: #0284c7; -fx-cursor: hand;");
+        btnNuevaCat.setOnAction(e -> {
+            TextInputDialog catDialog = new TextInputDialog();
+            catDialog.setTitle("Nueva Categoría");
+            catDialog.setHeaderText("Crear categoría de productos");
+            catDialog.setContentText("Nombre:");
+            catDialog.showAndWait().ifPresent(nombreCat -> {
+                if (!nombreCat.isBlank()) {
+                    Categoria nuevaC = new Categoria();
+                    nuevaC.setNombre(nombreCat.trim());
+                    nuevaC.setDescripcion("Creada desde catálogo");
+                    categoriaService.registrar(nuevaC);
+                    cbCat.getItems().setAll(categoriaService.listarActivas());
+                    cbCat.setValue(nuevaC);
+                    cargarCategoriasFiltro();
+                }
+            });
+        });
+
+        HBox catBox = new HBox(8, cbCat, btnNuevaCat);
+        catBox.setAlignment(Pos.CENTER_LEFT);
+
         ComboBox<UnidadMedida> cbUnidad = new ComboBox<>();
         cbUnidad.getItems().setAll(UnidadMedida.values());
         cbUnidad.setValue(UnidadMedida.UNIDAD);
 
         form.getChildren().addAll(
-                new Label("Código:"), txtCod,
-                new Label("Nombre:"), txtNom,
-                new Label("Categoría:"), cbCat,
-                new Label("Precio Compra:"), txtPCompra,
-                new Label("Precio Venta:"), txtPVenta,
-                new Label("Stock Mínimo:"), txtStockMin,
+                new Label("Código (Autogenerado / Editable):"), txtCod,
+                new Label("Nombre del Producto:"), txtNom,
+                new Label("Categoría:"), catBox,
+                new Label("Precio Compra (S/):"), txtPCompra,
+                new Label("Precio Venta (S/):"), txtPVenta,
+                new Label("Stock Mínimo de Seguridad:"), txtStockMin,
                 new Label("Unidad de Medida:"), cbUnidad
         );
 

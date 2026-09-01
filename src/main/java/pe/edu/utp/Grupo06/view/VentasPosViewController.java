@@ -6,6 +6,7 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.VBox;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pe.edu.utp.Grupo06.model.DetalleVenta;
@@ -31,6 +32,9 @@ public class VentasPosViewController {
 
     @FXML
     private TextField txtBuscarProducto;
+
+    @FXML
+    private Spinner<Integer> spnCantidad;
 
     @FXML
     private TableView<Producto> tblCatalogo;
@@ -80,6 +84,7 @@ public class VentasPosViewController {
 
     @FXML
     public void initialize() {
+        spnCantidad.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 1000, 1));
         configurarTablas();
         cargarCatalogo();
 
@@ -137,30 +142,37 @@ public class VentasPosViewController {
             return;
         }
 
+        int cantidadAAgregar = spnCantidad.getValue() != null ? spnCantidad.getValue() : 1;
+
         // Buscar si ya está en el carrito
         DetalleVenta existente = listaCarrito.stream()
                 .filter(d -> d.getProducto().getId().equals(seleccionado.getId()))
                 .findFirst()
                 .orElse(null);
 
+        int cantidadFinal = (existente != null ? existente.getCantidad() : 0) + cantidadAAgregar;
+
+        if (cantidadFinal > seleccionado.getStockActual()) {
+            mostrarAlerta(Alert.AlertType.WARNING, "Stock Límite",
+                    "No puede agregar " + cantidadFinal + " unidades. Stock disponible: " + seleccionado.getStockActual() + ".");
+            return;
+        }
+
         if (existente != null) {
-            if (existente.getCantidad() + 1 > seleccionado.getStockActual()) {
-                mostrarAlerta(Alert.AlertType.WARNING, "Stock Límite", "No puede agregar más unidades que las disponibles en stock (" + seleccionado.getStockActual() + ").");
-                return;
-            }
-            existente.setCantidad(existente.getCantidad() + 1);
-            existente.setSubtotal(existente.getPrecioUnitario().multiply(BigDecimal.valueOf(existente.getCantidad())));
+            existente.setCantidad(cantidadFinal);
+            existente.setSubtotal(existente.getPrecioUnitario().multiply(BigDecimal.valueOf(cantidadFinal)));
             tblCarrito.refresh();
         } else {
             DetalleVenta nuevo = new DetalleVenta();
             nuevo.setProducto(seleccionado);
-            nuevo.setCantidad(1);
+            nuevo.setCantidad(cantidadAAgregar);
             nuevo.setPrecioUnitario(seleccionado.getPrecioVenta());
-            nuevo.setSubtotal(seleccionado.getPrecioVenta());
+            nuevo.setSubtotal(seleccionado.getPrecioVenta().multiply(BigDecimal.valueOf(cantidadAAgregar)));
             listaCarrito.add(nuevo);
         }
 
         recalcularTotal();
+        spnCantidad.getValueFactory().setValue(1); // Reset a 1
     }
 
     private void recalcularTotal() {
@@ -235,14 +247,67 @@ public class VentasPosViewController {
 
             Venta emitida = ventaService.registrarVenta(venta);
 
-            mostrarAlerta(Alert.AlertType.INFORMATION, "¡Venta Exitosa!",
-                    "Venta registrada correctamente.\nTicket: " + emitida.getNumeroTicket() + "\nTotal: S/ " + emitida.getTotal());
+            mostrarBoletaFormal(emitida);
 
             handleLimpiarCarrito();
             cargarCatalogo();
         } catch (Exception ex) {
             mostrarAlerta(Alert.AlertType.ERROR, "Error al procesar la venta", ex.getMessage());
         }
+    }
+
+    private void mostrarBoletaFormal(Venta v) {
+        Dialog<Void> boletaDialog = new Dialog<>();
+        boletaDialog.setTitle("Comprobante de Pago — SGCIVORP");
+        boletaDialog.setHeaderText(null);
+
+        ButtonType btnCerrar = new ButtonType("✔️ Aceptar e Imprimir", ButtonBar.ButtonData.OK_DONE);
+        boletaDialog.getDialogPane().getButtonTypes().add(btnCerrar);
+
+        VBox root = new VBox(10);
+        root.setStyle("-fx-font-family: 'Courier New', monospace; -fx-padding: 15px; -fx-background-color: #ffffff;");
+        root.setPrefWidth(380);
+
+        Label lblCabecera = new Label(
+                "==========================================\n" +
+                "           BODEGA SGCIVORP                \n" +
+                "       RUC: 20123456789 - LIMA PERÚ       \n" +
+                "==========================================\n" +
+                "Ticket N°: " + v.getNumeroTicket() + "\n" +
+                "Fecha: " + v.getFechaVenta().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")) + "\n" +
+                "Cajero: " + (v.getUsuario() != null ? v.getUsuario().getNombreCompleto() : "N/A") + "\n" +
+                "------------------------------------------\n" +
+                "CANT  DESCRIPCIÓN             P.U    TOTAL\n" +
+                "------------------------------------------"
+        );
+
+        StringBuilder sbItems = new StringBuilder();
+        for (DetalleVenta d : v.getDetalles()) {
+            String nom = d.getProducto().getNombre();
+            if (nom.length() > 20) nom = nom.substring(0, 17) + "...";
+            sbItems.append(String.format("%-4d  %-22s %5.2f  %6.2f\n",
+                    d.getCantidad(), nom, d.getPrecioUnitario(), d.getSubtotal()));
+        }
+
+        Label lblItems = new Label(sbItems.toString());
+
+        StringBuilder sbPagos = new StringBuilder();
+        sbPagos.append("------------------------------------------\n");
+        sbPagos.append(String.format("TOTAL A PAGAR:                  S/ %7.2f\n", v.getTotal()));
+        sbPagos.append("------------------------------------------\n");
+        sbPagos.append("MÉTODOS DE PAGO:\n");
+        for (Pago p : v.getPagos()) {
+            sbPagos.append(String.format(" - %-10s:                    S/ %7.2f\n", p.getMetodoPago(), p.getMonto()));
+        }
+        sbPagos.append("==========================================\n");
+        sbPagos.append("       ¡GRACIAS POR SU COMPRA!           \n");
+        sbPagos.append("==========================================");
+
+        Label lblPie = new Label(sbPagos.toString());
+
+        root.getChildren().addAll(lblCabecera, lblItems, lblPie);
+        boletaDialog.getDialogPane().setContent(root);
+        boletaDialog.showAndWait();
     }
 
     private void mostrarAlerta(Alert.AlertType tipo, String titulo, String contenido) {

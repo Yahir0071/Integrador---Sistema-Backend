@@ -76,13 +76,15 @@ public class ReporteServiceImpl implements IReporteService {
     public List<ProductoRotacionDTO> obtenerProductosMayorRotacion() {
         List<Object[]> resultados = detalleVentaRepository.findProductosMayorRotacion();
         return resultados.stream().map(fila -> {
-            Producto p = (Producto) fila[0];
-            Long totalCantidad = ((Number) fila[1]).longValue();
-            BigDecimal totalRecaudado = (BigDecimal) fila[2];
+            Long productoId = ((Number) fila[0]).longValue();
+            String codigo = (String) fila[1];
+            String nombre = (String) fila[2];
+            Long totalCantidad = ((Number) fila[3]).longValue();
+            BigDecimal totalRecaudado = (BigDecimal) fila[4];
             return new ProductoRotacionDTO(
-                    p.getId(),
-                    p.getNombre(),
-                    p.getCodigo(),
+                    productoId,
+                    nombre,
+                    codigo,
                     totalCantidad,
                     totalRecaudado
             );
