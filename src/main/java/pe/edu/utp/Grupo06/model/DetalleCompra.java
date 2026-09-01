@@ -22,7 +22,7 @@ public class DetalleCompra {
     @JoinColumn(name = "compra_id", nullable = false)
     private Compra compra;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "producto_id", nullable = false)
     private Producto producto;
 

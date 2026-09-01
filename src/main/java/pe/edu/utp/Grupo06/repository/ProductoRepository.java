@@ -8,14 +8,21 @@ import pe.edu.utp.Grupo06.model.Producto;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.jpa.repository.EntityGraph;
+
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
-    Optional<Producto> findByCodigo(String codigo);
+
+    @EntityGraph(attributePaths = {"categoria", "proveedor"})
     List<Producto> findByEstadoTrue();
+
+    @EntityGraph(attributePaths = {"categoria", "proveedor"})
     List<Producto> findByCategoriaIdAndEstadoTrue(Long categoriaId);
+
+    Optional<Producto> findByCodigo(String codigo);
     List<Producto> findByNombreContainingIgnoreCaseAndEstadoTrue(String nombre);
 
-    // Identificar productos que alcanzaron o están por debajo del stock mínimo (RF05 y RF06)
+    @EntityGraph(attributePaths = {"categoria", "proveedor"})
     @Query("SELECT p FROM Producto p WHERE p.stockActual <= p.stockMinimo AND p.estado = true")
     List<Producto> findProductosConBajoStock();
 }

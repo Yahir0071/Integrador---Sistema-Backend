@@ -1,5 +1,6 @@
 package pe.edu.utp.Grupo06.repository;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -9,6 +10,7 @@ import java.util.List;
 
 @Repository
 public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long> {
+    @EntityGraph(attributePaths = {"producto"})
     List<DetalleVenta> findByVentaId(Long ventaId);
 
     // Consulta para productos de mayor rotación (RF08)
@@ -17,4 +19,6 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long
             "GROUP BY d.producto.id, d.producto.nombre " +
             "ORDER BY totalVendido DESC")
     List<Object[]> findProductosMayorRotacion();
+
+
 }

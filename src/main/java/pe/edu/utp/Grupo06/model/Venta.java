@@ -37,7 +37,7 @@ public class Venta {
     @Column(length = 20, nullable = false)
     private String estado = "EMITIDA"; // EMITIDA, ANULADA
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
