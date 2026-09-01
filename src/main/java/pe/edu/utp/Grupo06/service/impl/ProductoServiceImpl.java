@@ -76,6 +76,7 @@ public class ProductoServiceImpl implements IProductoService {
         existente.setStockMinimo(producto.getStockMinimo());
         existente.setCategoria(producto.getCategoria());
         existente.setProveedor(producto.getProveedor());
+        existente.setUnidadMedida(producto.getUnidadMedida());
         existente.setEstado(producto.getEstado());
 
         Producto actualizado = productoRepository.save(existente);

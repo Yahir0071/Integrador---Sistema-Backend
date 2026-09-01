@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pe.edu.utp.Grupo06.model.DetalleVenta;
+import pe.edu.utp.Grupo06.model.Pago;
 import pe.edu.utp.Grupo06.model.Producto;
 import pe.edu.utp.Grupo06.model.Venta;
 import pe.edu.utp.Grupo06.model.enums.TipoMovimiento;
@@ -70,6 +71,13 @@ public class VentaServiceImpl implements IVentaService {
         }
 
         venta.setTotal(totalCalculado);
+
+        if (venta.getPagos() != null) {
+            for (Pago pago : venta.getPagos()) {
+                pago.setVenta(venta);
+            }
+        }
+
         return ventaRepository.save(venta);
     }
 
