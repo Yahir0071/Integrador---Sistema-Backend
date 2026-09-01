@@ -8,6 +8,7 @@ public interface IProveedorService {
     List<Proveedor> listarActivos();
     Proveedor buscarPorId(Long id);
     Proveedor buscarPorRuc(String ruc);
+    List<Proveedor> buscarPorRazonSocial(String razonSocial);
     Proveedor registrar(Proveedor proveedor);
     Proveedor actualizar(Long id, Proveedor proveedor);
     void eliminar(Long id);

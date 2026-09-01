@@ -11,6 +11,7 @@ import pe.edu.utp.Grupo06.repository.CompraRepository;
 import pe.edu.utp.Grupo06.repository.ProductoRepository;
 import pe.edu.utp.Grupo06.service.ICompraService;
 import pe.edu.utp.Grupo06.service.IMovimientoInventarioService;
+import pe.edu.utp.Grupo06.util.Validador;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -28,6 +29,9 @@ public class CompraServiceImpl implements ICompraService {
     @Autowired
     private IMovimientoInventarioService movimientoService;
 
+    @Autowired
+    private Validador validador;
+
     @Override
     @Transactional
     public Compra registrarCompra(Compra compra) {
@@ -38,7 +42,12 @@ public class CompraServiceImpl implements ICompraService {
         BigDecimal totalCalculado = BigDecimal.ZERO;
         compra.setFechaCompra(LocalDateTime.now());
 
+        // Primero se valida y calcula todo; recién al final se registran los
+        // movimientos de stock, para no dejar movimientos "sueltos" si algún
+        // detalle posterior falla la validación.
         for (DetalleCompra detalle : compra.getDetalles()) {
+            validador.validar(detalle);
+
             Producto producto = productoRepository.findById(detalle.getProducto().getId())
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado ID: " + detalle.getProducto().getId()));
 
@@ -47,10 +56,13 @@ public class CompraServiceImpl implements ICompraService {
             detalle.setCompra(compra);
 
             totalCalculado = totalCalculado.add(subtotal);
+        }
 
-            // Registrar movimiento de entrada de stock y refrescar alerta de reposición
+        compra.setTotal(totalCalculado);
+
+        for (DetalleCompra detalle : compra.getDetalles()) {
             movimientoService.registrarMovimiento(
-                    producto.getId(),
+                    detalle.getProducto().getId(),
                     compra.getUsuario().getId(),
                     TipoMovimiento.ENTRADA,
                     detalle.getCantidad(),
@@ -58,7 +70,6 @@ public class CompraServiceImpl implements ICompraService {
             );
         }
 
-        compra.setTotal(totalCalculado);
         return compraRepository.save(compra);
     }
 

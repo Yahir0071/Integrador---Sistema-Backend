@@ -11,4 +11,14 @@ public interface IUsuarioService {
     Usuario registrar(Usuario usuario);
     Usuario actualizar(Long id, Usuario usuario);
     void cambiarEstado(Long id, Boolean activo);
+
+    /**
+     * Valida username + password (en texto plano) contra el hash almacenado.
+     * Pensado para ser usado luego por el AuthController / login de la API REST.
+     *
+     * @return el Usuario si las credenciales son correctas y está activo.
+     * @throws RuntimeException si el usuario no existe, está inactivo o la
+     *                          contraseña no coincide.
+     */
+    Usuario validarCredenciales(String username, String password);
 }

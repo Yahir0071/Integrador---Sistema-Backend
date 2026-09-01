@@ -28,8 +28,8 @@ public class AlertaReposicionServiceImpl implements IAlertaReposicionService {
         Producto producto = productoRepository.findById(productoId).orElse(null);
         if (producto == null || !producto.getEstado()) return;
 
-        // Si el stock actual es menor o igual al stock mínimo (RF05)
         if (producto.getStockActual() <= producto.getStockMinimo()) {
+            // Stock bajo o en quiebre (RF05): generar alerta si no hay una PENDIENTE ya.
             boolean yaExistePendiente = alertaRepository.existsByProductoIdAndEstado(productoId, EstadoAlerta.PENDIENTE);
             if (!yaExistePendiente) {
                 AlertaReposicion alerta = new AlertaReposicion();
@@ -43,6 +43,24 @@ public class AlertaReposicionServiceImpl implements IAlertaReposicionService {
                 alerta.setObservacion("Generada automáticamente por quiebre/bajo stock");
                 alertaRepository.save(alerta);
             }
+        } else {
+            // El stock volvió a estar por encima del mínimo (por una compra,
+            // una reposición o un ajuste): si había una alerta PENDIENTE para
+            // este producto, ya no refleja la realidad — se cierra sola.
+            cerrarAlertasPendientesPorStockRecuperado(productoId, producto.getStockActual());
+        }
+    }
+
+    private void cerrarAlertasPendientesPorStockRecuperado(Long productoId, Integer stockActual) {
+        List<AlertaReposicion> pendientes = alertaRepository.findByProductoIdOrderByFechaGeneracionDesc(productoId)
+                .stream()
+                .filter(a -> a.getEstado() == EstadoAlerta.PENDIENTE)
+                .toList();
+
+        for (AlertaReposicion alerta : pendientes) {
+            alerta.setEstado(EstadoAlerta.ATENDIDA);
+            alerta.setObservacion("Cerrada automáticamente: el stock (" + stockActual + ") volvió a superar el mínimo establecido");
+            alertaRepository.save(alerta);
         }
     }
 

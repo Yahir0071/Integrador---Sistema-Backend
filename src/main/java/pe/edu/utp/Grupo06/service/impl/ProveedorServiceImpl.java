@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import pe.edu.utp.Grupo06.model.Proveedor;
 import pe.edu.utp.Grupo06.repository.ProveedorRepository;
 import pe.edu.utp.Grupo06.service.IProveedorService;
+import pe.edu.utp.Grupo06.util.Validador;
 
 import java.util.List;
 
@@ -14,6 +15,9 @@ public class ProveedorServiceImpl implements IProveedorService {
 
     @Autowired
     private ProveedorRepository proveedorRepository;
+
+    @Autowired
+    private Validador validador;
 
     @Override
     @Transactional(readOnly = true)
@@ -42,8 +46,15 @@ public class ProveedorServiceImpl implements IProveedorService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<Proveedor> buscarPorRazonSocial(String razonSocial) {
+        return proveedorRepository.findByRazonSocialContainingIgnoreCase(razonSocial);
+    }
+
+    @Override
     @Transactional
     public Proveedor registrar(Proveedor proveedor) {
+        validador.validar(proveedor);
         return proveedorRepository.save(proveedor);
     }
 
@@ -57,6 +68,7 @@ public class ProveedorServiceImpl implements IProveedorService {
         existente.setCorreo(proveedor.getCorreo());
         existente.setDireccion(proveedor.getDireccion());
         existente.setEstado(proveedor.getEstado());
+        validador.validar(existente);
         return proveedorRepository.save(existente);
     }
 

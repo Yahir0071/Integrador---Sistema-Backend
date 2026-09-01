@@ -1,8 +1,10 @@
 package pe.edu.utp.Grupo06.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import pe.edu.utp.Grupo06.model.enums.MetodoPago;
+import pe.edu.utp.Grupo06.model.enums.EstadoVenta;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -22,6 +24,7 @@ public class Venta {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "El número de ticket es obligatorio")
     @Column(name = "numero_ticket", nullable = false, unique = true, length = 30)
     private String numeroTicket;
 
@@ -34,8 +37,10 @@ public class Venta {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal total = BigDecimal.ZERO;
 
+    @NotNull(message = "El estado de la venta es obligatorio")
+    @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
-    private String estado = "EMITIDA"; // EMITIDA, ANULADA
+    private EstadoVenta estado = EstadoVenta.EMITIDA;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)

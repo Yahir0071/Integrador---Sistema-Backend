@@ -7,6 +7,7 @@ import pe.edu.utp.Grupo06.model.Producto;
 import pe.edu.utp.Grupo06.repository.ProductoRepository;
 import pe.edu.utp.Grupo06.service.IAlertaReposicionService;
 import pe.edu.utp.Grupo06.service.IProductoService;
+import pe.edu.utp.Grupo06.util.Validador;
 
 import java.util.List;
 
@@ -18,6 +19,9 @@ public class ProductoServiceImpl implements IProductoService {
 
     @Autowired
     private IAlertaReposicionService alertaReposicionService;
+
+    @Autowired
+    private Validador validador;
 
     @Override
     @Transactional(readOnly = true)
@@ -58,8 +62,15 @@ public class ProductoServiceImpl implements IProductoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<Producto> buscarPorNombre(String nombre) {
+        return productoRepository.findByNombreContainingIgnoreCaseAndEstadoTrue(nombre);
+    }
+
+    @Override
     @Transactional
     public Producto registrar(Producto producto) {
+        validador.validar(producto);
         Producto guardado = productoRepository.save(producto);
         alertaReposicionService.verificarYGenerarAlerta(guardado.getId());
         return guardado;
@@ -78,6 +89,12 @@ public class ProductoServiceImpl implements IProductoService {
         existente.setProveedor(producto.getProveedor());
         existente.setUnidadMedida(producto.getUnidadMedida());
         existente.setEstado(producto.getEstado());
+        // codigo y stockActual NO se tocan aquí a propósito:
+        // el código es el identificador comercial del producto (no debería
+        // cambiar tras su creación) y el stock solo se modifica a través de
+        // MovimientoInventarioService, para mantener la trazabilidad (RF09).
+
+        validador.validar(existente);
 
         Producto actualizado = productoRepository.save(existente);
         alertaReposicionService.verificarYGenerarAlerta(actualizado.getId());

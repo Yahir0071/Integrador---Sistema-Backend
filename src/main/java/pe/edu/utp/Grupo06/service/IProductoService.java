@@ -10,6 +10,7 @@ public interface IProductoService {
     List<Producto> listarConBajoStock();
     Producto buscarPorId(Long id);
     Producto buscarPorCodigo(String codigo);
+    List<Producto> buscarPorNombre(String nombre);
     Producto registrar(Producto producto);
     Producto actualizar(Long id, Producto producto);
     void eliminar(Long id);

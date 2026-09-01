@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import pe.edu.utp.Grupo06.model.Categoria;
 import pe.edu.utp.Grupo06.repository.CategoriaRepository;
 import pe.edu.utp.Grupo06.service.ICategoriaService;
+import pe.edu.utp.Grupo06.util.Validador;
 
 import java.util.List;
 
@@ -14,6 +15,9 @@ public class CategoriaServiceImpl implements ICategoriaService {
 
     @Autowired
     private CategoriaRepository categoriaRepository;
+
+    @Autowired
+    private Validador validador;
 
     @Override
     @Transactional(readOnly = true)
@@ -37,6 +41,7 @@ public class CategoriaServiceImpl implements ICategoriaService {
     @Override
     @Transactional
     public Categoria registrar(Categoria categoria) {
+        validador.validar(categoria);
         return categoriaRepository.save(categoria);
     }
 
@@ -47,6 +52,7 @@ public class CategoriaServiceImpl implements ICategoriaService {
         existente.setNombre(categoria.getNombre());
         existente.setDescripcion(categoria.getDescripcion());
         existente.setEstado(categoria.getEstado());
+        validador.validar(existente);
         return categoriaRepository.save(existente);
     }
 

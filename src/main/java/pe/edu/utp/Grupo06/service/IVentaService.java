@@ -11,4 +11,16 @@ public interface IVentaService {
     Venta buscarPorId(Long id);
     Venta buscarPorTicket(String ticket);
     List<Object[]> reporteMayorRotacion();
+
+    /**
+     * Anula una venta EMITIDA: cambia su estado a ANULADA y devuelve al
+     * inventario la cantidad vendida de cada detalle (movimiento de tipo
+     * ENTRADA con el motivo correspondiente).
+     *
+     * @param ventaId  id de la venta a anular
+     * @param usuarioId id del usuario que realiza la anulación (para el
+     *                  registro de movimiento de inventario)
+     * @param motivo    motivo de la anulación (puede ser null)
+     */
+    Venta anularVenta(Long ventaId, Long usuarioId, String motivo);
 }

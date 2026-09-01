@@ -1,6 +1,8 @@
 package pe.edu.utp.Grupo06.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -23,10 +25,13 @@ public class DetalleVenta {
     @JoinColumn(name = "venta_id", nullable = false)
     private Venta venta;
 
+    @NotNull(message = "El producto es obligatorio en cada detalle de venta")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "producto_id", nullable = false)
     private Producto producto;
 
+    @NotNull(message = "La cantidad es obligatoria")
+    @Positive(message = "La cantidad debe ser mayor a 0")
     @Column(nullable = false)
     private Integer cantidad;
 
