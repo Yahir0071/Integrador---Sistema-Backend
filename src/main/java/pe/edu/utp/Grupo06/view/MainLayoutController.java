@@ -37,6 +37,9 @@ public class MainLayoutController {
     private Button btnReportes;
 
     @FXML
+    private Button btnAdmin;
+
+    @FXML
     public void initialize() {
         Usuario usuario = LoginViewController.getUsuarioSesion();
         if (usuario != null) {
@@ -45,7 +48,7 @@ public class MainLayoutController {
 
             // Restricciones por Rol (RNF03):
             // Si es VENDEDOR, solo accede a Punto de Venta e Inventario;
-            // Ocultamos Compras y Reportes gerenciales (solo para ADMINISTRADOR).
+            // Ocultamos Compras, Reportes y Administración (solo para ADMINISTRADOR).
             boolean esAdmin = usuario.getRol() != null && usuario.getRol().getNombre() == pe.edu.utp.Grupo06.model.enums.RolNombre.ADMINISTRADOR;
             
             btnCompras.setVisible(esAdmin);
@@ -53,6 +56,9 @@ public class MainLayoutController {
             
             btnReportes.setVisible(esAdmin);
             btnReportes.setManaged(esAdmin);
+
+            btnAdmin.setVisible(esAdmin);
+            btnAdmin.setManaged(esAdmin);
         }
 
         // Cargar vista inicial
@@ -90,12 +96,18 @@ public class MainLayoutController {
     }
 
     @FXML
+    public void mostrarAdmin() {
+        activarBoton(btnAdmin);
+        cargarVista("/fxml/admin_panel.fxml");
+    }
+
+    @FXML
     public void handleCerrarSesion() {
         LoginViewController.cerrarSesion();
     }
 
     private void activarBoton(Button botonActivo) {
-        Button[] botones = {btnPos, btnProductos, btnAlertas, btnCompras, btnReportes};
+        Button[] botones = {btnPos, btnProductos, btnAlertas, btnCompras, btnReportes, btnAdmin};
         for (Button b : botones) {
             if (b != null) {
                 b.getStyleClass().remove("sidebar-btn-active");

@@ -15,6 +15,8 @@
             <Label text="Registro de facturas/boletas de compra a proveedores (Aumenta stock automáticamente)" styleClass="sub-title"/>
         </VBox>
         <Region HBox.hgrow="ALWAYS"/>
+        <Button text="🔄 Refrescar" onAction="#cargarCompras"
+                styleClass="btn, btn-default" style="-fx-cursor: hand;"/>
         <Button text="➕ Registrar Nueva Compra" onAction="#handleNuevaCompra"
                 styleClass="btn, btn-primary" style="-fx-font-weight: bold; -fx-cursor: hand;"/>
     </HBox>
@@ -27,6 +29,7 @@
             <TableColumn fx:id="colFecha" text="Fecha de Compra" prefWidth="160"/>
             <TableColumn fx:id="colUsuario" text="Registrado Por" prefWidth="160"/>
             <TableColumn fx:id="colTotal" text="Total Compra (S/)" prefWidth="130"/>
+            <TableColumn fx:id="colAcciones" text="Acción" prefWidth="120"/>
         </columns>
         <columnResizePolicy>
             <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>

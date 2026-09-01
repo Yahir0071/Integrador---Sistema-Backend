@@ -27,19 +27,22 @@
             <!-- Menú de Navegación -->
             <VBox spacing="6" alignment="TOP_CENTER" maxWidth="Infinity">
                 
-                <Button fx:id="btnPos" text="🛒  Punto de Venta" onAction="#mostrarPos"
+                <Button fx:id="btnPos" text="🛒 Punto de Venta" onAction="#mostrarPos"
                         maxWidth="Infinity" styleClass="sidebar-btn-active"/>
 
-                <Button fx:id="btnProductos" text="📦  Inventario &amp; Productos" onAction="#mostrarProductos"
+                <Button fx:id="btnProductos" text="📦 Inventario &amp; Productos" onAction="#mostrarProductos"
                         maxWidth="Infinity" styleClass="sidebar-btn"/>
 
-                <Button fx:id="btnAlertas" text="⚠️  Alertas de Reposición" onAction="#mostrarAlertas"
+                <Button fx:id="btnAlertas" text="🔍 Alertas de Reposición" onAction="#mostrarAlertas"
                         maxWidth="Infinity" styleClass="sidebar-btn"/>
 
-                <Button fx:id="btnCompras" text="🚚  Compras a Proveedores" onAction="#mostrarCompras"
+                <Button fx:id="btnCompras" text="🚚 Compras a Proveedores" onAction="#mostrarCompras"
                         maxWidth="Infinity" styleClass="sidebar-btn"/>
 
-                <Button fx:id="btnReportes" text="📊  Reportes &amp; Métricas" onAction="#mostrarReportes"
+                <Button fx:id="btnReportes" text="📊 Reportes &amp; Métricas" onAction="#mostrarReportes"
+                        maxWidth="Infinity" styleClass="sidebar-btn"/>
+
+                <Button fx:id="btnAdmin" text="🎫️ Administración" onAction="#mostrarAdmin"
                         maxWidth="Infinity" styleClass="sidebar-btn"/>
 
             </VBox>

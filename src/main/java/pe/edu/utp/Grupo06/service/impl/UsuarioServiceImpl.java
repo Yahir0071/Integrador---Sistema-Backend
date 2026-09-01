@@ -28,7 +28,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
     @Override
     @Transactional(readOnly = true)
     public List<Usuario> listarTodos() {
-        return usuarioRepository.findAll();
+        return usuarioRepository.findAllConRol();
     }
 
     @Override

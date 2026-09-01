@@ -76,7 +76,7 @@ public class CompraServiceImpl implements ICompraService {
     @Override
     @Transactional(readOnly = true)
     public List<Compra> listarCompras() {
-        return compraRepository.findAll();
+        return compraRepository.findAllConProveedorYUsuario();
     }
 
     @Override

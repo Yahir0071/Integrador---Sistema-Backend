@@ -21,4 +21,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     @EntityGraph(attributePaths = {"rol"})
     Optional<Usuario> findById(Long id);
+
+    @EntityGraph(attributePaths = {"rol"})
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM Usuario u")
+    List<Usuario> findAllConRol();
 }

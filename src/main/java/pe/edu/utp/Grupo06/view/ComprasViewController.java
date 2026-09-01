@@ -52,6 +52,12 @@ public class ComprasViewController {
     @FXML
     private TableColumn<Compra, BigDecimal> colTotal;
 
+    @FXML
+    private TableColumn<Compra, Void> colAcciones;
+
+    @Autowired
+    private pe.edu.utp.Grupo06.repository.DetalleCompraRepository detalleCompraRepository;
+
     private ObservableList<Compra> listaCompras = FXCollections.observableArrayList();
     private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
@@ -77,7 +83,82 @@ public class ComprasViewController {
 
         colTotal.setCellValueFactory(new PropertyValueFactory<>("total"));
 
+        colAcciones.setCellFactory(param -> new TableCell<>() {
+            private final Button btnVer = new Button("Ver Detalle");
+
+            {
+                btnVer.setStyle("-fx-background-color: #e0f2fe; -fx-text-fill: #0284c7; -fx-font-weight: bold; -fx-cursor: hand;");
+                btnVer.setOnAction(event -> {
+                    Compra c = getTableView().getItems().get(getIndex());
+                    mostrarDetalleFactura(c);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    HBox pane = new HBox(btnVer);
+                    pane.setAlignment(javafx.geometry.Pos.CENTER);
+                    setGraphic(pane);
+                }
+            }
+        });
+
         tblCompras.setItems(listaCompras);
+    }
+
+    private void mostrarDetalleFactura(Compra c) {
+        Dialog<Void> factDialog = new Dialog<>();
+        factDialog.setTitle("Comprobante de Compra — " + c.getNumeroComprobante());
+        factDialog.setHeaderText(null);
+
+        ButtonType btnOk = new ButtonType("Cerrar", ButtonBar.ButtonData.OK_DONE);
+        factDialog.getDialogPane().getButtonTypes().add(btnOk);
+
+        VBox root = new VBox(10);
+        root.setStyle("-fx-padding: 15px; -fx-background-color: #ffffff;");
+        root.setPrefWidth(550);
+
+        Label lblHeader = new Label(
+                "COMPROBANTE DE COMPRA A PROVEEDOR\n" +
+                "N° Comprobante: " + c.getNumeroComprobante() + "\n" +
+                "Proveedor: " + (c.getProveedor() != null ? c.getProveedor().getRazonSocial() + " (RUC: " + c.getProveedor().getRuc() + ")" : "N/A") + "\n" +
+                "Fecha: " + (c.getFechaCompra() != null ? c.getFechaCompra().format(formatter) : "") + "\n" +
+                "Recepcionado por: " + (c.getUsuario() != null ? c.getUsuario().getNombreCompleto() : "")
+        );
+        lblHeader.setStyle("-fx-font-weight: bold; -fx-text-fill: #1e293b;");
+
+        List<DetalleCompra> detalles = detalleCompraRepository.findByCompraId(c.getId());
+        TableView<DetalleCompra> tblDet = new TableView<>(FXCollections.observableArrayList(detalles));
+        tblDet.setPrefHeight(180);
+
+        TableColumn<DetalleCompra, String> colNom = new TableColumn<>("Producto");
+        colNom.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getProducto() != null ? d.getValue().getProducto().getNombre() : ""));
+        colNom.setPrefWidth(220);
+
+        TableColumn<DetalleCompra, Integer> colC = new TableColumn<>("Cantidad");
+        colC.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
+        colC.setPrefWidth(80);
+
+        TableColumn<DetalleCompra, BigDecimal> colP = new TableColumn<>("P. Unit (S/)");
+        colP.setCellValueFactory(new PropertyValueFactory<>("precioUnitario"));
+        colP.setPrefWidth(100);
+
+        TableColumn<DetalleCompra, BigDecimal> colS = new TableColumn<>("Subtotal (S/)");
+        colS.setCellValueFactory(new PropertyValueFactory<>("subtotal"));
+        colS.setPrefWidth(110);
+
+        tblDet.getColumns().addAll(colNom, colC, colP, colS);
+
+        Label lblTot = new Label("TOTAL FACTURADO: S/ " + (c.getTotal() != null ? c.getTotal().setScale(2, java.math.RoundingMode.HALF_UP) : "0.00"));
+        lblTot.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #15803d; -fx-alignment: CENTER_RIGHT;");
+
+        root.getChildren().addAll(lblHeader, new Separator(), tblDet, lblTot);
+        factDialog.getDialogPane().setContent(root);
+        factDialog.showAndWait();
     }
 
     public void cargarCompras() {

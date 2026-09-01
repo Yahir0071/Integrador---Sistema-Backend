@@ -108,7 +108,7 @@ public class VentaServiceImpl implements IVentaService {
     @Override
     @Transactional(readOnly = true)
     public List<Venta> listarVentas() {
-        return ventaRepository.findAll();
+        return ventaRepository.findAllConUsuario();
     }
 
     @Override

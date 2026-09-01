@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="pe.edu.utp.Grupo06.view.AdminPanelViewController"
+      spacing="16" alignment="TOP_LEFT" maxWidth="Infinity" maxHeight="Infinity">
+
+    <!-- Encabezado del Panel de Administración -->
+    <HBox alignment="CENTER_LEFT" spacing="15">
+        <VBox spacing="2">
+            <Label text="Panel de Administración del Sistema" styleClass="main-title"/>
+            <Label text="Gestión de usuarios, empleados, categorías de productos y empresas proveedoras" styleClass="sub-title"/>
+        </VBox>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="🔄 Refrescar Datos" onAction="#handleRefrescarTodo" styleClass="btn, btn-default" style="-fx-cursor: hand;"/>
+    </HBox>
+
+    <!-- Contenedor de Pestañas Maestras -->
+    <TabPane VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE">
+
+        <!-- PESTAÑA 1: GESTIÓN DE USUARIOS / EMPLEADOS -->
+        <Tab text="👤 Usuarios &amp; Cajeros">
+            <VBox spacing="14" style="-fx-padding: 15 0 0 0;">
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                    <Label text="Lista de cuentas con acceso al sistema" style="-fx-text-fill: #64748b; -fx-font-size: 13px;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="➕ Nuevo Usuario / Cajero" onAction="#handleNuevoUsuario"
+                            styleClass="btn, btn-primary" style="-fx-font-weight: bold; -fx-cursor: hand;"/>
+                </HBox>
+
+                <TableView fx:id="tblUsuarios" VBox.vgrow="ALWAYS" styleClass="table-view">
+                    <columns>
+                        <TableColumn fx:id="colUsuId" text="ID" prefWidth="60"/>
+                        <TableColumn fx:id="colUsuNombre" text="Nombre Completo" prefWidth="220"/>
+                        <TableColumn fx:id="colUsuUsername" text="Usuario" prefWidth="130"/>
+                        <TableColumn fx:id="colUsuEmail" text="Email" prefWidth="200"/>
+                        <TableColumn fx:id="colUsuTelefono" text="Teléfono" prefWidth="120"/>
+                        <TableColumn fx:id="colUsuRol" text="Rol" prefWidth="130"/>
+                        <TableColumn fx:id="colUsuEstado" text="Estado" prefWidth="100"/>
+                    </columns>
+                    <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                    </columnResizePolicy>
+                </TableView>
+            </VBox>
+        </Tab>
+
+        <!-- PESTAÑA 2: GESTIÓN DE CATEGORÍAS -->
+        <Tab text="🏷️ Categorías">
+            <VBox spacing="14" style="-fx-padding: 15 0 0 0;">
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                    <Label text="Familias y agrupaciones de productos" style="-fx-text-fill: #64748b; -fx-font-size: 13px;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="➕ Nueva Categoría" onAction="#handleNuevaCategoria"
+                            styleClass="btn, btn-primary" style="-fx-font-weight: bold; -fx-cursor: hand;"/>
+                </HBox>
+
+                <TableView fx:id="tblCategorias" VBox.vgrow="ALWAYS" styleClass="table-view">
+                    <columns>
+                        <TableColumn fx:id="colCatId" text="ID" prefWidth="60"/>
+                        <TableColumn fx:id="colCatNombre" text="Nombre de la Categoría" prefWidth="250"/>
+                        <TableColumn fx:id="colCatDesc" text="Descripción" prefWidth="350"/>
+                        <TableColumn fx:id="colCatEstado" text="Estado" prefWidth="100"/>
+                    </columns>
+                    <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                    </columnResizePolicy>
+                </TableView>
+            </VBox>
+        </Tab>
+
+        <!-- PESTAÑA 3: GESTIÓN DE PROVEEDORES -->
+        <Tab text="🚚 Proveedores">
+            <VBox spacing="14" style="-fx-padding: 15 0 0 0;">
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                    <Label text="Empresas distribuidoras y contactos comerciales" style="-fx-text-fill: #64748b; -fx-font-size: 13px;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="➕ Nuevo Proveedor" onAction="#handleNuevoProveedor"
+                            styleClass="btn, btn-primary" style="-fx-font-weight: bold; -fx-cursor: hand;"/>
+                </HBox>
+
+                <TableView fx:id="tblProveedores" VBox.vgrow="ALWAYS" styleClass="table-view">
+                    <columns>
+                        <TableColumn fx:id="colProvRuc" text="RUC" prefWidth="130"/>
+                        <TableColumn fx:id="colProvRazon" text="Razón Social" prefWidth="240"/>
+                        <TableColumn fx:id="colProvContacto" text="Contacto" prefWidth="180"/>
+                        <TableColumn fx:id="colProvTelefono" text="Teléfono" prefWidth="120"/>
+                        <TableColumn fx:id="colProvEmail" text="Email" prefWidth="200"/>
+                        <TableColumn fx:id="colProvEstado" text="Estado" prefWidth="90"/>
+                    </columns>
+                    <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                    </columnResizePolicy>
+                </TableView>
+            </VBox>
+        </Tab>
+
+    </TabPane>
+
+</VBox>

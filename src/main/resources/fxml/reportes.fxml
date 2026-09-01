@@ -11,46 +11,77 @@
     <!-- Encabezado -->
     <HBox alignment="CENTER_LEFT" spacing="15">
         <VBox spacing="2">
-            <Label text="Reportes Gerenciales &amp; Rotación de Productos" styleClass="main-title"/>
-            <Label text="Métricas de ventas, valorización de inventario y productos con mayor demanda" styleClass="sub-title"/>
+            <Label text="Reportes Gerenciales &amp; Control de Ventas" styleClass="main-title"/>
+            <Label text="Métricas del negocio, rotación de inventario e historial de tickets emitidos" styleClass="sub-title"/>
         </VBox>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="🔄 Actualizar Métricas" onAction="#cargarReportes" styleClass="btn, btn-default" style="-fx-cursor: hand;"/>
+        <Button text="🔄 Actualizar Todo" onAction="#cargarReportes" styleClass="btn, btn-default" style="-fx-cursor: hand;"/>
     </HBox>
 
-    <!-- Tarjetas de Resumen (KPIs) -->
-    <HBox spacing="15" alignment="CENTER">
-        
-        <VBox spacing="5" styleClass="card-box" HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
-            <Label text="📦 Total Productos Activos" style="-fx-text-fill: #64748b; -fx-font-weight: bold; -fx-font-size: 12px;"/>
-            <Label fx:id="lblTotalProductos" text="0" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #0284c7;"/>
-        </VBox>
+    <!-- Contenedor con Pestañas (Tabs) -->
+    <TabPane VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE">
 
-        <VBox spacing="5" styleClass="card-box" HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
-            <Label text="⚠️ Productos en Quiebre/Bajo Stock" style="-fx-text-fill: #64748b; -fx-font-weight: bold; -fx-font-size: 12px;"/>
-            <Label fx:id="lblProductosBajoStock" text="0" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #dc2626;"/>
-        </VBox>
+        <!-- PESTAÑA 1: KPIs y Ranking de Rotación -->
+        <Tab text="📊 Resumen &amp; Productos Más Vendidos">
+            <VBox spacing="14" style="-fx-padding: 15 0 0 0;">
+                <!-- Tarjetas de Resumen (KPIs) -->
+                <HBox spacing="15" alignment="CENTER">
+                    <VBox spacing="5" styleClass="card-box" HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
+                        <Label text="Total Productos Activos" style="-fx-text-fill: #64748b; -fx-font-weight: bold; -fx-font-size: 12px;"/>
+                        <Label fx:id="lblTotalProductos" text="0" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #0284c7;"/>
+                    </VBox>
 
-        <VBox spacing="5" styleClass="card-box" HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
-            <Label text="💰 Valorización Total Inventario" style="-fx-text-fill: #64748b; -fx-font-weight: bold; -fx-font-size: 12px;"/>
-            <Label fx:id="lblValorizacion" text="S/ 0.00" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #16a34a;"/>
-        </VBox>
+                    <VBox spacing="5" styleClass="card-box" HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
+                        <Label text="Productos en Quiebre / Bajo Stock" style="-fx-text-fill: #64748b; -fx-font-weight: bold; -fx-font-size: 12px;"/>
+                        <Label fx:id="lblProductosBajoStock" text="0" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #dc2626;"/>
+                    </VBox>
 
-    </HBox>
+                    <VBox spacing="5" styleClass="card-box" HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
+                        <Label text="Valorización Total Inventario" style="-fx-text-fill: #64748b; -fx-font-weight: bold; -fx-font-size: 12px;"/>
+                        <Label fx:id="lblValorizacion" text="S/ 0.00" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #16a34a;"/>
+                    </VBox>
+                </HBox>
 
-    <Label text="🏆 Ranking de Productos con Mayor Rotación (Más Vendidos)" style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                <Label text="Ranking de Productos con Mayor Rotación (Más Demandados)" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
 
-    <!-- Tabla de Mayor Rotación -->
-    <TableView fx:id="tblRotacion" VBox.vgrow="ALWAYS" styleClass="table-view">
-        <columns>
-            <TableColumn fx:id="colRotCodigo" text="Código" prefWidth="120"/>
-            <TableColumn fx:id="colRotNombre" text="Nombre del Producto" prefWidth="300"/>
-            <TableColumn fx:id="colRotVendidos" text="Total Unidades Vendidas" prefWidth="180"/>
-            <TableColumn fx:id="colRotRecaudado" text="Total Recaudado (S/)" prefWidth="180"/>
-        </columns>
-        <columnResizePolicy>
-            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
-        </columnResizePolicy>
-    </TableView>
+                <!-- Tabla de Mayor Rotación -->
+                <TableView fx:id="tblRotacion" VBox.vgrow="ALWAYS" styleClass="table-view">
+                    <columns>
+                        <TableColumn fx:id="colRotCodigo" text="Código" prefWidth="120"/>
+                        <TableColumn fx:id="colRotNombre" text="Nombre del Producto" prefWidth="300"/>
+                        <TableColumn fx:id="colRotVendidos" text="Total Unidades Vendidas" prefWidth="180"/>
+                        <TableColumn fx:id="colRotRecaudado" text="Total Recaudado (S/)" prefWidth="180"/>
+                    </columns>
+                    <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                    </columnResizePolicy>
+                </TableView>
+            </VBox>
+        </Tab>
+
+        <!-- PESTAÑA 2: Historial Detallado de Ventas -->
+        <Tab text="🔔 Historial de Ventas Realizadas">
+            <VBox spacing="14" style="-fx-padding: 15 0 0 0;">
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                    <Label text="Registro cronológico de todas las ventas emitidas en el sistema" style="-fx-text-fill: #64748b; -fx-font-size: 13px;"/>
+                </HBox>
+
+                <TableView fx:id="tblHistorialVentas" VBox.vgrow="ALWAYS" styleClass="table-view">
+                    <columns>
+                        <TableColumn fx:id="colVenTicket" text="N° Ticket" prefWidth="140"/>
+                        <TableColumn fx:id="colVenFecha" text="Fecha y Hora" prefWidth="160"/>
+                        <TableColumn fx:id="colVenCajero" text="Atendido Por" prefWidth="180"/>
+                        <TableColumn fx:id="colVenTotal" text="Total (S/)" prefWidth="120"/>
+                        <TableColumn fx:id="colVenEstado" text="Estado" prefWidth="100"/>
+                        <TableColumn fx:id="colVenAccion" text="Acción" prefWidth="130"/>
+                    </columns>
+                    <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                    </columnResizePolicy>
+                </TableView>
+            </VBox>
+        </Tab>
+
+    </TabPane>
 
 </VBox>

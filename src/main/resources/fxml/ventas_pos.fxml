@@ -44,7 +44,7 @@
     <!-- Panel Derecho: Carrito de Compras y Métodos de Pago -->
     <VBox spacing="14" prefWidth="420" styleClass="card-box">
         
-        <Label text="🧾 Detalle de la Venta" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #0f172a;"/>
+        <Label text="Detalle de la Venta" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #0f172a;"/>
         <Separator/>
 
         <!-- Tabla del Carrito -->
@@ -73,19 +73,19 @@
             <Label text="Métodos de Pago:" style="-fx-font-weight: bold; -fx-text-fill: #334155; -fx-font-size: 12px;"/>
             
             <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="💵 Efectivo (S/):" prefWidth="110"/>
+                <Label text="Efectivo (S/):" prefWidth="110"/>
                 <TextField fx:id="txtMontoEfectivo" text="0.00" prefHeight="32" HBox.hgrow="ALWAYS"
                            style="-fx-background-radius: 6px; -fx-border-color: #cbd5e1; -fx-border-radius: 6px;"/>
             </HBox>
 
             <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="📱 Yape (S/):" prefWidth="110"/>
+                <Label text="Yape (S/):" prefWidth="110"/>
                 <TextField fx:id="txtMontoYape" text="0.00" prefHeight="32" HBox.hgrow="ALWAYS"
                            style="-fx-background-radius: 6px; -fx-border-color: #cbd5e1; -fx-border-radius: 6px;"/>
             </HBox>
 
             <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="💳 Plin (S/):" prefWidth="110"/>
+                <Label text="Plin (S/):" prefWidth="110"/>
                 <TextField fx:id="txtMontoPlin" text="0.00" prefHeight="32" HBox.hgrow="ALWAYS"
                            style="-fx-background-radius: 6px; -fx-border-color: #cbd5e1; -fx-border-radius: 6px;"/>
             </HBox>
@@ -95,10 +95,10 @@
 
         <!-- Botones de Acción -->
         <VBox spacing="8">
-            <Button text="💳 Procesar y Emitir Ticket" onAction="#handleEmitirVenta" prefHeight="45" maxWidth="Infinity"
+            <Button text="Procesar y Emitir Ticket" onAction="#handleEmitirVenta" prefHeight="45" maxWidth="Infinity"
                     styleClass="btn, btn-success" style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6px;"/>
 
-            <Button text="🗑️ Limpiar Carrito" onAction="#handleLimpiarCarrito" maxWidth="Infinity"
+            <Button text="Limpiar Carrito" onAction="#handleLimpiarCarrito" maxWidth="Infinity"
                     styleClass="btn, btn-default" style="-fx-cursor: hand; -fx-background-radius: 6px;"/>
         </VBox>
 
