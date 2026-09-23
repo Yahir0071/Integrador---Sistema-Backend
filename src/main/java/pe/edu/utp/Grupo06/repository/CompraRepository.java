@@ -20,4 +20,17 @@ public interface CompraRepository extends JpaRepository<Compra, Long> {
     @EntityGraph(attributePaths = {"proveedor", "usuario"})
     @Query("SELECT c FROM Compra c")
     List<Compra> findAllConProveedorYUsuario();
+
+    @EntityGraph(attributePaths = {"proveedor", "usuario"})
+    @Query("SELECT c FROM Compra c WHERE c.fechaCompra BETWEEN :inicio AND :fin ORDER BY c.fechaCompra ASC")
+    List<Compra> findComprasEntreFechas(@org.springframework.data.repository.query.Param("inicio") LocalDateTime inicio,
+                                       @org.springframework.data.repository.query.Param("fin") LocalDateTime fin);
+
+    @Query("SELECT c.proveedor.razonSocial, SUM(c.total) " +
+           "FROM Compra c " +
+           "WHERE c.fechaCompra BETWEEN :inicio AND :fin " +
+           "GROUP BY c.proveedor.razonSocial " +
+           "ORDER BY SUM(c.total) DESC")
+    List<Object[]> findGastoPorProveedorEntreFechas(@org.springframework.data.repository.query.Param("inicio") LocalDateTime inicio,
+                                                  @org.springframework.data.repository.query.Param("fin") LocalDateTime fin);
 }

@@ -17,6 +17,7 @@ import pe.edu.utp.Grupo06.dto.reporte.ResumenInventarioDTO;
 import pe.edu.utp.Grupo06.dto.venta.ProductoRotacionDTO;
 import pe.edu.utp.Grupo06.model.*;
 import pe.edu.utp.Grupo06.model.enums.MetodoPago;
+import pe.edu.utp.Grupo06.repository.CompraRepository;
 import pe.edu.utp.Grupo06.repository.DetalleCompraRepository;
 import pe.edu.utp.Grupo06.repository.DetalleVentaRepository;
 import pe.edu.utp.Grupo06.repository.PagoRepository;
@@ -58,6 +59,9 @@ public class ReportesViewController {
 
     @Autowired
     private DetalleCompraRepository detalleCompraRepository;
+
+    @Autowired
+    private CompraRepository compraRepository;
 
     @Autowired
     private PagoRepository pagoRepository;
@@ -156,40 +160,56 @@ public class ReportesViewController {
     @FXML
     private TableColumn<VentaVendedorDTO, BigDecimal> colVendTotal;
 
-    // --- Pestaña 4: Historial de Compras en Reportes ---
+    // --- Pestaña 4: Dashboard Estadístico de Compras & Proveedores ---
     @FXML
-    private TextField txtFiltroComprasReporte;
+    private ComboBox<String> cbDashCompPeriodo;
     @FXML
-    private DatePicker dpFechaInicioCompReporte;
+    private HBox boxDashCompMesAnio;
     @FXML
-    private DatePicker dpFechaFinCompReporte;
+    private ComboBox<String> cbDashCompMes;
     @FXML
-    private Label lblTotalComprasReporte;
+    private ComboBox<Integer> cbDashCompAnio;
+    @FXML
+    private Label lblDashCompPeriodoActivo;
 
     @FXML
-    private TableView<Compra> tblComprasReporte;
+    private Label lblKpiCompTotal;
     @FXML
-    private TableColumn<Compra, String> colRepCompNumero;
+    private Label lblKpiCompFacturas;
     @FXML
-    private TableColumn<Compra, String> colRepCompProveedor;
+    private Label lblKpiCompPromedio;
     @FXML
-    private TableColumn<Compra, LocalDateTime> colRepCompFecha;
+    private Label lblKpiCompProveedorTop;
     @FXML
-    private TableColumn<Compra, String> colRepCompUsuario;
+    private Label lblKpiCompProveedorTopMonto;
+
     @FXML
-    private TableColumn<Compra, BigDecimal> colRepCompTotal;
+    private AreaChart<String, Number> chartComprasTiempo;
     @FXML
-    private TableColumn<Compra, Void> colRepCompAccion;
+    private PieChart chartComprasPorProveedor;
+    @FXML
+    private BarChart<String, Number> chartTopProductosComprados;
+
+    @FXML
+    private TableView<ResumenProductoCompradoDTO> tblResumenProductosComprados;
+    @FXML
+    private TableColumn<ResumenProductoCompradoDTO, String> colResCod;
+    @FXML
+    private TableColumn<ResumenProductoCompradoDTO, String> colResNom;
+    @FXML
+    private TableColumn<ResumenProductoCompradoDTO, String> colResProv;
+    @FXML
+    private TableColumn<ResumenProductoCompradoDTO, Long> colResCant;
+    @FXML
+    private TableColumn<ResumenProductoCompradoDTO, BigDecimal> colResTotal;
 
     // Colecciones observables
     private final ObservableList<ProductoRotacionDTO> listaRotacion = FXCollections.observableArrayList();
     private final ObservableList<Venta> listaHistorialVentas = FXCollections.observableArrayList();
     private FilteredList<Venta> filteredHistorial;
 
-    private final ObservableList<Compra> listaComprasReporte = FXCollections.observableArrayList();
-    private FilteredList<Compra> filteredComprasReporte;
-
     private final ObservableList<VentaVendedorDTO> listaVentasVendedor = FXCollections.observableArrayList();
+    private final ObservableList<ResumenProductoCompradoDTO> listaResumenComprados = FXCollections.observableArrayList();
 
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
@@ -204,7 +224,7 @@ public class ReportesViewController {
         configurarControlesDashboard();
         configurarTablaVentasVendedor();
 
-        configurarTablaComprasReporte();
+        configurarControlesDashboardCompras();
 
         cargarReportes();
     }
@@ -675,180 +695,260 @@ public class ReportesViewController {
         }
     }
 
-    // ==================== PESTAÑA 4: HISTORIAL DE COMPRAS ====================
+    // ==================== PESTAÑA 4: DASHBOARD ESTADÍSTICO DE COMPRAS ====================
 
-    private void configurarTablaComprasReporte() {
-        if (tblComprasReporte == null) return;
+    private void configurarControlesDashboardCompras() {
+        if (cbDashCompPeriodo == null) return;
 
-        colRepCompNumero.setCellValueFactory(new PropertyValueFactory<>("numeroComprobante"));
+        cbDashCompPeriodo.getItems().setAll("Hoy", "Últimos 7 Días", "Este Mes", "Mes Específico");
+        cbDashCompPeriodo.setValue("Hoy");
 
-        colRepCompProveedor.setCellValueFactory(c ->
-                new SimpleStringProperty(c.getValue().getProveedor() != null ? c.getValue().getProveedor().getRazonSocial() : "N/A"));
+        if (cbDashCompMes != null) {
+            cbDashCompMes.getItems().setAll(
+                    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                    "Julio", "Agosto", "Setiembre", "Octubre", "Noviembre", "Diciembre"
+            );
+            cbDashCompMes.getSelectionModel().select(LocalDate.now().getMonthValue() - 1);
+        }
 
-        colRepCompFecha.setCellValueFactory(new PropertyValueFactory<>("fechaCompra"));
-        colRepCompFecha.setCellFactory(col -> new TableCell<>() {
-            @Override
-            protected void updateItem(LocalDateTime date, boolean empty) {
-                super.updateItem(date, empty);
-                if (empty || date == null) {
-                    setText(null);
-                } else {
-                    setText(dtf.format(date));
-                }
+        if (cbDashCompAnio != null) {
+            int currentYear = LocalDate.now().getYear();
+            for (int y = currentYear; y >= currentYear - 4; y--) {
+                cbDashCompAnio.getItems().add(y);
             }
+            cbDashCompAnio.setValue(currentYear);
+        }
+
+        if (boxDashCompMesAnio != null) {
+            boxDashCompMesAnio.setVisible(false);
+            boxDashCompMesAnio.setManaged(false);
+        }
+
+        cbDashCompPeriodo.setOnAction(e -> {
+            boolean esMes = "Mes Específico".equals(cbDashCompPeriodo.getValue());
+            if (boxDashCompMesAnio != null) {
+                boxDashCompMesAnio.setVisible(esMes);
+                boxDashCompMesAnio.setManaged(esMes);
+            }
+            handleActualizarDashboardCompras();
         });
 
-        colRepCompUsuario.setCellValueFactory(c ->
-                new SimpleStringProperty(c.getValue().getUsuario() != null ? c.getValue().getUsuario().getNombreCompleto() : "N/A"));
+        if (cbDashCompMes != null) {
+            cbDashCompMes.setOnAction(e -> handleActualizarDashboardCompras());
+        }
+        if (cbDashCompAnio != null) {
+            cbDashCompAnio.setOnAction(e -> handleActualizarDashboardCompras());
+        }
 
-        colRepCompTotal.setCellValueFactory(new PropertyValueFactory<>("total"));
-
-        colRepCompAccion.setCellFactory(col -> new TableCell<>() {
-            private final Button btnVer = new Button("👁️ Ver Detalle");
-            {
-                btnVer.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #0284c7; -fx-font-size: 11px; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 4;");
-                btnVer.setOnAction(e -> {
-                    Compra c = getTableView().getItems().get(getIndex());
-                    mostrarDetalleCompraReporte(c);
-                });
-            }
-
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || getIndex() >= getTableView().getItems().size()) {
-                    setGraphic(null);
-                } else {
-                    setGraphic(btnVer);
+        // Configurar tabla de desglose de compras
+        if (tblResumenProductosComprados != null) {
+            colResCod.setCellValueFactory(new PropertyValueFactory<>("codigo"));
+            colResNom.setCellValueFactory(new PropertyValueFactory<>("nombre"));
+            colResProv.setCellValueFactory(new PropertyValueFactory<>("proveedor"));
+            colResCant.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
+            colResTotal.setCellValueFactory(new PropertyValueFactory<>("total"));
+            colResTotal.setCellFactory(col -> new TableCell<>() {
+                @Override
+                protected void updateItem(BigDecimal val, boolean empty) {
+                    super.updateItem(val, empty);
+                    if (empty || val == null) {
+                        setText(null);
+                    } else {
+                        setText("S/ " + val.setScale(2, RoundingMode.HALF_UP));
+                    }
                 }
-            }
-        });
-
-        filteredComprasReporte = new FilteredList<>(listaComprasReporte, p -> true);
-        SortedList<Compra> sorted = new SortedList<>(filteredComprasReporte);
-        sorted.comparatorProperty().bind(tblComprasReporte.comparatorProperty());
-        tblComprasReporte.setItems(sorted);
-
-        if (txtFiltroComprasReporte != null) {
-            txtFiltroComprasReporte.textProperty().addListener((obs, oldV, newV) -> aplicarFiltroComprasReporte());
-        }
-        if (dpFechaInicioCompReporte != null) {
-            dpFechaInicioCompReporte.valueProperty().addListener((obs, oldV, newV) -> aplicarFiltroComprasReporte());
-        }
-        if (dpFechaFinCompReporte != null) {
-            dpFechaFinCompReporte.valueProperty().addListener((obs, oldV, newV) -> aplicarFiltroComprasReporte());
+            });
+            tblResumenProductosComprados.setItems(listaResumenComprados);
         }
     }
 
-    private void cargarComprasReporte() {
+    @FXML
+    public void handleActualizarDashboardCompras() {
+        if (cbDashCompPeriodo == null) return;
+
+        String opcion = cbDashCompPeriodo.getValue();
+        if (opcion == null) opcion = "Hoy";
+
+        LocalDateTime inicio;
+        LocalDateTime fin = LocalDateTime.now();
+        String textoPeriodo;
+
+        switch (opcion) {
+            case "Hoy":
+                inicio = LocalDate.now().atStartOfDay();
+                textoPeriodo = "Visualizando: Hoy (" + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")";
+                break;
+
+            case "Últimos 7 Días":
+                inicio = LocalDate.now().minusDays(6).atStartOfDay();
+                textoPeriodo = "Visualizando: Últimos 7 Días (" + inicio.format(DateTimeFormatter.ofPattern("dd/MM")) + " al " + fin.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")";
+                break;
+
+            case "Este Mes":
+                inicio = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+                textoPeriodo = "Visualizando: Mes Actual (" + YearMonth.now().format(DateTimeFormatter.ofPattern("MMMM yyyy")) + ")";
+                break;
+
+            case "Mes Específico":
+                int mesIdx = cbDashCompMes != null ? cbDashCompMes.getSelectionModel().getSelectedIndex() + 1 : LocalDate.now().getMonthValue();
+                if (mesIdx <= 0) mesIdx = LocalDate.now().getMonthValue();
+                Integer anioSel = cbDashCompAnio != null && cbDashCompAnio.getValue() != null ? cbDashCompAnio.getValue() : LocalDate.now().getYear();
+
+                YearMonth ym = YearMonth.of(anioSel, mesIdx);
+                inicio = ym.atDay(1).atStartOfDay();
+                fin = ym.atEndOfMonth().atTime(LocalTime.MAX);
+                String mesNom = cbDashCompMes != null && cbDashCompMes.getValue() != null ? cbDashCompMes.getValue() : "";
+                textoPeriodo = "Visualizando: " + mesNom + " " + anioSel;
+                break;
+
+            default:
+                inicio = LocalDate.now().atStartOfDay();
+                textoPeriodo = "Visualizando: Hoy";
+                break;
+        }
+
+        if (lblDashCompPeriodoActivo != null) {
+            lblDashCompPeriodoActivo.setText(textoPeriodo);
+        }
+
+        actualizarMetricasPeriodoCompras(inicio, fin, opcion);
+    }
+
+    private void actualizarMetricasPeriodoCompras(LocalDateTime inicio, LocalDateTime fin, String modoPeriodo) {
         try {
-            List<Compra> compras = compraService.listarCompras();
-            listaComprasReporte.setAll(compras);
-            aplicarFiltroComprasReporte();
+            // 1. Obtener compras realizadas en el periodo
+            List<Compra> comprasPeriodo = compraRepository.findComprasEntreFechas(inicio, fin);
+
+            BigDecimal totalGastado = BigDecimal.ZERO;
+            for (Compra c : comprasPeriodo) {
+                if (c.getTotal() != null) {
+                    totalGastado = totalGastado.add(c.getTotal());
+                }
+            }
+
+            int numFacturas = comprasPeriodo.size();
+            BigDecimal promedioFactura = numFacturas > 0
+                    ? totalGastado.divide(BigDecimal.valueOf(numFacturas), 2, RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+
+            if (lblKpiCompTotal != null) {
+                lblKpiCompTotal.setText("S/ " + totalGastado.setScale(2, RoundingMode.HALF_UP));
+            }
+            if (lblKpiCompFacturas != null) {
+                lblKpiCompFacturas.setText(String.valueOf(numFacturas));
+            }
+            if (lblKpiCompPromedio != null) {
+                lblKpiCompPromedio.setText("S/ " + promedioFactura);
+            }
+
+            // 2. Gráfico 1: Área de Evolución del Gasto en Compras
+            if (chartComprasTiempo != null) {
+                chartComprasTiempo.getData().clear();
+                XYChart.Series<String, Number> seriesTiempo = new XYChart.Series<>();
+
+                if ("Hoy".equals(modoPeriodo)) {
+                    Map<Integer, BigDecimal> porHora = new TreeMap<>();
+                    for (int h = 7; h <= 22; h++) porHora.put(h, BigDecimal.ZERO);
+                    for (Compra c : comprasPeriodo) {
+                        if (c.getFechaCompra() != null) {
+                            int hora = c.getFechaCompra().getHour();
+                            porHora.put(hora, porHora.getOrDefault(hora, BigDecimal.ZERO).add(c.getTotal() != null ? c.getTotal() : BigDecimal.ZERO));
+                        }
+                    }
+                    porHora.forEach((h, tot) -> seriesTiempo.getData().add(new XYChart.Data<>(String.format("%02d:00", h), tot)));
+                } else {
+                    Map<LocalDate, BigDecimal> porDia = new TreeMap<>();
+                    LocalDate curr = inicio.toLocalDate();
+                    LocalDate endD = fin.toLocalDate();
+                    while (!curr.isAfter(endD)) {
+                        porDia.put(curr, BigDecimal.ZERO);
+                        curr = curr.plusDays(1);
+                    }
+                    for (Compra c : comprasPeriodo) {
+                        if (c.getFechaCompra() != null) {
+                            LocalDate d = c.getFechaCompra().toLocalDate();
+                            porDia.put(d, porDia.getOrDefault(d, BigDecimal.ZERO).add(c.getTotal() != null ? c.getTotal() : BigDecimal.ZERO));
+                        }
+                    }
+                    porDia.forEach((dia, tot) -> seriesTiempo.getData().add(new XYChart.Data<>(dia.format(DateTimeFormatter.ofPattern("dd/MM")), tot)));
+                }
+                chartComprasTiempo.getData().add(seriesTiempo);
+            }
+
+            // 3. Gráfico 2: Gasto por Proveedor y Proveedor Principal (KPI)
+            if (chartComprasPorProveedor != null) {
+                chartComprasPorProveedor.getData().clear();
+            }
+            List<Object[]> proveedores = compraRepository.findGastoPorProveedorEntreFechas(inicio, fin);
+            String provTop = "Ninguno";
+            BigDecimal montoTop = BigDecimal.ZERO;
+
+            for (int i = 0; i < proveedores.size(); i++) {
+                Object[] fila = proveedores.get(i);
+                String razonSocial = (String) fila[0];
+                BigDecimal suma = (BigDecimal) fila[1];
+                if (suma != null && suma.compareTo(BigDecimal.ZERO) > 0) {
+                    if (i == 0) {
+                        provTop = razonSocial != null ? razonSocial : "Sin especificar";
+                        montoTop = suma;
+                    }
+                    if (chartComprasPorProveedor != null) {
+                        chartComprasPorProveedor.getData().add(new PieChart.Data(
+                                (razonSocial != null ? razonSocial : "Sin especificar") + " (S/ " + suma.setScale(2, RoundingMode.HALF_UP) + ")",
+                                suma.doubleValue()
+                        ));
+                    }
+                }
+            }
+
+            if (lblKpiCompProveedorTop != null) {
+                lblKpiCompProveedorTop.setText(provTop);
+            }
+            if (lblKpiCompProveedorTopMonto != null) {
+                lblKpiCompProveedorTopMonto.setText("S/ " + montoTop.setScale(2, RoundingMode.HALF_UP) + " invertidos");
+            }
+
+            // 4. Gráfico 3: Top 5 Productos más Abastecidos (Unidades)
+            if (chartTopProductosComprados != null) {
+                chartTopProductosComprados.getData().clear();
+                XYChart.Series<String, Number> seriesProductos = new XYChart.Series<>();
+
+                List<Object[]> topProds = detalleCompraRepository.findTopProductosCompradosEntreFechas(inicio, fin);
+                int count = 0;
+                for (Object[] fila : topProds) {
+                    if (count >= 5) break;
+                    String nom = (String) fila[0];
+                    Number cantNum = (Number) fila[1];
+                    int cant = cantNum != null ? cantNum.intValue() : 0;
+
+                    String label = nom != null ? nom : "Producto";
+                    if (label.length() > 18) label = label.substring(0, 16) + "..";
+                    seriesProductos.getData().add(new XYChart.Data<>(label, cant));
+                    count++;
+                }
+                chartTopProductosComprados.getData().add(seriesProductos);
+            }
+
+            // 5. Tabla de Desglose de Mercadería Adquirida en el Período
+            if (tblResumenProductosComprados != null) {
+                List<Object[]> resumenProds = detalleCompraRepository.findResumenProductosCompradosEntreFechas(inicio, fin);
+                List<ResumenProductoCompradoDTO> lista = new ArrayList<>();
+                for (Object[] fila : resumenProds) {
+                    String cod = (String) fila[0];
+                    String nom = (String) fila[1];
+                    String prov = (String) fila[2];
+                    Number cantNum = (Number) fila[3];
+                    Long cant = cantNum != null ? cantNum.longValue() : 0L;
+                    BigDecimal tot = fila[4] instanceof BigDecimal ? (BigDecimal) fila[4] : BigDecimal.ZERO;
+
+                    lista.add(new ResumenProductoCompradoDTO(cod, nom, prov, cant, tot));
+                }
+                listaResumenComprados.setAll(lista);
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    @FXML
-    public void handleFiltrarComprasReporte() {
-        aplicarFiltroComprasReporte();
-    }
-
-    @FXML
-    public void handleLimpiarComprasReporte() {
-        if (txtFiltroComprasReporte != null) txtFiltroComprasReporte.clear();
-        if (dpFechaInicioCompReporte != null) dpFechaInicioCompReporte.setValue(null);
-        if (dpFechaFinCompReporte != null) dpFechaFinCompReporte.setValue(null);
-        aplicarFiltroComprasReporte();
-    }
-
-    private void aplicarFiltroComprasReporte() {
-        if (filteredComprasReporte == null) return;
-
-        String texto = txtFiltroComprasReporte != null && txtFiltroComprasReporte.getText() != null
-                ? txtFiltroComprasReporte.getText().trim().toLowerCase() : "";
-        LocalDate fechaInicio = dpFechaInicioCompReporte != null ? dpFechaInicioCompReporte.getValue() : null;
-        LocalDate fechaFin = dpFechaFinCompReporte != null ? dpFechaFinCompReporte.getValue() : null;
-
-        filteredComprasReporte.setPredicate(c -> {
-            if (c == null) return false;
-
-            if (!texto.isEmpty()) {
-                boolean matchComp = c.getNumeroComprobante() != null && c.getNumeroComprobante().toLowerCase().contains(texto);
-                boolean matchProv = c.getProveedor() != null && c.getProveedor().getRazonSocial() != null &&
-                        c.getProveedor().getRazonSocial().toLowerCase().contains(texto);
-                if (!matchComp && !matchProv) return false;
-            }
-
-            if (c.getFechaCompra() != null) {
-                LocalDate fComp = c.getFechaCompra().toLocalDate();
-                if (fechaInicio != null && fComp.isBefore(fechaInicio)) return false;
-                if (fechaFin != null && fComp.isAfter(fechaFin)) return false;
-            }
-
-            return true;
-        });
-
-        BigDecimal totalSum = filteredComprasReporte.stream()
-                .map(Compra::getTotal)
-                .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        if (lblTotalComprasReporte != null) {
-            lblTotalComprasReporte.setText(String.format("Total Compras: S/ %.2f (%d facturas)",
-                    totalSum.doubleValue(), filteredComprasReporte.size()));
-        }
-    }
-
-    private void mostrarDetalleCompraReporte(Compra c) {
-        Dialog<Void> factDialog = new Dialog<>();
-        factDialog.setTitle("Comprobante de Compra — " + c.getNumeroComprobante());
-
-        ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.OK_DONE);
-        factDialog.getDialogPane().getButtonTypes().add(btnCerrar);
-
-        VBox root = new VBox(10);
-        root.setStyle("-fx-padding: 15px; -fx-background-color: #ffffff;");
-        root.setPrefWidth(550);
-
-        Label lblHeader = new Label(
-                "COMPROBANTE DE COMPRA A PROVEEDOR\n" +
-                "N° Comprobante: " + c.getNumeroComprobante() + "\n" +
-                "Proveedor: " + (c.getProveedor() != null ? c.getProveedor().getRazonSocial() + " (RUC: " + c.getProveedor().getRuc() + ")" : "N/A") + "\n" +
-                "Fecha: " + (c.getFechaCompra() != null ? c.getFechaCompra().format(dtf) : "") + "\n" +
-                "Recepcionado por: " + (c.getUsuario() != null ? c.getUsuario().getNombreCompleto() : "")
-        );
-        lblHeader.setStyle("-fx-font-weight: bold; -fx-text-fill: #1e293b;");
-
-        List<DetalleCompra> detalles = detalleCompraRepository.findByCompraId(c.getId());
-        TableView<DetalleCompra> tblDet = new TableView<>(FXCollections.observableArrayList(detalles));
-        tblDet.setPrefHeight(180);
-
-        TableColumn<DetalleCompra, String> colNom = new TableColumn<>("Producto");
-        colNom.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getProducto() != null ? d.getValue().getProducto().getNombre() : ""));
-        colNom.setPrefWidth(220);
-
-        TableColumn<DetalleCompra, Integer> colC = new TableColumn<>("Cantidad");
-        colC.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
-        colC.setPrefWidth(80);
-
-        TableColumn<DetalleCompra, BigDecimal> colP = new TableColumn<>("P. Unit (S/)");
-        colP.setCellValueFactory(new PropertyValueFactory<>("precioUnitario"));
-        colP.setPrefWidth(100);
-
-        TableColumn<DetalleCompra, BigDecimal> colS = new TableColumn<>("Subtotal (S/)");
-        colS.setCellValueFactory(new PropertyValueFactory<>("subtotal"));
-        colS.setPrefWidth(110);
-
-        tblDet.getColumns().addAll(colNom, colC, colP, colS);
-
-        Label lblTot = new Label("TOTAL FACTURADO: S/ " + (c.getTotal() != null ? c.getTotal().setScale(2, RoundingMode.HALF_UP) : "0.00"));
-        lblTot.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #15803d; -fx-alignment: CENTER_RIGHT;");
-
-        root.getChildren().addAll(lblHeader, new Separator(), tblDet, lblTot);
-        factDialog.getDialogPane().setContent(root);
-        factDialog.showAndWait();
     }
 
     private void mostrarTicketHistorico(Venta v) {
@@ -923,7 +1023,7 @@ public class ReportesViewController {
 
             handleActualizarDashboard();
 
-            cargarComprasReporte();
+            handleActualizarDashboardCompras();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -943,6 +1043,29 @@ public class ReportesViewController {
 
         public String getNombre() { return nombre; }
         public Long getTickets() { return tickets; }
+        public BigDecimal getTotal() { return total; }
+    }
+
+    // DTO interno para tabla de desglose de compras por producto y proveedor
+    public static class ResumenProductoCompradoDTO {
+        private final String codigo;
+        private final String nombre;
+        private final String proveedor;
+        private final Long cantidad;
+        private final BigDecimal total;
+
+        public ResumenProductoCompradoDTO(String codigo, String nombre, String proveedor, Long cantidad, BigDecimal total) {
+            this.codigo = codigo != null ? codigo : "-";
+            this.nombre = nombre != null ? nombre : "-";
+            this.proveedor = proveedor != null ? proveedor : "-";
+            this.cantidad = cantidad != null ? cantidad : 0L;
+            this.total = total != null ? total : BigDecimal.ZERO;
+        }
+
+        public String getCodigo() { return codigo; }
+        public String getNombre() { return nombre; }
+        public String getProveedor() { return proveedor; }
+        public Long getCantidad() { return cantidad; }
         public BigDecimal getTotal() { return total; }
     }
 }

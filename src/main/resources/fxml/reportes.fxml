@@ -213,35 +213,110 @@
             </ScrollPane>
         </Tab>
 
-        <!-- PESTAÑA 4: Historial de Compras Realizadas a Proveedores -->
-        <Tab text="🚚 Historial de Compras a Proveedores">
-            <VBox spacing="14" style="-fx-padding: 15 0 0 0;">
-                <HBox alignment="CENTER_LEFT" spacing="10">
-                    <TextField fx:id="txtFiltroComprasReporte" promptText="Buscar por N° Comprobante o Proveedor..." prefWidth="270" styleClass="text-field"/>
-                    <Label text="Desde:" style="-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;"/>
-                    <DatePicker fx:id="dpFechaInicioCompReporte" prefWidth="135"/>
-                    <Label text="Hasta:" style="-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;"/>
-                    <DatePicker fx:id="dpFechaFinCompReporte" prefWidth="135"/>
-                    <Button text="🔍 Filtrar" onAction="#handleFiltrarComprasReporte" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
-                    <Button text="Limpiar" onAction="#handleLimpiarComprasReporte" style="-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
-                    <Region HBox.hgrow="ALWAYS"/>
-                    <Label fx:id="lblTotalComprasReporte" text="Total Compras: S/ 0.00" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0284c7;"/>
-                </HBox>
+        <!-- PESTAÑA 4: Dashboard Estadístico de Compras & Proveedores -->
+        <Tab text="🚚 Dashboard de Compras &amp; Proveedores">
+            <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-padding: 10 0 0 0;">
+                <VBox spacing="16">
+                    <!-- Barra de filtros del Dashboard de Compras -->
+                    <HBox alignment="CENTER_LEFT" spacing="12" styleClass="card-box" style="-fx-padding: 12 16;">
+                        <Label text="Periodo:" style="-fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                        <ComboBox fx:id="cbDashCompPeriodo" prefWidth="150"/>
 
-                <TableView fx:id="tblComprasReporte" VBox.vgrow="ALWAYS" styleClass="table-view">
-                    <columns>
-                        <TableColumn fx:id="colRepCompNumero" text="N° Comprobante" prefWidth="150"/>
-                        <TableColumn fx:id="colRepCompProveedor" text="Proveedor" prefWidth="250"/>
-                        <TableColumn fx:id="colRepCompFecha" text="Fecha de Compra" prefWidth="160"/>
-                        <TableColumn fx:id="colRepCompUsuario" text="Registrado Por" prefWidth="160"/>
-                        <TableColumn fx:id="colRepCompTotal" text="Total Compra (S/)" prefWidth="130"/>
-                        <TableColumn fx:id="colRepCompAccion" text="Acción" prefWidth="120" style="-fx-alignment: CENTER;"/>
-                    </columns>
-                    <columnResizePolicy>
-                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
-                    </columnResizePolicy>
-                </TableView>
-            </VBox>
+                        <HBox fx:id="boxDashCompMesAnio" spacing="8" alignment="CENTER_LEFT">
+                            <Label text="Mes:" style="-fx-text-fill: #64748b;"/>
+                            <ComboBox fx:id="cbDashCompMes" prefWidth="130"/>
+                            <Label text="Año:" style="-fx-text-fill: #64748b;"/>
+                            <ComboBox fx:id="cbDashCompAnio" prefWidth="90"/>
+                        </HBox>
+
+                        <Button text="🔄 Generar Métricas" onAction="#handleActualizarDashboardCompras" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="lblDashCompPeriodoActivo" text="Visualizando: Hoy" style="-fx-text-fill: #0284c7; -fx-font-weight: bold;"/>
+                    </HBox>
+
+                    <!-- Tarjetas KPI del Periodo de Compras -->
+                    <HBox spacing="14">
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" spacing="4" style="-fx-border-left-color: #dc2626; -fx-border-left-width: 4px;">
+                            <Label text="GASTO TOTAL EN COMPRAS" style="-fx-font-size: 11px; -fx-text-fill: #64748b; -fx-font-weight: bold;"/>
+                            <Label fx:id="lblKpiCompTotal" text="S/ 0.00" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #dc2626;"/>
+                            <Label text="Inversión total en mercadería" style="-fx-font-size: 11px; -fx-text-fill: #94a3b8;"/>
+                        </VBox>
+
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" spacing="4" style="-fx-border-left-color: #0284c7; -fx-border-left-width: 4px;">
+                            <Label text="FACTURAS / COMPRAS" style="-fx-font-size: 11px; -fx-text-fill: #64748b; -fx-font-weight: bold;"/>
+                            <Label fx:id="lblKpiCompFacturas" text="0" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #0284c7;"/>
+                            <Label text="Comprobantes procesados" style="-fx-font-size: 11px; -fx-text-fill: #94a3b8;"/>
+                        </VBox>
+
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" spacing="4" style="-fx-border-left-color: #f59e0b; -fx-border-left-width: 4px;">
+                            <Label text="GASTO PROMEDIO POR COMPRA" style="-fx-font-size: 11px; -fx-text-fill: #64748b; -fx-font-weight: bold;"/>
+                            <Label fx:id="lblKpiCompPromedio" text="S/ 0.00" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #f59e0b;"/>
+                            <Label text="Promedio por factura" style="-fx-font-size: 11px; -fx-text-fill: #94a3b8;"/>
+                        </VBox>
+
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" spacing="4" style="-fx-border-left-color: #10b981; -fx-border-left-width: 4px;">
+                            <Label text="PROVEEDOR PRINCIPAL" style="-fx-font-size: 11px; -fx-text-fill: #64748b; -fx-font-weight: bold;"/>
+                            <Label fx:id="lblKpiCompProveedorTop" text="Ninguno" style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #10b981;"/>
+                            <Label fx:id="lblKpiCompProveedorTopMonto" text="S/ 0.00 invertidos" style="-fx-font-size: 11px; -fx-text-fill: #94a3b8;"/>
+                        </VBox>
+                    </HBox>
+
+                    <!-- Fila de Gráficos 1 y 2 de Compras -->
+                    <HBox spacing="14">
+                        <!-- Gráfico de Tendencia de Compras -->
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="540" prefHeight="330">
+                            <Label text="Evolución del Gasto en Compras en el Tiempo" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                            <AreaChart fx:id="chartComprasTiempo" VBox.vgrow="ALWAYS" legendVisible="false">
+                                <xAxis>
+                                    <CategoryAxis label="Tiempo / Rango" fx:id="axisTiempoComp"/>
+                                </xAxis>
+                                <yAxis>
+                                    <NumberAxis label="Gasto en Soles (S/)" fx:id="axisMontoComp"/>
+                                </yAxis>
+                            </AreaChart>
+                        </VBox>
+
+                        <!-- Gráfico de Gasto por Proveedor -->
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="380" prefHeight="330">
+                            <Label text="Distribución del Gasto por Proveedor" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                            <PieChart fx:id="chartComprasPorProveedor" VBox.vgrow="ALWAYS"/>
+                        </VBox>
+                    </HBox>
+
+                    <!-- Fila 3: Top Productos Comprados y Tabla Detalle de Mercadería -->
+                    <HBox spacing="14">
+                        <!-- Gráfico 3: Top Productos Comprados -->
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="480" prefHeight="300">
+                            <Label text="Top 5 Productos más Abastecidos (Unidades)" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                            <BarChart fx:id="chartTopProductosComprados" VBox.vgrow="ALWAYS" legendVisible="false">
+                                <xAxis>
+                                    <CategoryAxis label="Producto" fx:id="axisProductosComp"/>
+                                </xAxis>
+                                <yAxis>
+                                    <NumberAxis label="Unidades Compradas" fx:id="axisUnidadesComp"/>
+                                </yAxis>
+                            </BarChart>
+                        </VBox>
+
+                        <!-- Tabla: Desglose de Mercadería Adquirida -->
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="440" prefHeight="300" spacing="10">
+                            <Label text="Desglose de Mercadería Adquirida en el Período" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                            <TableView fx:id="tblResumenProductosComprados" VBox.vgrow="ALWAYS" styleClass="table-view">
+                                <columns>
+                                    <TableColumn fx:id="colResCod" text="Código" prefWidth="85"/>
+                                    <TableColumn fx:id="colResNom" text="Producto" prefWidth="150"/>
+                                    <TableColumn fx:id="colResProv" text="Proveedor" prefWidth="130"/>
+                                    <TableColumn fx:id="colResCant" text="Cant." prefWidth="60"/>
+                                    <TableColumn fx:id="colResTotal" text="Total (S/)" prefWidth="85"/>
+                                </columns>
+                                <columnResizePolicy>
+                                    <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                                </columnResizePolicy>
+                            </TableView>
+                        </VBox>
+                    </HBox>
+                </VBox>
+            </ScrollPane>
         </Tab>
 
     </TabPane>
