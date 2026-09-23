@@ -34,6 +34,15 @@ public class MovimientoInventarioServiceImpl implements IMovimientoInventarioSer
     @Override
     @Transactional
     public MovimientoInventario registrarMovimiento(Long productoId, Long usuarioId, TipoMovimiento tipo, Integer cantidad, String motivo, pe.edu.utp.Grupo06.model.Compra compra, pe.edu.utp.Grupo06.model.Venta venta) {
+
+        if (cantidad == null || cantidad < 0) {
+            throw new RuntimeException("La cantidad no puede ser negativa");
+        }
+
+        if (tipo != TipoMovimiento.AJUSTE && cantidad == 0) {
+            throw new RuntimeException("La cantidad debe ser mayor a 0");
+        }
+
         Producto producto = productoRepository.findById(productoId)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productoId));
 

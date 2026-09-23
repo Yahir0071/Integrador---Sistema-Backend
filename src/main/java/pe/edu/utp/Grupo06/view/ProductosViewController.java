@@ -396,6 +396,7 @@ public class ProductosViewController {
                     Producto actualizado = new Producto();
                     actualizado.setCodigo(p.getCodigo());
                     actualizado.setNombre(txtNom.getText().trim());
+                    actualizado.setDescripcion(p.getDescripcion());
                     actualizado.setPrecioCompra(new BigDecimal(txtPCompra.getText().trim()));
                     actualizado.setPrecioVenta(new BigDecimal(txtPVenta.getText().trim()));
                     actualizado.setStockActual(p.getStockActual());

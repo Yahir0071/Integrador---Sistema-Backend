@@ -71,18 +71,16 @@ public class VentaController {
     @GetMapping("/reporte/mayor-rotacion")
     public ResponseEntity<List<ProductoRotacionDTO>> reporteMayorRotacion() {
         List<Object[]> resultados = ventaService.reporteMayorRotacion();
-        List<ProductoRotacionDTO> reporte = resultados.stream().map(fila -> {
-            Producto p = (Producto) fila[0];
-            Long totalCantidad = ((Number) fila[1]).longValue();
-            BigDecimal totalRecaudado = (BigDecimal) fila[2];
-            return new ProductoRotacionDTO(
-                    p.getId(),
-                    p.getNombre(),
-                    p.getCodigo(),
-                    totalCantidad,
-                    totalRecaudado
-            );
-        }).collect(Collectors.toList());
+
+        List<ProductoRotacionDTO> reporte = resultados.stream().map(fila ->
+                new ProductoRotacionDTO(
+                        ((Number) fila[0]).longValue(), // ID del producto
+                        (String) fila[2],               // Nombre
+                        (String) fila[1],               // Código
+                        ((Number) fila[3]).longValue(), // Cantidad vendida
+                        (BigDecimal) fila[4]            // Total recaudado
+                )
+        ).collect(Collectors.toList());
 
         return ResponseEntity.ok(reporte);
     }
