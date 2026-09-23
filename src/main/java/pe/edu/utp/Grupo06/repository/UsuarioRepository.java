@@ -25,4 +25,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     @EntityGraph(attributePaths = {"rol"})
     @org.springframework.data.jpa.repository.Query("SELECT u FROM Usuario u")
     List<Usuario> findAllConRol();
+
+    long countByRolNombreAndActivoTrue(pe.edu.utp.Grupo06.model.enums.RolNombre nombre);
 }

@@ -27,4 +27,8 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     @EntityGraph(attributePaths = {"categoria", "proveedor"})
     @Query("SELECT p FROM Producto p WHERE p.stockActual <= p.stockMinimo AND p.estado = true")
     List<Producto> findProductosConBajoStock();
+
+    long countByCategoriaIdAndEstadoTrue(Long categoriaId);
+
+    long countByProveedorIdAndEstadoTrue(Long proveedorId);
 }

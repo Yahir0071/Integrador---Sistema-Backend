@@ -59,6 +59,9 @@
                     <Label fx:id="lblUsuarioRol" text="Rol" style="-fx-text-fill: #94a3b8; -fx-font-size: 11px;"/>
                 </VBox>
                 
+                <Button text="👤  Mi Perfil" onAction="#handleAbrirPerfil" maxWidth="Infinity"
+                        style="-fx-background-color: #1e293b; -fx-text-fill: #38bdf8; -fx-font-weight: bold; -fx-font-size: 12px; -fx-cursor: hand; -fx-background-radius: 6px; -fx-padding: 7 10;"/>
+
                 <Button text="🚪  Cerrar Sesión" onAction="#handleCerrarSesion" maxWidth="Infinity"
                         styleClass="btn, btn-danger" style="-fx-font-size: 12px; -fx-cursor: hand; -fx-background-radius: 6px;"/>
             </VBox>

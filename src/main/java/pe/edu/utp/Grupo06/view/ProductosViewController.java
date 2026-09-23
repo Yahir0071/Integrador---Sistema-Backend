@@ -424,6 +424,15 @@ public class ProductosViewController {
     }
 
     private void eliminarProducto(Producto p) {
+        if (p.getStockActual() != null && p.getStockActual() > 0) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("No se puede dar de baja");
+            alert.setHeaderText("El producto cuenta con existencias activas (" + p.getStockActual() + " " + (p.getUnidadMedida() != null ? p.getUnidadMedida() : "unidades") + ")");
+            alert.setContentText("Para mantener la integridad contable, no se puede desactivar un producto con stock mayor a cero.\n\nPrimero debe liquidar el stock mediante ventas o registrar un movimiento de 'AJUSTE' a cero en el inventario.");
+            alert.showAndWait();
+            return;
+        }
+
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Confirmar eliminación");
         confirm.setHeaderText("¿Seguro que desea dar de baja al producto " + p.getNombre() + "?");
@@ -431,8 +440,12 @@ public class ProductosViewController {
 
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                productoService.eliminar(p.getId());
-                cargarProductos();
+                try {
+                    productoService.eliminar(p.getId());
+                    cargarProductos();
+                } catch (Exception ex) {
+                    mostrarAlertaError("Error al dar de baja", ex.getMessage());
+                }
             }
         });
     }

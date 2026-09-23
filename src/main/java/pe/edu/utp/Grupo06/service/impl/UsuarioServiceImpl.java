@@ -93,8 +93,46 @@ public class UsuarioServiceImpl implements IUsuarioService {
     @Transactional
     public void cambiarEstado(Long id, Boolean activo) {
         Usuario usuario = buscarPorId(id);
+        if (Boolean.FALSE.equals(activo)) {
+            if (usuario.getRol() != null && usuario.getRol().getNombre() == pe.edu.utp.Grupo06.model.enums.RolNombre.ADMINISTRADOR) {
+                long adminsActivos = usuarioRepository.countByRolNombreAndActivoTrue(pe.edu.utp.Grupo06.model.enums.RolNombre.ADMINISTRADOR);
+                if (adminsActivos <= 1) {
+                    throw new RuntimeException("No se puede desactivar al único Administrador activo del sistema. Debe existir al menos un administrador habilitado.");
+                }
+            }
+        }
         usuario.setActivo(activo);
         usuarioRepository.save(usuario);
+    }
+
+    @Override
+    @Transactional
+    public Usuario actualizarPerfil(Long id, String nombreCompleto, String email, String telefono, String passwordActual, String nuevaPassword) {
+        Usuario usuario = buscarPorId(id);
+
+        if (nombreCompleto != null && !nombreCompleto.isBlank()) {
+            usuario.setNombreCompleto(nombreCompleto.trim());
+        }
+        if (email != null && !email.isBlank()) {
+            usuario.setEmail(email.trim());
+        }
+        if (telefono != null) {
+            usuario.setTelefono(telefono.trim());
+        }
+
+        if (nuevaPassword != null && !nuevaPassword.isBlank()) {
+            if (passwordActual == null || passwordActual.isBlank()) {
+                throw new RuntimeException("Debe ingresar su contraseña actual para establecer una nueva.");
+            }
+            if (!passwordEncoder.matches(passwordActual, usuario.getPassword())) {
+                throw new RuntimeException("La contraseña actual ingresada es incorrecta.");
+            }
+            validarPasswordEnTextoPlano(nuevaPassword);
+            usuario.setPassword(passwordEncoder.encode(nuevaPassword));
+        }
+
+        validador.validar(usuario);
+        return usuarioRepository.save(usuario);
     }
 
     @Override

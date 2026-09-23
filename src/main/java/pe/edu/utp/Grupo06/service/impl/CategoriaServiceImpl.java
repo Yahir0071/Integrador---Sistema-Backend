@@ -19,6 +19,9 @@ public class CategoriaServiceImpl implements ICategoriaService {
     @Autowired
     private Validador validador;
 
+    @Autowired
+    private pe.edu.utp.Grupo06.repository.ProductoRepository productoRepository;
+
     @Override
     @Transactional(readOnly = true)
     public List<Categoria> listarTodas() {
@@ -49,6 +52,12 @@ public class CategoriaServiceImpl implements ICategoriaService {
     @Transactional
     public Categoria actualizar(Long id, Categoria categoria) {
         Categoria existente = buscarPorId(id);
+        if (Boolean.FALSE.equals(categoria.getEstado()) && Boolean.TRUE.equals(existente.getEstado())) {
+            long activos = productoRepository.countByCategoriaIdAndEstadoTrue(id);
+            if (activos > 0) {
+                throw new RuntimeException("No se puede desactivar la categoría porque tiene " + activos + " producto(s) activo(s) asociado(s). Reasigne o desactive primero los productos.");
+            }
+        }
         existente.setNombre(categoria.getNombre());
         existente.setDescripcion(categoria.getDescripcion());
         existente.setEstado(categoria.getEstado());
@@ -59,6 +68,10 @@ public class CategoriaServiceImpl implements ICategoriaService {
     @Override
     @Transactional
     public void eliminar(Long id) {
+        long activos = productoRepository.countByCategoriaIdAndEstadoTrue(id);
+        if (activos > 0) {
+            throw new RuntimeException("No se puede dar de baja la categoría porque tiene " + activos + " producto(s) activo(s) asociado(s). Reasigne o desactive primero los productos.");
+        }
         Categoria categoria = buscarPorId(id);
         categoria.setEstado(false); // Eliminación lógica
         categoriaRepository.save(categoria);

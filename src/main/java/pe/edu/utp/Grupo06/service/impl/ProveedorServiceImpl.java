@@ -58,10 +58,19 @@ public class ProveedorServiceImpl implements IProveedorService {
         return proveedorRepository.save(proveedor);
     }
 
+    @Autowired
+    private pe.edu.utp.Grupo06.repository.ProductoRepository productoRepository;
+
     @Override
     @Transactional
     public Proveedor actualizar(Long id, Proveedor proveedor) {
         Proveedor existente = buscarPorId(id);
+        if (Boolean.FALSE.equals(proveedor.getEstado()) && Boolean.TRUE.equals(existente.getEstado())) {
+            long activos = productoRepository.countByProveedorIdAndEstadoTrue(id);
+            if (activos > 0) {
+                throw new RuntimeException("No se puede desactivar el proveedor porque tiene " + activos + " producto(s) activo(s) vinculado(s).");
+            }
+        }
         existente.setRazonSocial(proveedor.getRazonSocial());
         existente.setRuc(proveedor.getRuc());
         existente.setTelefono(proveedor.getTelefono());
@@ -75,6 +84,10 @@ public class ProveedorServiceImpl implements IProveedorService {
     @Override
     @Transactional
     public void eliminar(Long id) {
+        long activos = productoRepository.countByProveedorIdAndEstadoTrue(id);
+        if (activos > 0) {
+            throw new RuntimeException("No se puede dar de baja el proveedor porque tiene " + activos + " producto(s) activo(s) vinculado(s).");
+        }
         Proveedor proveedor = buscarPorId(id);
         proveedor.setEstado(false);
         proveedorRepository.save(proveedor);

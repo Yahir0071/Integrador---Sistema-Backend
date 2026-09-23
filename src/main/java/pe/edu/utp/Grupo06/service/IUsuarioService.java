@@ -21,4 +21,6 @@ public interface IUsuarioService {
      *                          contraseña no coincide.
      */
     Usuario validarCredenciales(String username, String password);
+
+    Usuario actualizarPerfil(Long id, String nombreCompleto, String email, String telefono, String passwordActual, String nuevaPassword);
 }

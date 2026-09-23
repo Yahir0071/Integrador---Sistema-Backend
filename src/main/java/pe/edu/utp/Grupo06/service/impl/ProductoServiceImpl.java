@@ -105,6 +105,11 @@ public class ProductoServiceImpl implements IProductoService {
     @Transactional
     public void eliminar(Long id) {
         Producto producto = buscarPorId(id);
+        if (producto.getStockActual() != null && producto.getStockActual() > 0) {
+            throw new RuntimeException("No se puede dar de baja el producto '" + producto.getNombre()
+                    + "' porque cuenta con " + producto.getStockActual()
+                    + " unidades en stock. Primero debe liquidar o ajustar el stock a 0.");
+        }
         producto.setEstado(false);
         productoRepository.save(producto);
     }
