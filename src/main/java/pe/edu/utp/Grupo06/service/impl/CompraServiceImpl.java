@@ -59,18 +59,21 @@ public class CompraServiceImpl implements ICompraService {
         }
 
         compra.setTotal(totalCalculado);
+        Compra compraGuardada = compraRepository.save(compra);
 
-        for (DetalleCompra detalle : compra.getDetalles()) {
+        for (DetalleCompra detalle : compraGuardada.getDetalles()) {
             movimientoService.registrarMovimiento(
                     detalle.getProducto().getId(),
-                    compra.getUsuario().getId(),
+                    compraGuardada.getUsuario().getId(),
                     TipoMovimiento.ENTRADA,
                     detalle.getCantidad(),
-                    "Compra de proveedor con comprobante: " + compra.getNumeroComprobante()
+                    "Compra de proveedor con comprobante: " + compraGuardada.getNumeroComprobante(),
+                    compraGuardada,
+                    null
             );
         }
 
-        return compraRepository.save(compra);
+        return compraGuardada;
     }
 
     @Override

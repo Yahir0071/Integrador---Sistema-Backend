@@ -7,7 +7,16 @@ import pe.edu.utp.Grupo06.model.enums.MetodoPago;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "pagos")
+@Table(
+    name = "pagos",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_pagos_venta_metodo", columnNames = {"venta_id", "metodo_pago"})
+    },
+    indexes = {
+        @Index(name = "idx_pagos_venta", columnList = "venta_id")
+    }
+)
+@org.hibernate.annotations.Check(constraints = "monto > 0")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

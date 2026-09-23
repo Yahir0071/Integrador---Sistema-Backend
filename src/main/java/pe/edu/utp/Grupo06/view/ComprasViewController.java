@@ -19,8 +19,11 @@ import pe.edu.utp.Grupo06.service.IProductoService;
 import pe.edu.utp.Grupo06.service.IProveedorService;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 
 @Component
 public class ComprasViewController {
@@ -35,6 +38,18 @@ public class ComprasViewController {
     private IProductoService productoService;
 
     @FXML
+    private TextField txtFiltroCompra;
+
+    @FXML
+    private DatePicker dpFechaInicio;
+
+    @FXML
+    private DatePicker dpFechaFin;
+
+    @FXML
+    private Label lblTotalCompras;
+
+    @FXML
     private TableView<Compra> tblCompras;
 
     @FXML
@@ -44,7 +59,7 @@ public class ComprasViewController {
     private TableColumn<Compra, String> colProveedor;
 
     @FXML
-    private TableColumn<Compra, String> colFecha;
+    private TableColumn<Compra, LocalDateTime> colFecha;
 
     @FXML
     private TableColumn<Compra, String> colUsuario;
@@ -59,6 +74,7 @@ public class ComprasViewController {
     private pe.edu.utp.Grupo06.repository.DetalleCompraRepository detalleCompraRepository;
 
     private ObservableList<Compra> listaCompras = FXCollections.observableArrayList();
+    private javafx.collections.transformation.FilteredList<Compra> filteredCompras;
     private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     @FXML
@@ -73,9 +89,19 @@ public class ComprasViewController {
                 new SimpleStringProperty(cellData.getValue().getProveedor() != null ?
                         cellData.getValue().getProveedor().getRazonSocial() : ""));
 
-        colFecha.setCellValueFactory(cellData ->
-                new SimpleStringProperty(cellData.getValue().getFechaCompra() != null ?
-                        cellData.getValue().getFechaCompra().format(formatter) : ""));
+        // Ordenamiento cronológico real
+        colFecha.setCellValueFactory(new PropertyValueFactory<>("fechaCompra"));
+        colFecha.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(LocalDateTime date, boolean empty) {
+                super.updateItem(date, empty);
+                if (empty || date == null) {
+                    setText(null);
+                } else {
+                    setText(date.format(formatter));
+                }
+            }
+        });
 
         colUsuario.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().getUsuario() != null ?
@@ -107,7 +133,56 @@ public class ComprasViewController {
             }
         });
 
-        tblCompras.setItems(listaCompras);
+        filteredCompras = new javafx.collections.transformation.FilteredList<>(listaCompras, p -> true);
+        javafx.collections.transformation.SortedList<Compra> sorted = new javafx.collections.transformation.SortedList<>(filteredCompras);
+        sorted.comparatorProperty().bind(tblCompras.comparatorProperty());
+        tblCompras.setItems(sorted);
+
+        txtFiltroCompra.textProperty().addListener((obs, old, n) -> aplicarFiltroCompras());
+    }
+
+    @FXML
+    public void handleFiltrarCompras() {
+        aplicarFiltroCompras();
+    }
+
+    @FXML
+    public void handleLimpiarFiltroCompras() {
+        txtFiltroCompra.clear();
+        dpFechaInicio.setValue(null);
+        dpFechaFin.setValue(null);
+        aplicarFiltroCompras();
+    }
+
+    private void aplicarFiltroCompras() {
+        String texto = txtFiltroCompra.getText() != null ? txtFiltroCompra.getText().trim().toLowerCase() : "";
+        LocalDate fIni = dpFechaInicio.getValue();
+        LocalDate fFin = dpFechaFin.getValue();
+
+        filteredCompras.setPredicate(c -> {
+            if (c == null) return false;
+
+            if (!texto.isEmpty()) {
+                boolean matchComp = c.getNumeroComprobante() != null && c.getNumeroComprobante().toLowerCase().contains(texto);
+                boolean matchProv = c.getProveedor() != null && c.getProveedor().getRazonSocial() != null &&
+                        c.getProveedor().getRazonSocial().toLowerCase().contains(texto);
+                if (!matchComp && !matchProv) return false;
+            }
+
+            if (c.getFechaCompra() != null) {
+                LocalDate fComp = c.getFechaCompra().toLocalDate();
+                if (fIni != null && fComp.isBefore(fIni)) return false;
+                if (fFin != null && fComp.isAfter(fFin)) return false;
+            }
+
+            return true;
+        });
+
+        BigDecimal total = filteredCompras.stream()
+                .map(Compra::getTotal)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        lblTotalCompras.setText(String.format("Total Compras: S/ %.2f", total));
     }
 
     private void mostrarDetalleFactura(Compra c) {
@@ -165,6 +240,7 @@ public class ComprasViewController {
         try {
             List<Compra> compras = compraService.listarCompras();
             listaCompras.setAll(compras);
+            aplicarFiltroCompras();
         } catch (Exception e) {
             e.printStackTrace();
         }

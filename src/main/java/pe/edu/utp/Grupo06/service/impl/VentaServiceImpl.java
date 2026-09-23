@@ -89,20 +89,23 @@ public class VentaServiceImpl implements IVentaService {
                     ") no coincide con el total de la venta (" + totalCalculado + ")");
         }
 
-        // Recién aquí, con la venta validada por completo, se registran los
-        // movimientos de salida de stock (si algo falla antes de este punto,
-        // no se descuenta stock de nada).
-        for (DetalleVenta detalle : venta.getDetalles()) {
+        Venta ventaGuardada = ventaRepository.save(venta);
+
+        // Recién aquí, con la venta validada y guardada, se registran los
+        // movimientos de salida de stock asociados directamente a la venta.
+        for (DetalleVenta detalle : ventaGuardada.getDetalles()) {
             movimientoService.registrarMovimiento(
                     detalle.getProducto().getId(),
-                    venta.getUsuario().getId(),
+                    ventaGuardada.getUsuario().getId(),
                     TipoMovimiento.SALIDA,
                     detalle.getCantidad(),
-                    "Venta con ticket: " + venta.getNumeroTicket()
+                    "Venta con ticket: " + ventaGuardada.getNumeroTicket(),
+                    null,
+                    ventaGuardada
             );
         }
 
-        return ventaRepository.save(venta);
+        return ventaGuardada;
     }
 
     @Override
@@ -154,11 +157,33 @@ public class VentaServiceImpl implements IVentaService {
                     TipoMovimiento.ENTRADA,
                     detalle.getCantidad(),
                     "Anulación de venta con ticket: " + venta.getNumeroTicket() +
-                            (motivo != null && !motivo.isBlank() ? " — Motivo: " + motivo : "")
+                            (motivo != null && !motivo.isBlank() ? " — Motivo: " + motivo : ""),
+                    null,
+                    venta
             );
         }
 
         venta.setEstado(EstadoVenta.ANULADA);
         return ventaRepository.save(venta);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String generarSiguienteNumeroTicket() {
+        String prefijo = "B001-";
+        java.util.Optional<Venta> ultimaVenta = ventaRepository.findTopByNumeroTicketStartingWithOrderByIdDesc(prefijo);
+        if (ultimaVenta.isEmpty()) {
+            return prefijo + "00000001";
+        }
+
+        String ultimoTicket = ultimaVenta.get().getNumeroTicket();
+        try {
+            String numeroStr = ultimoTicket.substring(prefijo.length());
+            long correlativo = Long.parseLong(numeroStr);
+            return String.format("%s%08d", prefijo, correlativo + 1);
+        } catch (Exception e) {
+            long fallback = ultimaVenta.get().getId() != null ? ultimaVenta.get().getId() + 1 : 1;
+            return String.format("%s%08d", prefijo, fallback);
+        }
     }
 }

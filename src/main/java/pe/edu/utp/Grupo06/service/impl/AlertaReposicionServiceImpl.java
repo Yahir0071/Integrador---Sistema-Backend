@@ -77,6 +77,12 @@ public class AlertaReposicionServiceImpl implements IAlertaReposicionService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<AlertaReposicion> listarTodas() {
+        return alertaRepository.findAllOrderByFechaGeneracionDesc();
+    }
+
+    @Override
     @Transactional
     public AlertaReposicion atenderAlerta(Long alertaId, String observacion) {
         AlertaReposicion alerta = alertaRepository.findById(alertaId)

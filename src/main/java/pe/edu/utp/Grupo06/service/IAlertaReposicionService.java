@@ -8,6 +8,7 @@ public interface IAlertaReposicionService {
     void verificarYGenerarAlerta(Long productoId);
     List<AlertaReposicion> listarPendientes();
     List<AlertaReposicion> listarPorEstado(EstadoAlerta estado);
+    List<AlertaReposicion> listarTodas();
     AlertaReposicion atenderAlerta(Long alertaId, String observacion);
     AlertaReposicion descartarAlerta(Long alertaId);
 }

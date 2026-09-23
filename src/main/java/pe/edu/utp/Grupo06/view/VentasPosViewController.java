@@ -218,7 +218,7 @@ public class VentasPosViewController {
             }
 
             Venta venta = new Venta();
-            venta.setNumeroTicket("TCK-" + System.currentTimeMillis() % 1000000);
+            venta.setNumeroTicket(ventaService.generarSiguienteNumeroTicket());
             venta.setUsuario(LoginViewController.getUsuarioSesion());
 
             List<DetalleVenta> detalles = new ArrayList<>(listaCarrito);

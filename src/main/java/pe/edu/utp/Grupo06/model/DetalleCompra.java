@@ -9,7 +9,14 @@ import lombok.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "detalles_compra")
+@Table(
+    name = "detalles_compra",
+    indexes = {
+        @Index(name = "idx_detalles_compra_compra", columnList = "compra_id"),
+        @Index(name = "idx_detalles_compra_producto", columnList = "producto_id")
+    }
+)
+@org.hibernate.annotations.Check(constraints = "cantidad > 0 AND precio_unitario >= 0 AND subtotal >= 0")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

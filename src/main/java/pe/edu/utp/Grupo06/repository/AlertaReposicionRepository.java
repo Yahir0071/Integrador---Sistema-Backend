@@ -17,5 +17,7 @@ public interface AlertaReposicionRepository extends JpaRepository<AlertaReposici
     List<AlertaReposicion> findByProductoIdOrderByFechaGeneracionDesc(Long productoId);
     boolean existsByProductoIdAndEstado(Long productoId, EstadoAlerta estado);
 
-
+    @EntityGraph(attributePaths = {"producto"})
+    @org.springframework.data.jpa.repository.Query("SELECT a FROM AlertaReposicion a ORDER BY a.fechaGeneracion DESC")
+    List<AlertaReposicion> findAllOrderByFechaGeneracionDesc();
 }

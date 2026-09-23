@@ -21,6 +21,19 @@
                 styleClass="btn, btn-primary" style="-fx-font-weight: bold; -fx-cursor: hand;"/>
     </HBox>
 
+    <!-- Barra de Filtros y Búsqueda -->
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <TextField fx:id="txtFiltroCompra" promptText="Buscar por N° Comprobante o Proveedor..." prefWidth="280" styleClass="text-field"/>
+        <Label text="Desde:" style="-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;"/>
+        <DatePicker fx:id="dpFechaInicio" prefWidth="135"/>
+        <Label text="Hasta:" style="-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;"/>
+        <DatePicker fx:id="dpFechaFin" prefWidth="135"/>
+        <Button text="🔍 Filtrar" onAction="#handleFiltrarCompras" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+        <Button text="Limpiar" onAction="#handleLimpiarFiltroCompras" style="-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="lblTotalCompras" text="Total Compras: S/ 0.00" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0284c7;"/>
+    </HBox>
+
     <!-- Tabla de Compras Realizadas -->
     <TableView fx:id="tblCompras" VBox.vgrow="ALWAYS" styleClass="table-view">
         <columns>

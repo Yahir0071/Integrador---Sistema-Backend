@@ -8,7 +8,14 @@ import pe.edu.utp.Grupo06.model.enums.UnidadMedida;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "productos")
+@Table(
+    name = "productos",
+    indexes = {
+        @Index(name = "idx_producto_categoria", columnList = "categoria_id"),
+        @Index(name = "idx_producto_proveedor", columnList = "proveedor_id")
+    }
+)
+@org.hibernate.annotations.Check(constraints = "precio_compra >= 0 AND precio_venta > 0 AND stock_actual >= 0 AND stock_minimo >= 0")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -45,13 +52,16 @@ public class Producto {
     private BigDecimal precioVenta;
 
     @PositiveOrZero(message = "El stock actual no puede ser negativo")
+    @org.hibernate.annotations.ColumnDefault("0")
     @Column(name = "stock_actual", nullable = false)
     private Integer stockActual = 0;
 
     @PositiveOrZero(message = "El stock mínimo no puede ser negativo")
+    @org.hibernate.annotations.ColumnDefault("5")
     @Column(name = "stock_minimo", nullable = false)
     private Integer stockMinimo = 5;
 
+    @org.hibernate.annotations.ColumnDefault("true")
     @Column(nullable = false)
     private Boolean estado = true;
 

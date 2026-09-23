@@ -3,6 +3,7 @@ package pe.edu.utp.Grupo06.view;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -68,16 +69,22 @@ public class ProductosViewController {
     @FXML
     private TableColumn<Producto, Void> colAcciones;
 
-    private ObservableList<Producto> listaProductos = FXCollections.observableArrayList();
+    private final ObservableList<Producto> listaProductosBase = FXCollections.observableArrayList();
+    private FilteredList<Producto> filteredProductos;
 
     @FXML
     public void initialize() {
         configurarColumnas();
         cargarCategoriasFiltro();
-        cargarProductos();
 
-        txtBuscar.textProperty().addListener((obs, oldVal, newVal) -> filtrarProductos());
-        cbCategoriaFiltro.valueProperty().addListener((obs, oldVal, newVal) -> filtrarProductos());
+        filteredProductos = new FilteredList<>(listaProductosBase, p -> true);
+        tblProductos.setItems(filteredProductos);
+
+        txtBuscar.textProperty().addListener((obs, oldVal, newVal) -> aplicarFiltros());
+        cbCategoriaFiltro.valueProperty().addListener((obs, oldVal, newVal) -> aplicarFiltros());
+        chkSoloBajoStock.selectedProperty().addListener((obs, oldVal, newVal) -> aplicarFiltros());
+
+        cargarProductos();
     }
 
     private void configurarColumnas() {
@@ -116,12 +123,22 @@ public class ProductosViewController {
             }
         });
 
-        // Botón de eliminar / editar en acciones
+        // Botones claros de Editar y Eliminar en acciones
         colAcciones.setCellFactory(param -> new TableCell<>() {
-            private final Button btnEliminar = new Button("🗑️");
+            private final Button btnEditar = new Button("Editar");
+            private final Button btnEliminar = new Button("Eliminar");
+            private final HBox pane = new HBox(6, btnEditar, btnEliminar);
 
             {
-                btnEliminar.setStyle("-fx-background-color: #fee2e2; -fx-text-fill: #b91c1c; -fx-cursor: hand;");
+                btnEditar.setStyle("-fx-background-color: #e0f2fe; -fx-text-fill: #0284c7; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 4; -fx-font-size: 11px;");
+                btnEliminar.setStyle("-fx-background-color: #fee2e2; -fx-text-fill: #b91c1c; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 4; -fx-font-size: 11px;");
+                pane.setAlignment(Pos.CENTER);
+
+                btnEditar.setOnAction(event -> {
+                    Producto p = getTableView().getItems().get(getIndex());
+                    editarProducto(p);
+                });
+
                 btnEliminar.setOnAction(event -> {
                     Producto p = getTableView().getItems().get(getIndex());
                     eliminarProducto(p);
@@ -134,8 +151,6 @@ public class ProductosViewController {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    HBox pane = new HBox(btnEliminar);
-                    pane.setAlignment(Pos.CENTER);
                     setGraphic(pane);
                 }
             }
@@ -145,8 +160,8 @@ public class ProductosViewController {
     public void cargarProductos() {
         try {
             List<Producto> productos = productoService.listarActivos();
-            listaProductos.setAll(productos);
-            tblProductos.setItems(listaProductos);
+            listaProductosBase.setAll(productos);
+            aplicarFiltros();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -156,7 +171,7 @@ public class ProductosViewController {
         try {
             List<Categoria> categorias = categoriaService.listarActivas();
             cbCategoriaFiltro.getItems().setAll(categorias);
-            
+
             javafx.util.StringConverter<Categoria> converter = new javafx.util.StringConverter<>() {
                 @Override
                 public String toString(Categoria c) {
@@ -176,29 +191,37 @@ public class ProductosViewController {
 
     @FXML
     public void handleFiltroBajoStock() {
-        if (chkSoloBajoStock.isSelected()) {
-            List<Producto> bajoStock = productoService.listarConBajoStock();
-            listaProductos.setAll(bajoStock);
-            tblProductos.setItems(listaProductos);
-        } else {
-            cargarProductos();
-        }
+        aplicarFiltros();
     }
 
-    private void filtrarProductos() {
+    private void aplicarFiltros() {
         String texto = txtBuscar.getText() != null ? txtBuscar.getText().toLowerCase().trim() : "";
         Categoria categoriaSel = cbCategoriaFiltro.getValue();
+        boolean soloBajoStock = chkSoloBajoStock.isSelected();
 
-        List<Producto> filtrados = productoService.listarActivos().stream()
-                .filter(p -> texto.isEmpty() ||
-                        p.getNombre().toLowerCase().contains(texto) ||
-                        p.getCodigo().toLowerCase().contains(texto))
-                .filter(p -> categoriaSel == null ||
-                        (p.getCategoria() != null && p.getCategoria().getId().equals(categoriaSel.getId())))
-                .toList();
+        filteredProductos.setPredicate(p -> {
+            if (p == null) return false;
 
-        listaProductos.setAll(filtrados);
-        tblProductos.setItems(listaProductos);
+            if (!texto.isEmpty()) {
+                boolean matchNom = p.getNombre() != null && p.getNombre().toLowerCase().contains(texto);
+                boolean matchCod = p.getCodigo() != null && p.getCodigo().toLowerCase().contains(texto);
+                if (!matchNom && !matchCod) return false;
+            }
+
+            if (categoriaSel != null) {
+                if (p.getCategoria() == null || !p.getCategoria().getId().equals(categoriaSel.getId())) {
+                    return false;
+                }
+            }
+
+            if (soloBajoStock) {
+                if (p.getStockActual() == null || p.getStockMinimo() == null || p.getStockActual() > p.getStockMinimo()) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
     }
 
     @FXML
@@ -211,8 +234,7 @@ public class ProductosViewController {
         dialog.getDialogPane().getButtonTypes().addAll(btnGuardarType, ButtonType.CANCEL);
 
         VBox form = new VBox(10);
-        
-        // Generar sugerencia de código correlativo automático (RF01)
+
         long totalProds = productoService.listarTodos().size() + 1;
         String codigoSugerido = String.format("PROD-%04d", totalProds);
 
@@ -224,7 +246,7 @@ public class ProductosViewController {
         TextField txtPVenta = new TextField();
         txtPVenta.setPromptText("0.00");
         TextField txtStockMin = new TextField("5");
-        
+
         ComboBox<Categoria> cbCat = new ComboBox<>();
         cbCat.getItems().setAll(categoriaService.listarActivas());
         cbCat.setConverter(new javafx.util.StringConverter<>() {
@@ -309,6 +331,94 @@ public class ProductosViewController {
                 cargarProductos();
             } catch (Exception ex) {
                 mostrarAlertaError("Error al guardar", ex.getMessage());
+            }
+        });
+    }
+
+    private void editarProducto(Producto p) {
+        Dialog<Producto> dialog = new Dialog<>();
+        dialog.setTitle("Editar Producto — " + p.getCodigo());
+        dialog.setHeaderText("Modificar datos de: " + p.getNombre());
+
+        ButtonType btnGuardarType = new ButtonType("Guardar Cambios", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnGuardarType, ButtonType.CANCEL);
+
+        VBox form = new VBox(10);
+
+        TextField txtCod = new TextField(p.getCodigo());
+        txtCod.setDisable(true); // El código no se altera para conservar trazabilidad
+        TextField txtNom = new TextField(p.getNombre());
+        TextField txtPCompra = new TextField(p.getPrecioCompra() != null ? p.getPrecioCompra().toString() : "0.00");
+        TextField txtPVenta = new TextField(p.getPrecioVenta() != null ? p.getPrecioVenta().toString() : "0.00");
+        TextField txtStockMin = new TextField(p.getStockMinimo() != null ? p.getStockMinimo().toString() : "5");
+
+        ComboBox<Categoria> cbCat = new ComboBox<>();
+        cbCat.getItems().setAll(categoriaService.listarActivas());
+        cbCat.setConverter(new javafx.util.StringConverter<>() {
+            @Override
+            public String toString(Categoria c) {
+                return c != null ? c.getNombre() : "";
+            }
+
+            @Override
+            public Categoria fromString(String string) {
+                return null;
+            }
+        });
+        if (p.getCategoria() != null) {
+            for (Categoria c : cbCat.getItems()) {
+                if (c.getId().equals(p.getCategoria().getId())) {
+                    cbCat.setValue(c);
+                    break;
+                }
+            }
+        }
+
+        ComboBox<UnidadMedida> cbUnidad = new ComboBox<>();
+        cbUnidad.getItems().setAll(UnidadMedida.values());
+        cbUnidad.setValue(p.getUnidadMedida() != null ? p.getUnidadMedida() : UnidadMedida.UNIDAD);
+
+        form.getChildren().addAll(
+                new Label("Código (Inmutable):"), txtCod,
+                new Label("Nombre del Producto:"), txtNom,
+                new Label("Categoría:"), cbCat,
+                new Label("Precio Compra (S/):"), txtPCompra,
+                new Label("Precio Venta (S/):"), txtPVenta,
+                new Label("Stock Mínimo de Seguridad:"), txtStockMin,
+                new Label("Unidad de Medida:"), cbUnidad
+        );
+
+        dialog.getDialogPane().setContent(form);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == btnGuardarType) {
+                try {
+                    Producto actualizado = new Producto();
+                    actualizado.setCodigo(p.getCodigo());
+                    actualizado.setNombre(txtNom.getText().trim());
+                    actualizado.setPrecioCompra(new BigDecimal(txtPCompra.getText().trim()));
+                    actualizado.setPrecioVenta(new BigDecimal(txtPVenta.getText().trim()));
+                    actualizado.setStockActual(p.getStockActual());
+                    actualizado.setStockMinimo(Integer.parseInt(txtStockMin.getText().trim()));
+                    actualizado.setCategoria(cbCat.getValue());
+                    actualizado.setUnidadMedida(cbUnidad.getValue());
+                    actualizado.setProveedor(p.getProveedor());
+                    actualizado.setEstado(p.getEstado());
+                    return actualizado;
+                } catch (Exception e) {
+                    mostrarAlertaError("Error de validación", "Verifique que los campos numéricos sean válidos.");
+                    return null;
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(actualizado -> {
+            try {
+                productoService.actualizar(p.getId(), actualizado);
+                cargarProductos();
+            } catch (Exception ex) {
+                mostrarAlertaError("Error al actualizar", ex.getMessage());
             }
         });
     }

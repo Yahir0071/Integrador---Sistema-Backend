@@ -11,7 +11,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "compras")
+@Table(
+    name = "compras",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_compras_proveedor_comprobante", columnNames = {"proveedor_id", "numero_comprobante"})
+    },
+    indexes = {
+        @Index(name = "idx_compras_proveedor", columnList = "proveedor_id"),
+        @Index(name = "idx_compras_fecha", columnList = "fecha_compra")
+    }
+)
+@org.hibernate.annotations.Check(constraints = "total >= 0")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

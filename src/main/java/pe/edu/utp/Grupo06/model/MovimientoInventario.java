@@ -7,7 +7,17 @@ import pe.edu.utp.Grupo06.model.enums.TipoMovimiento;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "movimientos_inventario")
+@Table(
+    name = "movimientos_inventario",
+    indexes = {
+        @Index(name = "idx_mov_producto", columnList = "producto_id"),
+        @Index(name = "idx_mov_fecha", columnList = "fecha_movimiento"),
+        @Index(name = "idx_mov_tipo", columnList = "tipo_movimiento"),
+        @Index(name = "idx_mov_compra", columnList = "compra_id"),
+        @Index(name = "idx_mov_venta", columnList = "venta_id")
+    }
+)
+@org.hibernate.annotations.Check(constraints = "cantidad > 0 AND stock_anterior >= 0 AND stock_posterior >= 0")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -45,4 +55,12 @@ public class MovimientoInventario {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "compra_id")
+    private Compra compra;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "venta_id")
+    private Venta venta;
 }

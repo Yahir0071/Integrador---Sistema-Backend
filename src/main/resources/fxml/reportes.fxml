@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
@@ -59,11 +60,19 @@
             </VBox>
         </Tab>
 
-        <!-- PESTAÑA 2: Historial Detallado de Ventas -->
-        <Tab text="🔔 Historial de Ventas Realizadas">
+        <!-- PESTAÑA 2: Historial Detallado de Ventas con Filtros -->
+        <Tab text="🧾 Historial de Ventas Realizadas">
             <VBox spacing="14" style="-fx-padding: 15 0 0 0;">
                 <HBox alignment="CENTER_LEFT" spacing="10">
-                    <Label text="Registro cronológico de todas las ventas emitidas en el sistema" style="-fx-text-fill: #64748b; -fx-font-size: 13px;"/>
+                    <TextField fx:id="txtFiltroHistorial" promptText="Buscar por N° Ticket o Cajero..." prefWidth="250" styleClass="text-field"/>
+                    <Label text="Desde:" style="-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;"/>
+                    <DatePicker fx:id="dpFechaInicio" prefWidth="135"/>
+                    <Label text="Hasta:" style="-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;"/>
+                    <DatePicker fx:id="dpFechaFin" prefWidth="135"/>
+                    <Button text="🔍 Filtrar" onAction="#handleFiltrarHistorial" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                    <Button text="Limpiar" onAction="#handleLimpiarFiltroHistorial" style="-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="lblTotalFiltrado" text="Total filtrado: S/ 0.00" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0284c7;"/>
                 </HBox>
 
                 <TableView fx:id="tblHistorialVentas" VBox.vgrow="ALWAYS" styleClass="table-view">
@@ -80,6 +89,92 @@
                     </columnResizePolicy>
                 </TableView>
             </VBox>
+        </Tab>
+
+        <!-- PESTAÑA 3: Dashboard Ejecutivo & Gráficos Estadísticos -->
+        <Tab text="📈 Panel Estadístico (Dashboard)">
+            <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-padding: 10 0 0 0;">
+                <VBox spacing="16">
+                    <!-- Barra de filtros del Dashboard -->
+                    <HBox alignment="CENTER_LEFT" spacing="12" styleClass="card-box" style="-fx-padding: 12 16;">
+                        <Label text="Periodo:" style="-fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                        <ComboBox fx:id="cbDashPeriodo" prefWidth="150"/>
+
+                        <HBox fx:id="boxDashMesAnio" spacing="8" alignment="CENTER_LEFT">
+                            <Label text="Mes:" style="-fx-text-fill: #64748b;"/>
+                            <ComboBox fx:id="cbDashMes" prefWidth="130"/>
+                            <Label text="Año:" style="-fx-text-fill: #64748b;"/>
+                            <ComboBox fx:id="cbDashAnio" prefWidth="90"/>
+                        </HBox>
+
+                        <Button text="🔄 Generar Métricas" onAction="#handleActualizarDashboard" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="lblPeriodoActivo" text="Visualizando: Hoy" style="-fx-text-fill: #0284c7; -fx-font-weight: bold;"/>
+                    </HBox>
+
+                    <!-- Tarjetas KPI del Periodo -->
+                    <HBox spacing="14">
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" spacing="4" style="-fx-border-left-color: #0284c7; -fx-border-left-width: 4px;">
+                            <Label text="INGRESOS DEL PERÍODO" style="-fx-font-size: 11px; -fx-text-fill: #64748b; -fx-font-weight: bold;"/>
+                            <Label fx:id="lblKpiIngresos" text="S/ 0.00" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #0284c7;"/>
+                            <Label text="Total neto recaudado" style="-fx-font-size: 11px; -fx-text-fill: #94a3b8;"/>
+                        </VBox>
+
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" spacing="4" style="-fx-border-left-color: #10b981; -fx-border-left-width: 4px;">
+                            <Label text="TICKETS EMITIDOS" style="-fx-font-size: 11px; -fx-text-fill: #64748b; -fx-font-weight: bold;"/>
+                            <Label fx:id="lblKpiVentas" text="0" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #10b981;"/>
+                            <Label text="Ventas realizadas" style="-fx-font-size: 11px; -fx-text-fill: #94a3b8;"/>
+                        </VBox>
+
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" spacing="4" style="-fx-border-left-color: #f59e0b; -fx-border-left-width: 4px;">
+                            <Label text="TICKET PROMEDIO" style="-fx-font-size: 11px; -fx-text-fill: #64748b; -fx-font-weight: bold;"/>
+                            <Label fx:id="lblKpiTicketPromedio" text="S/ 0.00" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #f59e0b;"/>
+                            <Label text="Gasto promedio por cliente" style="-fx-font-size: 11px; -fx-text-fill: #94a3b8;"/>
+                        </VBox>
+
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" spacing="4" style="-fx-border-left-color: #8b5cf6; -fx-border-left-width: 4px;">
+                            <Label text="PRODUCTO ESTRELLA" style="-fx-font-size: 11px; -fx-text-fill: #64748b; -fx-font-weight: bold;"/>
+                            <Label fx:id="lblKpiProductoTop" text="Ninguno" style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #8b5cf6;"/>
+                            <Label fx:id="lblKpiProductoTopCant" text="0 unidades vendidas" style="-fx-font-size: 11px; -fx-text-fill: #94a3b8;"/>
+                        </VBox>
+                    </HBox>
+
+                    <!-- Fila de Gráficos 1 y 2 -->
+                    <HBox spacing="14">
+                        <!-- Gráfico de Tendencia -->
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="540" prefHeight="330">
+                            <Label text="Evolución de Ingresos en el Tiempo" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                            <AreaChart fx:id="chartVentasTiempo" VBox.vgrow="ALWAYS" legendVisible="false">
+                                <xAxis>
+                                    <CategoryAxis label="Tiempo / Rango" fx:id="axisTiempo"/>
+                                </xAxis>
+                                <yAxis>
+                                    <NumberAxis label="Soles (S/)" fx:id="axisMonto"/>
+                                </yAxis>
+                            </AreaChart>
+                        </VBox>
+
+                        <!-- Gráfico de Métodos de Pago -->
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="380" prefHeight="330">
+                            <Label text="Distribución por Método de Pago" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                            <PieChart fx:id="chartMetodosPago" VBox.vgrow="ALWAYS"/>
+                        </VBox>
+                    </HBox>
+
+                    <!-- Gráfico 3: Top Productos del Periodo -->
+                    <VBox styleClass="card-box" prefHeight="300">
+                        <Label text="Top 5 Productos más Vendidos en este Período" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                        <BarChart fx:id="chartTopProductos" VBox.vgrow="ALWAYS" legendVisible="false">
+                            <xAxis>
+                                <CategoryAxis label="Producto" fx:id="axisProductos"/>
+                            </xAxis>
+                            <yAxis>
+                                <NumberAxis label="Unidades Vendidas" fx:id="axisUnidades"/>
+                            </yAxis>
+                        </BarChart>
+                    </VBox>
+                </VBox>
+            </ScrollPane>
         </Tab>
 
     </TabPane>

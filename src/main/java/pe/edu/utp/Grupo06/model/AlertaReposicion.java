@@ -7,7 +7,14 @@ import pe.edu.utp.Grupo06.model.enums.EstadoAlerta;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "alertas_reposicion")
+@Table(
+    name = "alertas_reposicion",
+    indexes = {
+        @Index(name = "idx_alertas_producto_estado", columnList = "producto_id, estado"),
+        @Index(name = "idx_alertas_estado", columnList = "estado")
+    }
+)
+@org.hibernate.annotations.Check(constraints = "stock_registrado >= 0 AND stock_minimo >= 0")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

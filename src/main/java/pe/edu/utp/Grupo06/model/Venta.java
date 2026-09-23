@@ -12,7 +12,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "ventas")
+@Table(
+    name = "ventas",
+    indexes = {
+        @Index(name = "idx_ventas_fecha", columnList = "fecha_venta"),
+        @Index(name = "idx_ventas_usuario", columnList = "usuario_id")
+    }
+)
+@org.hibernate.annotations.Check(constraints = "total >= 0")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

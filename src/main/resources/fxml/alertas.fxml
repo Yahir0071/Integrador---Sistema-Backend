@@ -8,14 +8,16 @@
       fx:controller="pe.edu.utp.Grupo06.view.AlertasViewController"
       spacing="16" alignment="TOP_LEFT" maxWidth="Infinity" maxHeight="Infinity">
 
-    <!-- Encabezado -->
+    <!-- Encabezado con Filtros -->
     <HBox alignment="CENTER_LEFT" spacing="15">
         <VBox spacing="2">
             <Label text="Alertas de Reposición de Inventario" styleClass="main-title"/>
-            <Label text="Productos en quiebre de stock que requieren abastecimiento urgente" styleClass="sub-title"/>
+            <Label text="Productos en quiebre de stock y auditoría de atenciones" styleClass="sub-title"/>
         </VBox>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="🔄 Refrescar Alertas" onAction="#cargarAlertas" styleClass="btn, btn-default" style="-fx-cursor: hand;"/>
+        <Label text="Mostrar:" style="-fx-font-weight: bold; -fx-text-fill: #475569;"/>
+        <ComboBox fx:id="cbFiltroEstado" prefWidth="210"/>
+        <Button text="🔄 Refrescar" onAction="#cargarAlertas" styleClass="btn, btn-default" style="-fx-cursor: hand;"/>
     </HBox>
 
     <!-- Tabla de Alertas -->

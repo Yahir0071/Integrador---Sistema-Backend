@@ -47,7 +47,7 @@
             <TableColumn fx:id="colStockActual" text="Stock Actual" prefWidth="100"/>
             <TableColumn fx:id="colStockMinimo" text="Stock Mín." prefWidth="90"/>
             <TableColumn fx:id="colEstadoStock" text="Estado" prefWidth="120"/>
-            <TableColumn fx:id="colAcciones" text="Acciones" prefWidth="110"/>
+            <TableColumn fx:id="colAcciones" text="Acciones" prefWidth="160"/>
         </columns>
         <columnResizePolicy>
             <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>

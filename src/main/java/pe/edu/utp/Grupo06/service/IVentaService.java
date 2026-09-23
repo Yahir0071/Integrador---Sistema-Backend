@@ -23,4 +23,9 @@ public interface IVentaService {
      * @param motivo    motivo de la anulación (puede ser null)
      */
     Venta anularVenta(Long ventaId, Long usuarioId, String motivo);
+
+    /**
+     * Genera el siguiente número correlativo de ticket comercial (ej. B001-00000001).
+     */
+    String generarSiguienteNumeroTicket();
 }

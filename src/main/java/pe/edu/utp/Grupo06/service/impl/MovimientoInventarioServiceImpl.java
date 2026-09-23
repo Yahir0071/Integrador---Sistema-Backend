@@ -33,7 +33,7 @@ public class MovimientoInventarioServiceImpl implements IMovimientoInventarioSer
 
     @Override
     @Transactional
-    public MovimientoInventario registrarMovimiento(Long productoId, Long usuarioId, TipoMovimiento tipo, Integer cantidad, String motivo) {
+    public MovimientoInventario registrarMovimiento(Long productoId, Long usuarioId, TipoMovimiento tipo, Integer cantidad, String motivo, pe.edu.utp.Grupo06.model.Compra compra, pe.edu.utp.Grupo06.model.Venta venta) {
         Producto producto = productoRepository.findById(productoId)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productoId));
 
@@ -42,6 +42,7 @@ public class MovimientoInventarioServiceImpl implements IMovimientoInventarioSer
 
         int stockAnterior = producto.getStockActual();
         int stockPosterior = stockAnterior;
+        String motivoFinal = motivo;
 
         if (tipo == TipoMovimiento.ENTRADA || tipo == TipoMovimiento.REPOSICION) {
             stockPosterior += cantidad;
@@ -52,6 +53,9 @@ public class MovimientoInventarioServiceImpl implements IMovimientoInventarioSer
             stockPosterior -= cantidad;
         } else if (tipo == TipoMovimiento.AJUSTE) {
             stockPosterior = cantidad;
+            int variacion = stockPosterior - stockAnterior;
+            motivoFinal = (motivo != null && !motivo.isBlank() ? motivo + " | " : "") +
+                    String.format("Ajuste de inventario (físico: %d, variación: %+d)", stockPosterior, variacion);
         }
 
         producto.setStockActual(stockPosterior);
@@ -65,7 +69,9 @@ public class MovimientoInventarioServiceImpl implements IMovimientoInventarioSer
         movimiento.setStockAnterior(stockAnterior);
         movimiento.setStockPosterior(stockPosterior);
         movimiento.setFechaMovimiento(LocalDateTime.now());
-        movimiento.setMotivo(motivo);
+        movimiento.setMotivo(motivoFinal);
+        movimiento.setCompra(compra);
+        movimiento.setVenta(venta);
 
         MovimientoInventario guardado = movimientoRepository.save(movimiento);
 
