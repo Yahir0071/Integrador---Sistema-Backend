@@ -12,8 +12,8 @@
     <!-- Encabezado -->
     <HBox alignment="CENTER_LEFT" spacing="15">
         <VBox spacing="2">
-            <Label text="Reportes Gerenciales &amp; Control de Ventas" styleClass="main-title"/>
-            <Label text="Métricas del negocio, rotación de inventario e historial de tickets emitidos" styleClass="sub-title"/>
+            <Label text="Reportes Gerenciales &amp; Control de Operaciones" styleClass="main-title"/>
+            <Label text="Métricas del negocio, rotación de inventario, historial de ventas, compras a proveedores y desempeño por vendedor" styleClass="sub-title"/>
         </VBox>
         <Region HBox.hgrow="ALWAYS"/>
         <Button text="🔄 Actualizar Todo" onAction="#cargarReportes" styleClass="btn, btn-default" style="-fx-cursor: hand;"/>
@@ -22,7 +22,7 @@
     <!-- Contenedor con Pestañas (Tabs) -->
     <TabPane VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE">
 
-        <!-- PESTAÑA 1: KPIs y Ranking de Rotación -->
+        <!-- PESTAÑA 1: KPIs y Ranking de Rotación con Filtros -->
         <Tab text="📊 Resumen &amp; Productos Más Vendidos">
             <VBox spacing="14" style="-fx-padding: 15 0 0 0;">
                 <!-- Tarjetas de Resumen (KPIs) -->
@@ -43,7 +43,22 @@
                     </VBox>
                 </HBox>
 
-                <Label text="Ranking de Productos con Mayor Rotación (Más Demandados)" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                <!-- Barra de Filtros para Ranking de Rotación -->
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                    <Label text="Periodo:" style="-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 12px;"/>
+                    <ComboBox fx:id="cbPeriodoRotacion" prefWidth="140"/>
+
+                    <Label text="Categoría:" style="-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 12px;"/>
+                    <ComboBox fx:id="cbCategoriaRotacion" prefWidth="160"/>
+
+                    <TextField fx:id="txtBuscarRotacion" promptText="🔍 Buscar por código o nombre..." prefWidth="220" styleClass="text-field"/>
+
+                    <Button text="🔍 Filtrar" onAction="#handleFiltrarRotacion" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                    <Button text="Limpiar" onAction="#handleLimpiarRotacion" style="-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                    
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="lblTotalRotacion" text="Total Productos: 0" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #0284c7;"/>
+                </HBox>
 
                 <!-- Tabla de Mayor Rotación -->
                 <TableView fx:id="tblRotacion" VBox.vgrow="ALWAYS" styleClass="table-view">
@@ -60,15 +75,18 @@
             </VBox>
         </Tab>
 
-        <!-- PESTAÑA 2: Historial Detallado de Ventas con Filtros -->
+        <!-- PESTAÑA 2: Historial Detallado de Ventas con Filtros (incluye Vendedor) -->
         <Tab text="🧾 Historial de Ventas Realizadas">
             <VBox spacing="14" style="-fx-padding: 15 0 0 0;">
                 <HBox alignment="CENTER_LEFT" spacing="10">
-                    <TextField fx:id="txtFiltroHistorial" promptText="Buscar por N° Ticket o Cajero..." prefWidth="250" styleClass="text-field"/>
+                    <TextField fx:id="txtFiltroHistorial" promptText="Buscar por N° Ticket..." prefWidth="190" styleClass="text-field"/>
+                    
+                    <ComboBox fx:id="cbFiltroVendedor" promptText="Cajero / Vendedor" prefWidth="170"/>
+
                     <Label text="Desde:" style="-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;"/>
-                    <DatePicker fx:id="dpFechaInicio" prefWidth="135"/>
+                    <DatePicker fx:id="dpFechaInicio" prefWidth="125"/>
                     <Label text="Hasta:" style="-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;"/>
-                    <DatePicker fx:id="dpFechaFin" prefWidth="135"/>
+                    <DatePicker fx:id="dpFechaFin" prefWidth="125"/>
                     <Button text="🔍 Filtrar" onAction="#handleFiltrarHistorial" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
                     <Button text="Limpiar" onAction="#handleLimpiarFiltroHistorial" style="-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
                     <Region HBox.hgrow="ALWAYS"/>
@@ -161,20 +179,69 @@
                         </VBox>
                     </HBox>
 
-                    <!-- Gráfico 3: Top Productos del Periodo -->
-                    <VBox styleClass="card-box" prefHeight="300">
-                        <Label text="Top 5 Productos más Vendidos en este Período" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
-                        <BarChart fx:id="chartTopProductos" VBox.vgrow="ALWAYS" legendVisible="false">
-                            <xAxis>
-                                <CategoryAxis label="Producto" fx:id="axisProductos"/>
-                            </xAxis>
-                            <yAxis>
-                                <NumberAxis label="Unidades Vendidas" fx:id="axisUnidades"/>
-                            </yAxis>
-                        </BarChart>
-                    </VBox>
+                    <!-- Fila 3: Top Productos y Desempeño por Vendedor -->
+                    <HBox spacing="14">
+                        <!-- Gráfico 3: Top Productos del Periodo -->
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="500" prefHeight="300">
+                            <Label text="Top 5 Productos más Vendidos en este Período" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                            <BarChart fx:id="chartTopProductos" VBox.vgrow="ALWAYS" legendVisible="false">
+                                <xAxis>
+                                    <CategoryAxis label="Producto" fx:id="axisProductos"/>
+                                </xAxis>
+                                <yAxis>
+                                    <NumberAxis label="Unidades Vendidas" fx:id="axisUnidades"/>
+                                </yAxis>
+                            </BarChart>
+                        </VBox>
+
+                        <!-- Tabla: Ventas por Vendedor / Cajero -->
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="420" prefHeight="300" spacing="10">
+                            <Label text="Desempeño de Ventas por Empleado / Cajero" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
+                            <TableView fx:id="tblVentasPorVendedor" VBox.vgrow="ALWAYS" styleClass="table-view">
+                                <columns>
+                                    <TableColumn fx:id="colVendNombre" text="Empleado / Cajero" prefWidth="200"/>
+                                    <TableColumn fx:id="colVendTickets" text="Tickets" prefWidth="90"/>
+                                    <TableColumn fx:id="colVendTotal" text="Total (S/)" prefWidth="110"/>
+                                </columns>
+                                <columnResizePolicy>
+                                    <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                                </columnResizePolicy>
+                            </TableView>
+                        </VBox>
+                    </HBox>
                 </VBox>
             </ScrollPane>
+        </Tab>
+
+        <!-- PESTAÑA 4: Historial de Compras Realizadas a Proveedores -->
+        <Tab text="🚚 Historial de Compras a Proveedores">
+            <VBox spacing="14" style="-fx-padding: 15 0 0 0;">
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                    <TextField fx:id="txtFiltroComprasReporte" promptText="Buscar por N° Comprobante o Proveedor..." prefWidth="270" styleClass="text-field"/>
+                    <Label text="Desde:" style="-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;"/>
+                    <DatePicker fx:id="dpFechaInicioCompReporte" prefWidth="135"/>
+                    <Label text="Hasta:" style="-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;"/>
+                    <DatePicker fx:id="dpFechaFinCompReporte" prefWidth="135"/>
+                    <Button text="🔍 Filtrar" onAction="#handleFiltrarComprasReporte" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                    <Button text="Limpiar" onAction="#handleLimpiarComprasReporte" style="-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="lblTotalComprasReporte" text="Total Compras: S/ 0.00" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0284c7;"/>
+                </HBox>
+
+                <TableView fx:id="tblComprasReporte" VBox.vgrow="ALWAYS" styleClass="table-view">
+                    <columns>
+                        <TableColumn fx:id="colRepCompNumero" text="N° Comprobante" prefWidth="150"/>
+                        <TableColumn fx:id="colRepCompProveedor" text="Proveedor" prefWidth="250"/>
+                        <TableColumn fx:id="colRepCompFecha" text="Fecha de Compra" prefWidth="160"/>
+                        <TableColumn fx:id="colRepCompUsuario" text="Registrado Por" prefWidth="160"/>
+                        <TableColumn fx:id="colRepCompTotal" text="Total Compra (S/)" prefWidth="130"/>
+                        <TableColumn fx:id="colRepCompAccion" text="Acción" prefWidth="120" style="-fx-alignment: CENTER;"/>
+                    </columns>
+                    <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                    </columnResizePolicy>
+                </TableView>
+            </VBox>
         </Tab>
 
     </TabPane>

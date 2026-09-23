@@ -28,4 +28,15 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long
             "ORDER BY totalVendido DESC")
     List<Object[]> findTopProductosEntreFechas(@org.springframework.data.repository.query.Param("inicio") java.time.LocalDateTime inicio,
                                                @org.springframework.data.repository.query.Param("fin") java.time.LocalDateTime fin);
+
+    @Query("SELECT d.producto.id, d.producto.codigo, d.producto.nombre, SUM(d.cantidad) AS totalVendido, SUM(d.subtotal) AS totalRecaudado " +
+            "FROM DetalleVenta d " +
+            "WHERE d.venta.fechaVenta BETWEEN :inicio AND :fin " +
+            "  AND (:categoriaId IS NULL OR d.producto.categoria.id = :categoriaId) " +
+            "  AND d.venta.estado = pe.edu.utp.Grupo06.model.enums.EstadoVenta.EMITIDA " +
+            "GROUP BY d.producto.id, d.producto.codigo, d.producto.nombre " +
+            "ORDER BY totalVendido DESC")
+    List<Object[]> findProductosMayorRotacionFiltrado(@org.springframework.data.repository.query.Param("inicio") java.time.LocalDateTime inicio,
+                                                     @org.springframework.data.repository.query.Param("fin") java.time.LocalDateTime fin,
+                                                     @org.springframework.data.repository.query.Param("categoriaId") Long categoriaId);
 }

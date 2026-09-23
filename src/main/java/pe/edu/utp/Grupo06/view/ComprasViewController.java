@@ -7,6 +7,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -336,61 +337,134 @@ public class ComprasViewController {
         // Tabla de ítems incluidos en esta compra
         ObservableList<DetalleCompra> itemsCompra = FXCollections.observableArrayList();
         TableView<DetalleCompra> tblItems = new TableView<>(itemsCompra);
-        tblItems.setPrefHeight(180);
+        tblItems.setPrefHeight(190);
 
         TableColumn<DetalleCompra, String> colPName = new TableColumn<>("Producto");
         colPName.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getProducto().getNombre()));
-        colPName.setPrefWidth(280);
+        colPName.setPrefWidth(240);
 
         TableColumn<DetalleCompra, Integer> colPCant = new TableColumn<>("Cantidad");
         colPCant.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
-        colPCant.setPrefWidth(90);
+        colPCant.setPrefWidth(80);
 
         TableColumn<DetalleCompra, BigDecimal> colPPrice = new TableColumn<>("P. Unit (S/)");
         colPPrice.setCellValueFactory(new PropertyValueFactory<>("precioUnitario"));
-        colPPrice.setPrefWidth(100);
+        colPPrice.setPrefWidth(95);
 
         TableColumn<DetalleCompra, BigDecimal> colPSub = new TableColumn<>("Subtotal (S/)");
         colPSub.setCellValueFactory(new PropertyValueFactory<>("subtotal"));
-        colPSub.setPrefWidth(110);
-
-        tblItems.getColumns().addAll(colPName, colPCant, colPPrice, colPSub);
+        colPSub.setPrefWidth(100);
 
         Label lblTotal = new Label("Total Compra: S/ 0.00");
-        lblTotal.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #0284c7; -fx-alignment: CENTER_RIGHT;");
+        lblTotal.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #0284c7;");
+
+        Runnable actualizarTotal = () -> {
+            BigDecimal totalSum = itemsCompra.stream()
+                    .map(DetalleCompra::getSubtotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            lblTotal.setText("Total Compra: S/ " + totalSum.setScale(2, java.math.RoundingMode.HALF_UP));
+        };
+
+        TableColumn<DetalleCompra, Void> colPQuitar = new TableColumn<>("Acción");
+        colPQuitar.setPrefWidth(85);
+        colPQuitar.setStyle("-fx-alignment: CENTER;");
+        colPQuitar.setCellFactory(col -> new TableCell<>() {
+            private final Button btnQuitar = new Button("❌ Quitar");
+            {
+                btnQuitar.setStyle("-fx-background-color: #fee2e2; -fx-text-fill: #b91c1c; -fx-font-size: 11px; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 4;");
+                btnQuitar.setOnAction(e -> {
+                    DetalleCompra d = getTableView().getItems().get(getIndex());
+                    itemsCompra.remove(d);
+                    actualizarTotal.run();
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || getIndex() >= getTableView().getItems().size()) {
+                    setGraphic(null);
+                } else {
+                    setGraphic(btnQuitar);
+                }
+            }
+        });
+
+        tblItems.getColumns().addAll(colPName, colPCant, colPPrice, colPSub, colPQuitar);
 
         btnAdd.setOnAction(e -> {
             try {
                 Producto prodSel = cbProd.getValue();
+                if (prodSel == null) {
+                    mostrarAlerta("Seleccione producto", "Debe seleccionar un producto de la lista.");
+                    return;
+                }
                 int cant = spnCant.getValue();
                 BigDecimal pu = new BigDecimal(txtPrecio.getText().trim().replace(",", "."));
-                
-                DetalleCompra det = new DetalleCompra();
-                det.setProducto(prodSel);
-                det.setCantidad(cant);
-                det.setPrecioUnitario(pu);
-                det.setSubtotal(pu.multiply(BigDecimal.valueOf(cant)));
-                
-                itemsCompra.add(det);
-                
-                BigDecimal totalSum = itemsCompra.stream()
-                        .map(DetalleCompra::getSubtotal)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-                lblTotal.setText("Total Compra: S/ " + totalSum.setScale(2, java.math.RoundingMode.HALF_UP));
+                if (pu.compareTo(BigDecimal.ZERO) < 0) {
+                    mostrarAlerta("Precio inválido", "El precio unitario no puede ser negativo.");
+                    return;
+                }
+
+                DetalleCompra existente = itemsCompra.stream()
+                        .filter(d -> d.getProducto().getId().equals(prodSel.getId()))
+                        .findFirst().orElse(null);
+
+                if (existente != null) {
+                    existente.setCantidad(existente.getCantidad() + cant);
+                    existente.setPrecioUnitario(pu);
+                    existente.setSubtotal(pu.multiply(BigDecimal.valueOf(existente.getCantidad())));
+                    tblItems.refresh();
+                } else {
+                    DetalleCompra det = new DetalleCompra();
+                    det.setProducto(prodSel);
+                    det.setCantidad(cant);
+                    det.setPrecioUnitario(pu);
+                    det.setSubtotal(pu.multiply(BigDecimal.valueOf(cant)));
+                    itemsCompra.add(det);
+                }
+
+                actualizarTotal.run();
             } catch (Exception ex) {
-                mostrarAlerta("Datos inválidos", "Verifique el precio unitario ingresado.");
+                mostrarAlerta("Datos inválidos", "Verifique el precio unitario ingresado (use números decimales válidos).");
             }
         });
 
-        root.getChildren().addAll(row1, row2, tblItems, lblTotal);
+        Button btnVaciar = new Button("🗑️ Vaciar Lista");
+        btnVaciar.setStyle("-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-cursor: hand; -fx-font-weight: bold; -fx-background-radius: 4;");
+        btnVaciar.setOnAction(e -> {
+            itemsCompra.clear();
+            actualizarTotal.run();
+        });
+
+        HBox botRow = new HBox(15, btnVaciar, new Region(), lblTotal);
+        HBox.setHgrow(botRow.getChildren().get(1), javafx.scene.layout.Priority.ALWAYS);
+        botRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        root.getChildren().addAll(row1, row2, tblItems, botRow);
         dialog.getDialogPane().setContent(root);
+
+        // Prevenir que la ventana se cierre si faltan datos
+        Button btnConfirmar = (Button) dialog.getDialogPane().lookupButton(btnGuardar);
+        btnConfirmar.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            if (txtComp.getText().isBlank()) {
+                mostrarAlerta("Dato Requerido", "Ingrese el número de comprobante (factura/boleta de compra).");
+                event.consume();
+                return;
+            }
+            if (cbProv.getValue() == null) {
+                mostrarAlerta("Dato Requerido", "Seleccione la empresa proveedora.");
+                event.consume();
+                return;
+            }
+            if (itemsCompra.isEmpty()) {
+                mostrarAlerta("Lista Vacía", "Debe añadir al menos un producto a la compra antes de guardar.");
+                event.consume();
+            }
+        });
 
         dialog.setResultConverter(btn -> {
             if (btn == btnGuardar) {
-                if (txtComp.getText().isBlank() || itemsCompra.isEmpty()) {
-                    mostrarAlerta("Datos incompletos", "Ingrese el número de comprobante y al menos un producto a comprar.");
-                    return null;
-                }
                 Compra compra = new Compra();
                 compra.setNumeroComprobante(txtComp.getText().trim());
                 compra.setProveedor(cbProv.getValue());
@@ -405,7 +479,7 @@ public class ComprasViewController {
             try {
                 compraService.registrarCompra(c);
                 cargarCompras();
-                mostrarAlerta("Compra Registrada con Éxito", "Se aumentó el inventario de los productos comprados.");
+                mostrarAlerta("Compra Registrada con Éxito", "Se aumentó el inventario de los productos comprados correctamente.");
             } catch (Exception ex) {
                 mostrarAlerta("Error al registrar compra", ex.getMessage());
             }
