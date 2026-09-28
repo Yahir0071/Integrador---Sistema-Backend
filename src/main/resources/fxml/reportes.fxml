@@ -16,7 +16,11 @@
             <Label text="Métricas del negocio, rotación de inventario, historial de ventas, compras a proveedores y desempeño por vendedor" styleClass="sub-title"/>
         </VBox>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="🔄 Actualizar Todo" onAction="#cargarReportes" styleClass="btn, btn-default" style="-fx-cursor: hand;"/>
+        <HBox spacing="10" alignment="CENTER_RIGHT">
+            <Button text="📄 Imprimir Reporte A4" onAction="#handleImprimirReporteA4"
+                    style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6; -fx-padding: 7 12;"/>
+            <Button text="🔄 Actualizar Todo" onAction="#cargarReportes" styleClass="btn, btn-default" style="-fx-cursor: hand; -fx-padding: 7 12;"/>
+        </HBox>
     </HBox>
 
     <!-- Contenedor con Pestañas (Tabs) -->
@@ -89,6 +93,7 @@
                     <DatePicker fx:id="dpFechaFin" prefWidth="125"/>
                     <Button text="🔍 Filtrar" onAction="#handleFiltrarHistorial" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
                     <Button text="Limpiar" onAction="#handleLimpiarFiltroHistorial" style="-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                    <Button text="📥 Exportar a Excel" onAction="#handleExportarVentasExcel" style="-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
                     <Region HBox.hgrow="ALWAYS"/>
                     <Label fx:id="lblTotalFiltrado" text="Total filtrado: S/ 0.00" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0284c7;"/>
                 </HBox>
@@ -230,6 +235,7 @@
                         </HBox>
 
                         <Button text="🔄 Generar Métricas" onAction="#handleActualizarDashboardCompras" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                        <Button text="📥 Exportar a Excel" onAction="#handleExportarComprasExcel" style="-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
                         <Region HBox.hgrow="ALWAYS"/>
                         <Label fx:id="lblDashCompPeriodoActivo" text="Visualizando: Hoy" style="-fx-text-fill: #0284c7; -fx-font-weight: bold;"/>
                     </HBox>
@@ -358,6 +364,7 @@
 
                     <Button text="🔍 Filtrar" onAction="#handleFiltrarMermas" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
                     <Button text="Limpiar" onAction="#handleLimpiarFiltroMermas" style="-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                    <Button text="📥 Exportar a Excel" onAction="#handleExportarMermasExcel" style="-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
 
                     <Region HBox.hgrow="ALWAYS"/>
                     <Label fx:id="lblMermaTotalFiltrado" text="Total mermas: 0" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #dc2626;"/>

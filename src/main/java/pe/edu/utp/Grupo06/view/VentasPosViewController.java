@@ -282,12 +282,14 @@ public class VentasPosViewController {
     }
 
     private void mostrarBoletaFormal(Venta v) {
-        Dialog<Void> boletaDialog = new Dialog<>();
+        Dialog<ButtonType> boletaDialog = new Dialog<>();
         boletaDialog.setTitle("Comprobante de Pago — SGCIVORP");
         boletaDialog.setHeaderText(null);
 
-        ButtonType btnCerrar = new ButtonType("✔️ Aceptar e Imprimir", ButtonBar.ButtonData.OK_DONE);
-        boletaDialog.getDialogPane().getButtonTypes().add(btnCerrar);
+        ButtonType btnImprimir = new ButtonType("🖨️ Imprimir Ticket", ButtonBar.ButtonData.OK_DONE);
+        ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        boletaDialog.getDialogPane().getButtonTypes().addAll(btnImprimir, btnCerrar);
+        boletaDialog.setResultConverter(btn -> btn);
 
         VBox root = new VBox(10);
         root.setStyle("-fx-font-family: 'Courier New', monospace; -fx-padding: 15px; -fx-background-color: #ffffff;");
@@ -341,7 +343,16 @@ public class VentasPosViewController {
 
         root.getChildren().addAll(lblCabecera, lblItems, lblPie);
         boletaDialog.getDialogPane().setContent(root);
-        boletaDialog.showAndWait();
+
+        String textoCompleto = lblCabecera.getText() + "\n" + sbItems + lblPie.getText();
+        boletaDialog.showAndWait().ifPresent(res -> {
+            if (res == btnImprimir) {
+                pe.edu.utp.Grupo06.util.ImpresionUtil.imprimirTicket(
+                        textoCompleto,
+                        tblCarrito.getScene().getWindow()
+                );
+            }
+        });
     }
 
     private void mostrarAlerta(Alert.AlertType tipo, String titulo, String contenido) {

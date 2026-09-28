@@ -23,12 +23,17 @@ import pe.edu.utp.Grupo06.repository.DetalleCompraRepository;
 import pe.edu.utp.Grupo06.repository.DetalleVentaRepository;
 import pe.edu.utp.Grupo06.repository.PagoRepository;
 import pe.edu.utp.Grupo06.repository.VentaRepository;
+import pe.edu.utp.Grupo06.util.ImpresionUtil;
+import javafx.stage.FileChooser;
+import javafx.stage.Window;
 import pe.edu.utp.Grupo06.service.ICategoriaService;
 import pe.edu.utp.Grupo06.service.ICompraService;
+import pe.edu.utp.Grupo06.service.IExportacionService;
 import pe.edu.utp.Grupo06.service.IMermaService;
 import pe.edu.utp.Grupo06.service.IReporteService;
 import pe.edu.utp.Grupo06.service.IVentaService;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -55,6 +60,9 @@ public class ReportesViewController {
 
     @Autowired
     private IMermaService mermaService;
+
+    @Autowired
+    private IExportacionService exportacionService;
 
     @Autowired
     private VentaRepository ventaRepository;
@@ -1042,11 +1050,13 @@ public class ReportesViewController {
     }
 
     private void mostrarTicketHistorico(Venta v) {
-        Dialog<Void> boletaDialog = new Dialog<>();
+        Dialog<ButtonType> boletaDialog = new Dialog<>();
         boletaDialog.setTitle("Ticket de Venta — " + v.getNumeroTicket());
 
-        ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.OK_DONE);
-        boletaDialog.getDialogPane().getButtonTypes().add(btnCerrar);
+        ButtonType btnImprimir = new ButtonType("🖨️ Imprimir Ticket", ButtonBar.ButtonData.OK_DONE);
+        ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        boletaDialog.getDialogPane().getButtonTypes().addAll(btnImprimir, btnCerrar);
+        boletaDialog.setResultConverter(btn -> btn);
 
         VBox root = new VBox(10);
         root.setStyle("-fx-font-family: 'Courier New', monospace; -fx-padding: 15px; -fx-background-color: #ffffff;");
@@ -1102,7 +1112,16 @@ public class ReportesViewController {
 
         root.getChildren().addAll(lblCabecera, lblItems, lblPie);
         boletaDialog.getDialogPane().setContent(root);
-        boletaDialog.showAndWait();
+
+        String textoCompleto = lblCabecera.getText() + "\n" + sbItems + lblPie.getText();
+        boletaDialog.showAndWait().ifPresent(res -> {
+            if (res == btnImprimir) {
+                pe.edu.utp.Grupo06.util.ImpresionUtil.imprimirTicket(
+                        textoCompleto,
+                        tblHistorialVentas.getScene().getWindow()
+                );
+            }
+        });
     }
 
     @FXML
@@ -1327,6 +1346,217 @@ public class ReportesViewController {
                 }
             }
         }
+    }
+
+    // ==================== IMPRESIÓN Y EXPORTACIÓN A EXCEL ====================
+
+    @FXML
+    public void handleImprimirReporteA4() {
+        String periodo = lblPeriodoActivo != null ? lblPeriodoActivo.getText() : "Período Actual";
+        String resumen = "RESUMEN EJECUTIVO FINANCIERO:\n"
+                + "• Total Ingresos por Ventas: " + (lblKpiIngresos != null ? lblKpiIngresos.getText() : "S/ 0.00")
+                + "   |   Comprobantes Emitidos: " + (lblKpiVentas != null ? lblKpiVentas.getText() : "0") + "\n"
+                + "• Ticket Promedio: " + (lblKpiTicketPromedio != null ? lblKpiTicketPromedio.getText() : "S/ 0.00")
+                + "   |   Producto Estrella: " + (lblKpiProductoTop != null ? lblKpiProductoTop.getText() : "N/A")
+                + " (" + (lblKpiProductoTopCant != null ? lblKpiProductoTopCant.getText() : "") + ")\n"
+                + "• Inversión en Abastecimiento / Compras: " + (lblKpiCompTotal != null ? lblKpiCompTotal.getText() : "S/ 0.00")
+                + " (" + (lblKpiCompFacturas != null ? lblKpiCompFacturas.getText() : "0") + " facturas procesadas)\n"
+                + "• Pérdidas por Mermas / Bajas: " + (lblKpiMermaTotalPerdida != null ? lblKpiMermaTotalPerdida.getText() : "S/ 0.00")
+                + " (" + (lblKpiMermaTotalUnidades != null ? lblKpiMermaTotalUnidades.getText() : "0") + " unidades registradas)";
+
+        StringBuilder sbDetalle = new StringBuilder();
+        sbDetalle.append("=======================================================================\n");
+        sbDetalle.append("      DESGLOSE DE PRODUCTOS DE MAYOR ROTACIÓN / DEMANDA                \n");
+        sbDetalle.append("=======================================================================\n");
+        sbDetalle.append(String.format("%-10s  %-30s  %8s  %12s\n", "CÓDIGO", "PRODUCTO", "CANT.", "RECAUDADO"));
+        sbDetalle.append("-----------------------------------------------------------------------\n");
+
+        int count = 0;
+        if (tblRotacion != null && tblRotacion.getItems() != null) {
+            for (ProductoRotacionDTO dto : tblRotacion.getItems()) {
+                if (count >= 12) break;
+                String nom = dto.getNombre() != null ? dto.getNombre() : "-";
+                if (nom.length() > 28) nom = nom.substring(0, 25) + "...";
+                sbDetalle.append(String.format("%-10s  %-30s  %8d  S/ %9.2f\n",
+                        dto.getCodigo() != null ? dto.getCodigo() : "-",
+                        nom,
+                        dto.getCantidadTotalVendida() != null ? dto.getCantidadTotalVendida() : 0,
+                        dto.getTotalRecaudado() != null ? dto.getTotalRecaudado() : BigDecimal.ZERO));
+                count++;
+            }
+        }
+        if (count == 0) {
+            sbDetalle.append("No se registraron ventas en la rotación del período.\n");
+        }
+
+        sbDetalle.append("-----------------------------------------------------------------------\n");
+        sbDetalle.append("DESEMPEÑO DEL EQUIPO DE VENTAS / CAJA:\n");
+        if (listaVentasVendedor != null && !listaVentasVendedor.isEmpty()) {
+            for (VentaVendedorDTO v : listaVentasVendedor) {
+                sbDetalle.append(String.format(" • %-30s | Tickets: %4d | Total: S/ %9.2f\n",
+                        v.getNombre() != null ? v.getNombre() : "N/A",
+                        v.getTickets() != null ? v.getTickets() : 0L,
+                        v.getTotal() != null ? v.getTotal() : BigDecimal.ZERO));
+            }
+        } else {
+            sbDetalle.append(" Sin movimientos de cajeros en este período.\n");
+        }
+        sbDetalle.append("=======================================================================");
+
+        Window window = tblHistorialVentas != null && tblHistorialVentas.getScene() != null
+                ? tblHistorialVentas.getScene().getWindow() : null;
+
+        ImpresionUtil.imprimirReporteEjecutivo(
+                "Informe Ejecutivo de Gestión y Ventas",
+                periodo,
+                resumen,
+                sbDetalle.toString(),
+                window
+        );
+    }
+
+    @FXML
+    public void handleExportarVentasExcel() {
+        List<Venta> datos = new ArrayList<>(filteredHistorial);
+        if (datos.isEmpty()) {
+            mostrarAlertaError("Sin registros", "No hay ventas que coincidan con los filtros aplicados para exportar.");
+            return;
+        }
+
+        LocalDate inicio = dpFechaInicio != null ? dpFechaInicio.getValue() : null;
+        LocalDate fin = dpFechaFin != null ? dpFechaFin.getValue() : null;
+
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Exportar Reporte de Ventas a Excel");
+        fileChooser.setInitialFileName("Reporte_Ventas_" + LocalDate.now() + ".csv");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos de Excel (*.csv)", "*.csv"));
+
+        Window window = tblHistorialVentas != null && tblHistorialVentas.getScene() != null
+                ? tblHistorialVentas.getScene().getWindow() : null;
+        File file = fileChooser.showSaveDialog(window);
+        if (file != null) {
+            try {
+                exportacionService.exportarVentasCsv(file, datos, inicio, fin);
+                mostrarAlertaExitoExportacion(file);
+            } catch (Exception e) {
+                mostrarAlertaError("Error al exportar", e.getMessage());
+            }
+        }
+    }
+
+    @FXML
+    public void handleExportarComprasExcel() {
+        String opcion = cbDashCompPeriodo != null && cbDashCompPeriodo.getValue() != null
+                ? cbDashCompPeriodo.getValue() : "Hoy";
+        LocalDateTime inicio;
+        LocalDateTime fin = LocalDateTime.now();
+
+        switch (opcion) {
+            case "Hoy":
+                inicio = LocalDate.now().atStartOfDay();
+                break;
+            case "Últimos 7 Días":
+                inicio = LocalDate.now().minusDays(6).atStartOfDay();
+                break;
+            case "Este Mes":
+                inicio = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+                break;
+            case "Mes Específico":
+                int mesIdx = cbDashCompMes != null ? cbDashCompMes.getSelectionModel().getSelectedIndex() + 1 : LocalDate.now().getMonthValue();
+                if (mesIdx <= 0) mesIdx = LocalDate.now().getMonthValue();
+                Integer anioSel = cbDashCompAnio != null && cbDashCompAnio.getValue() != null ? cbDashCompAnio.getValue() : LocalDate.now().getYear();
+                YearMonth ym = YearMonth.of(anioSel, mesIdx);
+                inicio = ym.atDay(1).atStartOfDay();
+                fin = ym.atEndOfMonth().atTime(LocalTime.MAX);
+                break;
+            default:
+                inicio = LocalDate.now().atStartOfDay();
+                break;
+        }
+
+        List<Compra> compras = compraRepository.findComprasEntreFechas(inicio, fin);
+        if (compras.isEmpty()) {
+            mostrarAlertaError("Sin registros", "No se encontraron compras registradas en el período seleccionado.");
+            return;
+        }
+
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Exportar Reporte de Compras a Excel");
+        fileChooser.setInitialFileName("Reporte_Compras_" + LocalDate.now() + ".csv");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos de Excel (*.csv)", "*.csv"));
+
+        Window window = cbDashCompPeriodo != null && cbDashCompPeriodo.getScene() != null
+                ? cbDashCompPeriodo.getScene().getWindow() : null;
+        File file = fileChooser.showSaveDialog(window);
+        if (file != null) {
+            try {
+                exportacionService.exportarComprasCsv(file, compras, inicio.toLocalDate(), fin.toLocalDate());
+                mostrarAlertaExitoExportacion(file);
+            } catch (Exception e) {
+                mostrarAlertaError("Error al exportar", e.getMessage());
+            }
+        }
+    }
+
+    @FXML
+    public void handleExportarMermasExcel() {
+        List<Merma> mermas = tblMermas != null && tblMermas.getItems() != null
+                ? new ArrayList<>(tblMermas.getItems()) : Collections.emptyList();
+        if (mermas.isEmpty()) {
+            mostrarAlertaError("Sin registros", "No hay registros de mermas que coincidan con los filtros aplicados.");
+            return;
+        }
+
+        LocalDate inicio = dpMermaInicio != null ? dpMermaInicio.getValue() : null;
+        LocalDate fin = dpMermaFin != null ? dpMermaFin.getValue() : null;
+
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Exportar Reporte de Mermas a Excel");
+        fileChooser.setInitialFileName("Reporte_Mermas_" + LocalDate.now() + ".csv");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos de Excel (*.csv)", "*.csv"));
+
+        Window window = tblMermas != null && tblMermas.getScene() != null
+                ? tblMermas.getScene().getWindow() : null;
+        File file = fileChooser.showSaveDialog(window);
+        if (file != null) {
+            try {
+                exportacionService.exportarMermasCsv(file, mermas, inicio, fin);
+                mostrarAlertaExitoExportacion(file);
+            } catch (Exception e) {
+                mostrarAlertaError("Error al exportar", e.getMessage());
+            }
+        }
+    }
+
+    private void mostrarAlertaExitoExportacion(File file) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Exportación Exitosa");
+        alert.setHeaderText("Archivo generado correctamente para Microsoft Excel");
+        alert.setContentText("Ubicación: " + file.getAbsolutePath() + "\n\n¿Desea abrir el archivo en Excel ahora mismo?");
+
+        ButtonType btnAbrir = new ButtonType("Abrir en Excel", ButtonBar.ButtonData.OK_DONE);
+        ButtonType btnCerrar = new ButtonType("Listo", ButtonBar.ButtonData.CANCEL_CLOSE);
+        alert.getDialogPane().getButtonTypes().setAll(btnAbrir, btnCerrar);
+
+        alert.showAndWait().ifPresent(res -> {
+            if (res == btnAbrir) {
+                try {
+                    if (java.awt.Desktop.isDesktopSupported()) {
+                        java.awt.Desktop.getDesktop().open(file);
+                    }
+                } catch (Exception ex) {
+                    mostrarAlertaError("No se pudo abrir automáticamente", ex.getMessage());
+                }
+            }
+        });
+    }
+
+    private void mostrarAlertaError(String titulo, String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(titulo);
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje != null ? mensaje : "Ocurrió un error inesperado.");
+        alert.showAndWait();
     }
 
     // DTO interno para tabla de ventas por vendedor

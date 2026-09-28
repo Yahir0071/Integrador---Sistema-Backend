@@ -37,7 +37,11 @@
                   style="-fx-text-fill: #b91c1c; -fx-font-weight: bold; -fx-cursor: hand;"/>
 
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="🔄 Refrescar" onAction="#cargarProductos" styleClass="btn, btn-default" style="-fx-cursor: hand;"/>
+        <HBox spacing="10" alignment="CENTER_RIGHT">
+            <Button text="📥 Exportar a Excel" onAction="#handleExportarInventarioExcel"
+                    style="-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6px; -fx-padding: 7 12;"/>
+            <Button text="🔄 Refrescar" onAction="#cargarProductos" styleClass="btn, btn-default" style="-fx-cursor: hand; -fx-padding: 7 12;"/>
+        </HBox>
     </HBox>
 
     <!-- Tabla de Productos -->

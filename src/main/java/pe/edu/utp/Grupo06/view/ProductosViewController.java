@@ -21,14 +21,18 @@ import pe.edu.utp.Grupo06.model.Usuario;
 import pe.edu.utp.Grupo06.model.enums.MotivoMerma;
 import pe.edu.utp.Grupo06.model.enums.UnidadMedida;
 import pe.edu.utp.Grupo06.service.ICategoriaService;
+import pe.edu.utp.Grupo06.service.IExportacionService;
 import pe.edu.utp.Grupo06.service.IMermaService;
 import pe.edu.utp.Grupo06.service.IProductoService;
 import pe.edu.utp.Grupo06.service.IUsuarioService;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import javafx.stage.FileChooser;
+import javafx.stage.Window;
 
 @Component
 public class ProductosViewController {
@@ -44,6 +48,9 @@ public class ProductosViewController {
 
     @Autowired
     private IUsuarioService usuarioService;
+
+    @Autowired
+    private IExportacionService exportacionService;
 
     @FXML
     private TextField txtBuscar;
@@ -663,6 +670,54 @@ public class ProductosViewController {
                     cargarProductos();
                 } catch (Exception ex) {
                     mostrarAlertaError("Error al registrar merma", ex.getMessage());
+                }
+            }
+        });
+    }
+
+    @FXML
+    public void handleExportarInventarioExcel() {
+        List<Producto> productos = productoService.listarActivos();
+        if (productos.isEmpty()) {
+            mostrarAlertaError("Sin datos", "No hay productos en el catálogo para exportar.");
+            return;
+        }
+
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Guardar Inventario en Excel");
+        fileChooser.setInitialFileName("Inventario_SGCIVORP_" + LocalDate.now() + ".csv");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos de Excel (*.csv)", "*.csv"));
+
+        Window window = tblProductos.getScene().getWindow();
+        File file = fileChooser.showSaveDialog(window);
+        if (file != null) {
+            try {
+                exportacionService.exportarInventarioCsv(file, productos);
+                mostrarAlertaExitoExportacion(file);
+            } catch (Exception e) {
+                mostrarAlertaError("Error al exportar", e.getMessage());
+            }
+        }
+    }
+
+    private void mostrarAlertaExitoExportacion(File file) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Exportación Exitosa");
+        alert.setHeaderText("Archivo generado correctamente para Microsoft Excel");
+        alert.setContentText("Ubicación: " + file.getAbsolutePath() + "\n\n¿Desea abrir el archivo en Excel ahora mismo?");
+
+        ButtonType btnAbrir = new ButtonType("Abrir en Excel", ButtonBar.ButtonData.OK_DONE);
+        ButtonType btnCerrar = new ButtonType("Listo", ButtonBar.ButtonData.CANCEL_CLOSE);
+        alert.getDialogPane().getButtonTypes().setAll(btnAbrir, btnCerrar);
+
+        alert.showAndWait().ifPresent(res -> {
+            if (res == btnAbrir) {
+                try {
+                    if (java.awt.Desktop.isDesktopSupported()) {
+                        java.awt.Desktop.getDesktop().open(file);
+                    }
+                } catch (Exception ex) {
+                    mostrarAlertaError("No se pudo abrir automáticamente", ex.getMessage());
                 }
             }
         });
