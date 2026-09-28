@@ -17,7 +17,11 @@ import java.time.LocalDateTime;
         @Index(name = "idx_mov_venta", columnList = "venta_id")
     }
 )
-@org.hibernate.annotations.Check(constraints = "cantidad > 0 AND stock_anterior >= 0 AND stock_posterior >= 0")
+@org.hibernate.annotations.Check(
+        constraints = "((tipo_movimiento = 'AJUSTE' AND cantidad >= 0) " +
+                "OR (tipo_movimiento <> 'AJUSTE' AND cantidad > 0)) " +
+                "AND stock_anterior >= 0 AND stock_posterior >= 0"
+)
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

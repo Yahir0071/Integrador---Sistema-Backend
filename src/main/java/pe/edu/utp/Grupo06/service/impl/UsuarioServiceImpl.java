@@ -77,6 +77,26 @@ public class UsuarioServiceImpl implements IUsuarioService {
         existente.setNombreCompleto(usuarioActualizado.getNombreCompleto());
         existente.setEmail(usuarioActualizado.getEmail());
         existente.setTelefono(usuarioActualizado.getTelefono());
+        if (Boolean.TRUE.equals(existente.getActivo())
+                && existente.getRol() != null
+                && existente.getRol().getNombre()
+                == pe.edu.utp.Grupo06.model.enums.RolNombre.ADMINISTRADOR
+                && usuarioActualizado.getRol() != null
+                && usuarioActualizado.getRol().getNombre()
+                != pe.edu.utp.Grupo06.model.enums.RolNombre.ADMINISTRADOR) {
+
+            long administradoresActivos = usuarioRepository
+                    .countByRolNombreAndActivoTrue(
+                            pe.edu.utp.Grupo06.model.enums.RolNombre.ADMINISTRADOR
+                    );
+
+            if (administradoresActivos <= 1) {
+                throw new RuntimeException(
+                        "No se puede cambiar el rol del único administrador activo"
+                );
+            }
+        }
+
         existente.setRol(usuarioActualizado.getRol());
 
         if (usuarioActualizado.getPassword() != null && !usuarioActualizado.getPassword().isBlank()) {

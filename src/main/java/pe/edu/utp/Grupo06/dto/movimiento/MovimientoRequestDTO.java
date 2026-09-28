@@ -2,6 +2,7 @@ package pe.edu.utp.Grupo06.dto.movimiento;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,7 +26,7 @@ public class MovimientoRequestDTO {
     private TipoMovimiento tipoMovimiento;
 
     @NotNull(message = "La cantidad es obligatoria")
-    @Positive(message = "La cantidad debe ser mayor a 0")
+    @PositiveOrZero(message = "La cantidad no puede ser negativa")
     private Integer cantidad;
 
     @Size(max = 255, message = "El motivo no puede superar los 255 caracteres")
