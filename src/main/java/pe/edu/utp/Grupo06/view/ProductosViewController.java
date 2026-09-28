@@ -5,20 +5,29 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.util.StringConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pe.edu.utp.Grupo06.model.Categoria;
 import pe.edu.utp.Grupo06.model.Producto;
+import pe.edu.utp.Grupo06.model.Usuario;
+import pe.edu.utp.Grupo06.model.enums.MotivoMerma;
 import pe.edu.utp.Grupo06.model.enums.UnidadMedida;
 import pe.edu.utp.Grupo06.service.ICategoriaService;
+import pe.edu.utp.Grupo06.service.IMermaService;
 import pe.edu.utp.Grupo06.service.IProductoService;
+import pe.edu.utp.Grupo06.service.IUsuarioService;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.List;
 
 @Component
@@ -29,6 +38,12 @@ public class ProductosViewController {
 
     @Autowired
     private ICategoriaService categoriaService;
+
+    @Autowired
+    private IMermaService mermaService;
+
+    @Autowired
+    private IUsuarioService usuarioService;
 
     @FXML
     private TextField txtBuscar;
@@ -130,20 +145,27 @@ public class ProductosViewController {
             }
         });
 
-        // Botones claros de Editar y Eliminar en acciones
+        // Botones de Editar, Merma/Baja y Eliminar en acciones
         colAcciones.setCellFactory(param -> new TableCell<>() {
             private final Button btnEditar = new Button("Editar");
+            private final Button btnMerma = new Button("Baja");
             private final Button btnEliminar = new Button("Eliminar");
-            private final HBox pane = new HBox(6, btnEditar, btnEliminar);
+            private final HBox pane = new HBox(5, btnEditar, btnMerma, btnEliminar);
 
             {
                 btnEditar.setStyle("-fx-background-color: #e0f2fe; -fx-text-fill: #0284c7; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 4; -fx-font-size: 11px;");
+                btnMerma.setStyle("-fx-background-color: #fef2f2; -fx-border-color: #fca5a5; -fx-border-radius: 4; -fx-text-fill: #dc2626; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 4; -fx-font-size: 11px;");
                 btnEliminar.setStyle("-fx-background-color: #fee2e2; -fx-text-fill: #b91c1c; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 4; -fx-font-size: 11px;");
                 pane.setAlignment(Pos.CENTER);
 
                 btnEditar.setOnAction(event -> {
                     Producto p = getTableView().getItems().get(getIndex());
                     editarProducto(p);
+                });
+
+                btnMerma.setOnAction(event -> {
+                    Producto p = getTableView().getItems().get(getIndex());
+                    abrirDialogoMerma(p);
                 });
 
                 btnEliminar.setOnAction(event -> {
@@ -473,5 +495,176 @@ public class ProductosViewController {
         alert.setHeaderText(null);
         alert.setContentText(contenido);
         alert.showAndWait();
+    }
+
+    @FXML
+    public void handleRegistrarMerma() {
+        abrirDialogoMerma(null);
+    }
+
+    private void abrirDialogoMerma(Producto productoSeleccionado) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Registrar Merma / Baja de Inventario");
+        dialog.setHeaderText("Gestión de Bajas por Vencimiento, Rotura o Deterioro\nEsta acción reduce existencias y audita la pérdida sin alterar la caja ni falsear ventas.");
+
+        ButtonType btnRegistrarType = new ButtonType("Registrar Baja", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnRegistrarType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(12);
+        grid.setPadding(new Insets(20, 20, 10, 10));
+
+        ComboBox<Producto> cbProducto = new ComboBox<>();
+        List<Producto> productosDisponibles = productoService.listarActivos();
+        cbProducto.setItems(FXCollections.observableArrayList(productosDisponibles));
+        cbProducto.setPrefWidth(380);
+        cbProducto.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Producto p) {
+                if (p == null) return "";
+                String marca = (p.getMarca() != null && !p.getMarca().isBlank()) ? " (" + p.getMarca() + ")" : "";
+                return "[" + p.getCodigo() + "] " + p.getNombre() + marca + " - Stock actual: " + p.getStockActual();
+            }
+
+            @Override
+            public Producto fromString(String string) {
+                return null;
+            }
+        });
+
+        if (productoSeleccionado != null) {
+            for (Producto p : productosDisponibles) {
+                if (p.getId().equals(productoSeleccionado.getId())) {
+                    cbProducto.setValue(p);
+                    break;
+                }
+            }
+        }
+
+        Label lblStockInfo = new Label();
+        lblStockInfo.setStyle("-fx-font-weight: bold; -fx-text-fill: #0284c7;");
+
+        Spinner<Integer> spCantidad = new Spinner<>(1, 9999, 1);
+        spCantidad.setEditable(true);
+        spCantidad.setPrefWidth(130);
+
+        ComboBox<MotivoMerma> cbMotivo = new ComboBox<>(FXCollections.observableArrayList(MotivoMerma.values()));
+        cbMotivo.setValue(MotivoMerma.VENCIMIENTO);
+        cbMotivo.setPrefWidth(260);
+
+        DatePicker dpVencimiento = new DatePicker();
+        dpVencimiento.setPromptText("Opcional: Fecha caducidad");
+        dpVencimiento.setPrefWidth(200);
+
+        Label lblPerdidaEstimada = new Label("Pérdida valorizada: S/ 0.00");
+        lblPerdidaEstimada.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #dc2626;");
+
+        TextField txtObservacion = new TextField();
+        txtObservacion.setPromptText("Ej. Empaque roto en transporte / Lote vencido...");
+        txtObservacion.setPrefWidth(380);
+
+        Runnable actualizarCalculos = () -> {
+            Producto p = cbProducto.getValue();
+            if (p != null) {
+                lblStockInfo.setText("Stock disponible: " + p.getStockActual() + " | Costo unitario: S/ " + (p.getPrecioCompra() != null ? p.getPrecioCompra() : BigDecimal.ZERO));
+                int cant = spCantidad.getValue() != null ? spCantidad.getValue() : 1;
+                BigDecimal costoUnit = p.getPrecioCompra() != null ? p.getPrecioCompra() : BigDecimal.ZERO;
+                BigDecimal totalPerdida = costoUnit.multiply(BigDecimal.valueOf(cant));
+                lblPerdidaEstimada.setText("Pérdida valorizada: S/ " + totalPerdida.setScale(2, RoundingMode.HALF_UP));
+            } else {
+                lblStockInfo.setText("");
+                lblPerdidaEstimada.setText("Pérdida valorizada: S/ 0.00");
+            }
+        };
+
+        cbProducto.valueProperty().addListener((obs, oldV, newV) -> actualizarCalculos.run());
+        spCantidad.valueProperty().addListener((obs, oldV, newV) -> actualizarCalculos.run());
+        spCantidad.getEditor().textProperty().addListener((obs, oldV, newV) -> {
+            try {
+                int val = Integer.parseInt(newV.trim());
+                if (val > 0) {
+                    spCantidad.getValueFactory().setValue(val);
+                }
+            } catch (Exception ignored) {}
+            actualizarCalculos.run();
+        });
+
+        actualizarCalculos.run();
+
+        grid.add(new Label("Producto a dar de baja:"), 0, 0);
+        grid.add(cbProducto, 1, 0);
+        grid.add(lblStockInfo, 1, 1);
+
+        grid.add(new Label("Cantidad a dar de baja:"), 0, 2);
+        grid.add(spCantidad, 1, 2);
+
+        grid.add(new Label("Motivo de la merma:"), 0, 3);
+        grid.add(cbMotivo, 1, 3);
+
+        grid.add(new Label("Fecha de vencimiento:"), 0, 4);
+        grid.add(dpVencimiento, 1, 4);
+
+        grid.add(new Label("Pérdida económica:"), 0, 5);
+        grid.add(lblPerdidaEstimada, 1, 5);
+
+        grid.add(new Label("Observación / Justificación:"), 0, 6);
+        grid.add(txtObservacion, 1, 6);
+
+        dialog.getDialogPane().setContent(grid);
+
+        Button btnRegistrar = (Button) dialog.getDialogPane().lookupButton(btnRegistrarType);
+        btnRegistrar.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            Producto prod = cbProducto.getValue();
+            if (prod == null) {
+                mostrarAlertaError("Selección requerida", "Debe seleccionar un producto del inventario.");
+                event.consume();
+                return;
+            }
+            int cant = spCantidad.getValue() != null ? spCantidad.getValue() : 0;
+            if (cant <= 0) {
+                mostrarAlertaError("Cantidad inválida", "La cantidad debe ser mayor a 0.");
+                event.consume();
+                return;
+            }
+            if (prod.getStockActual() < cant) {
+                mostrarAlertaError("Stock insuficiente", "No puede dar de baja más unidades de las disponibles.\nStock actual: " + prod.getStockActual() + ", solicitado: " + cant);
+                event.consume();
+                return;
+            }
+        });
+
+        dialog.showAndWait().ifPresent(response -> {
+            if (response == btnRegistrarType) {
+                try {
+                    Producto prod = cbProducto.getValue();
+                    int cant = spCantidad.getValue();
+                    MotivoMerma motivo = cbMotivo.getValue();
+                    LocalDate fechaVenc = dpVencimiento.getValue();
+                    String obs = txtObservacion.getText();
+
+                    Usuario usuario = LoginViewController.getUsuarioSesion();
+                    if (usuario == null) {
+                        usuario = usuarioService.listarTodos().stream()
+                                .filter(u -> Boolean.TRUE.equals(u.getActivo()))
+                                .findFirst()
+                                .orElseThrow(() -> new RuntimeException("No hay ningún usuario activo registrado para auditar la merma"));
+                    }
+
+                    mermaService.registrarMerma(prod.getId(), usuario.getId(), cant, motivo, fechaVenc, obs);
+
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    alert.setTitle("Merma Registrada");
+                    alert.setHeaderText("Baja de mercadería procesada correctamente");
+                    alert.setContentText(String.format("Se dieron de baja %d unidades de '%s'.\nNuevo stock disponible: %d unidades.\nEl movimiento fue auditado en Kardex.",
+                            cant, prod.getNombre(), prod.getStockActual() - cant));
+                    alert.showAndWait();
+
+                    cargarProductos();
+                } catch (Exception ex) {
+                    mostrarAlertaError("Error al registrar merma", ex.getMessage());
+                }
+            }
+        });
     }
 }

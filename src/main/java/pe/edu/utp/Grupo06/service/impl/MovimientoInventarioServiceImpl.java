@@ -55,9 +55,9 @@ public class MovimientoInventarioServiceImpl implements IMovimientoInventarioSer
 
         if (tipo == TipoMovimiento.ENTRADA || tipo == TipoMovimiento.REPOSICION) {
             stockPosterior += cantidad;
-        } else if (tipo == TipoMovimiento.SALIDA) {
+        } else if (tipo == TipoMovimiento.SALIDA || tipo == TipoMovimiento.MERMA) {
             if (stockAnterior < cantidad) {
-                throw new RuntimeException("Stock insuficiente para realizar la salida. Stock actual: " + stockAnterior);
+                throw new RuntimeException("Stock insuficiente para realizar " + (tipo == TipoMovimiento.MERMA ? "la merma" : "la salida") + ". Stock actual: " + stockAnterior);
             }
             stockPosterior -= cantidad;
         } else if (tipo == TipoMovimiento.AJUSTE) {

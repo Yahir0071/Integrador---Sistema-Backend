@@ -16,8 +16,12 @@
         </VBox>
         <Region HBox.hgrow="ALWAYS"/>
         
-        <Button text="➕ Nuevo Producto" onAction="#handleNuevoProducto"
-                styleClass="btn, btn-primary" style="-fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6px;"/>
+        <HBox spacing="10" alignment="CENTER_RIGHT">
+            <Button text="⚠️ Registrar Merma / Baja" onAction="#handleRegistrarMerma"
+                    style="-fx-background-color: #dc2626; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6px; -fx-padding: 8 14;"/>
+            <Button text="➕ Nuevo Producto" onAction="#handleNuevoProducto"
+                    styleClass="btn, btn-primary" style="-fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6px; -fx-padding: 8 14;"/>
+        </HBox>
     </HBox>
 
     <!-- Filtros y Búsqueda -->
@@ -48,7 +52,7 @@
             <TableColumn fx:id="colStockActual" text="Stock Actual" prefWidth="100"/>
             <TableColumn fx:id="colStockMinimo" text="Stock Mín." prefWidth="90"/>
             <TableColumn fx:id="colEstadoStock" text="Estado" prefWidth="120"/>
-            <TableColumn fx:id="colAcciones" text="Acciones" prefWidth="160"/>
+            <TableColumn fx:id="colAcciones" text="Acciones" prefWidth="210"/>
         </columns>
         <columnResizePolicy>
             <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>

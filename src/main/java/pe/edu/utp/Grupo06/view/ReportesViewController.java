@@ -6,6 +6,7 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.chart.*;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -24,6 +25,7 @@ import pe.edu.utp.Grupo06.repository.PagoRepository;
 import pe.edu.utp.Grupo06.repository.VentaRepository;
 import pe.edu.utp.Grupo06.service.ICategoriaService;
 import pe.edu.utp.Grupo06.service.ICompraService;
+import pe.edu.utp.Grupo06.service.IMermaService;
 import pe.edu.utp.Grupo06.service.IReporteService;
 import pe.edu.utp.Grupo06.service.IVentaService;
 
@@ -50,6 +52,9 @@ public class ReportesViewController {
 
     @Autowired
     private ICategoriaService categoriaService;
+
+    @Autowired
+    private IMermaService mermaService;
 
     @Autowired
     private VentaRepository ventaRepository;
@@ -203,6 +208,50 @@ public class ReportesViewController {
     @FXML
     private TableColumn<ResumenProductoCompradoDTO, BigDecimal> colResTotal;
 
+    // --- Pestaña 5: Control de Mermas y Bajas ---
+    @FXML
+    private Label lblKpiMermaTotalPerdida;
+    @FXML
+    private Label lblKpiMermaTotalUnidades;
+    @FXML
+    private Label lblKpiMermaCausaTop;
+    @FXML
+    private Label lblKpiMermaCausaTopDetalle;
+
+    @FXML
+    private TextField txtMermaBuscar;
+    @FXML
+    private ComboBox<String> cbMermaFiltroMotivo;
+    @FXML
+    private DatePicker dpMermaInicio;
+    @FXML
+    private DatePicker dpMermaFin;
+    @FXML
+    private Label lblMermaTotalFiltrado;
+
+    @FXML
+    private TableView<Merma> tblMermas;
+    @FXML
+    private TableColumn<Merma, String> colMermaFecha;
+    @FXML
+    private TableColumn<Merma, String> colMermaCodigo;
+    @FXML
+    private TableColumn<Merma, String> colMermaProducto;
+    @FXML
+    private TableColumn<Merma, String> colMermaMarca;
+    @FXML
+    private TableColumn<Merma, String> colMermaMotivo;
+    @FXML
+    private TableColumn<Merma, Integer> colMermaCantidad;
+    @FXML
+    private TableColumn<Merma, String> colMermaCostoUnit;
+    @FXML
+    private TableColumn<Merma, String> colMermaPerdidaTotal;
+    @FXML
+    private TableColumn<Merma, String> colMermaUsuario;
+    @FXML
+    private TableColumn<Merma, String> colMermaObservacion;
+
     // Colecciones observables
     private final ObservableList<ProductoRotacionDTO> listaRotacion = FXCollections.observableArrayList();
     private final ObservableList<Venta> listaHistorialVentas = FXCollections.observableArrayList();
@@ -210,6 +259,7 @@ public class ReportesViewController {
 
     private final ObservableList<VentaVendedorDTO> listaVentasVendedor = FXCollections.observableArrayList();
     private final ObservableList<ResumenProductoCompradoDTO> listaResumenComprados = FXCollections.observableArrayList();
+    private final ObservableList<Merma> listaMermasBase = FXCollections.observableArrayList();
 
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
@@ -225,6 +275,9 @@ public class ReportesViewController {
         configurarTablaVentasVendedor();
 
         configurarControlesDashboardCompras();
+
+        configurarTablaMermas();
+        configurarFiltrosMermas();
 
         cargarReportes();
     }
@@ -1033,8 +1086,209 @@ public class ReportesViewController {
             handleActualizarDashboard();
 
             handleActualizarDashboardCompras();
+
+            cargarMermas();
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    // ==================== PESTAÑA 5: CONTROL DE MERMAS Y PÉRDIDAS ====================
+
+    private void configurarTablaMermas() {
+        if (tblMermas == null) return;
+
+        DateTimeFormatter dtfMerma = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+        colMermaFecha.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().getFechaMerma() != null ?
+                        cellData.getValue().getFechaMerma().format(dtfMerma) : ""));
+
+        colMermaCodigo.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().getProducto() != null ?
+                        cellData.getValue().getProducto().getCodigo() : ""));
+
+        colMermaProducto.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().getProducto() != null ?
+                        cellData.getValue().getProducto().getNombre() : ""));
+
+        colMermaMarca.setCellValueFactory(cellData -> {
+            Producto p = cellData.getValue().getProducto();
+            String marca = (p != null && p.getMarca() != null && !p.getMarca().isBlank()) ? p.getMarca() : "Genérico";
+            return new SimpleStringProperty(marca);
+        });
+
+        colMermaMotivo.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().getMotivo() != null ?
+                        cellData.getValue().getMotivo().getDescripcion() : ""));
+
+        colMermaCantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
+
+        colMermaCostoUnit.setCellValueFactory(cellData ->
+                new SimpleStringProperty(String.format("S/ %.2f",
+                        cellData.getValue().getCostoUnitario() != null ? cellData.getValue().getCostoUnitario() : BigDecimal.ZERO)));
+
+        colMermaPerdidaTotal.setCellValueFactory(cellData ->
+                new SimpleStringProperty(String.format("S/ %.2f",
+                        cellData.getValue().getCostoTotalPerdida() != null ? cellData.getValue().getCostoTotalPerdida() : BigDecimal.ZERO)));
+
+        colMermaUsuario.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().getUsuario() != null ?
+                        cellData.getValue().getUsuario().getNombreCompleto() : "N/A"));
+
+        colMermaObservacion.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().getObservacion() != null ?
+                        cellData.getValue().getObservacion() : ""));
+
+        // Badge estilizado para motivo de merma
+        colMermaMotivo.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    Label badge = new Label(item);
+                    badge.setStyle("-fx-padding: 3 8; -fx-background-radius: 4; -fx-font-weight: bold; -fx-font-size: 11px;");
+                    if (item.toLowerCase().contains("vencimiento")) {
+                        badge.setStyle(badge.getStyle() + " -fx-background-color: #fee2e2; -fx-text-fill: #dc2626;");
+                    } else if (item.toLowerCase().contains("rotura")) {
+                        badge.setStyle(badge.getStyle() + " -fx-background-color: #fef3c7; -fx-text-fill: #d97706;");
+                    } else if (item.toLowerCase().contains("deterioro")) {
+                        badge.setStyle(badge.getStyle() + " -fx-background-color: #ede9fe; -fx-text-fill: #7c3aed;");
+                    } else {
+                        badge.setStyle(badge.getStyle() + " -fx-background-color: #f1f5f9; -fx-text-fill: #475569;");
+                    }
+                    setGraphic(badge);
+                    setAlignment(Pos.CENTER);
+                }
+            }
+        });
+    }
+
+    private void configurarFiltrosMermas() {
+        if (cbMermaFiltroMotivo != null) {
+            List<String> opciones = new ArrayList<>();
+            opciones.add("Todos los Motivos");
+            for (pe.edu.utp.Grupo06.model.enums.MotivoMerma m : pe.edu.utp.Grupo06.model.enums.MotivoMerma.values()) {
+                opciones.add(m.getDescripcion());
+            }
+            cbMermaFiltroMotivo.setItems(FXCollections.observableArrayList(opciones));
+            cbMermaFiltroMotivo.setValue("Todos los Motivos");
+            cbMermaFiltroMotivo.valueProperty().addListener((obs, oldV, newV) -> aplicarFiltrosMermas());
+        }
+
+        if (txtMermaBuscar != null) {
+            txtMermaBuscar.textProperty().addListener((obs, oldV, newV) -> aplicarFiltrosMermas());
+        }
+    }
+
+    public void cargarMermas() {
+        try {
+            List<Merma> mermas = mermaService.listarTodas();
+            listaMermasBase.setAll(mermas);
+            aplicarFiltrosMermas();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    public void handleFiltrarMermas() {
+        aplicarFiltrosMermas();
+    }
+
+    @FXML
+    public void handleLimpiarFiltroMermas() {
+        if (txtMermaBuscar != null) txtMermaBuscar.clear();
+        if (cbMermaFiltroMotivo != null) cbMermaFiltroMotivo.setValue("Todos los Motivos");
+        if (dpMermaInicio != null) dpMermaInicio.setValue(null);
+        if (dpMermaFin != null) dpMermaFin.setValue(null);
+        aplicarFiltrosMermas();
+    }
+
+    private void aplicarFiltrosMermas() {
+        if (tblMermas == null) return;
+
+        LocalDate fInicio = dpMermaInicio != null ? dpMermaInicio.getValue() : null;
+        LocalDate fFin = dpMermaFin != null ? dpMermaFin.getValue() : null;
+        String motivoSeleccionado = cbMermaFiltroMotivo != null ? cbMermaFiltroMotivo.getValue() : null;
+        String busqueda = txtMermaBuscar != null && txtMermaBuscar.getText() != null ?
+                txtMermaBuscar.getText().trim().toLowerCase() : "";
+
+        List<Merma> filtradas = new ArrayList<>();
+        BigDecimal totalPerdida = BigDecimal.ZERO;
+        long totalUnidades = 0;
+        Map<String, Long> conteoMotivos = new HashMap<>();
+
+        for (Merma m : listaMermasBase) {
+            // Filtro fecha
+            if (fInicio != null && m.getFechaMerma() != null && m.getFechaMerma().toLocalDate().isBefore(fInicio)) {
+                continue;
+            }
+            if (fFin != null && m.getFechaMerma() != null && m.getFechaMerma().toLocalDate().isAfter(fFin)) {
+                continue;
+            }
+
+            // Filtro motivo
+            if (motivoSeleccionado != null && !motivoSeleccionado.equals("Todos los Motivos")) {
+                if (m.getMotivo() == null || !m.getMotivo().getDescripcion().equalsIgnoreCase(motivoSeleccionado)) {
+                    continue;
+                }
+            }
+
+            // Filtro búsqueda de texto
+            if (!busqueda.isEmpty()) {
+                Producto prod = m.getProducto();
+                boolean match = false;
+                if (prod != null) {
+                    if (prod.getNombre() != null && prod.getNombre().toLowerCase().contains(busqueda)) match = true;
+                    if (prod.getCodigo() != null && prod.getCodigo().toLowerCase().contains(busqueda)) match = true;
+                    if (prod.getMarca() != null && prod.getMarca().toLowerCase().contains(busqueda)) match = true;
+                }
+                if (m.getObservacion() != null && m.getObservacion().toLowerCase().contains(busqueda)) match = true;
+                if (!match) continue;
+            }
+
+            filtradas.add(m);
+            if (m.getCostoTotalPerdida() != null) {
+                totalPerdida = totalPerdida.add(m.getCostoTotalPerdida());
+            }
+            if (m.getCantidad() != null) {
+                totalUnidades += m.getCantidad();
+            }
+            String descMotivo = m.getMotivo() != null ? m.getMotivo().getDescripcion() : "Otro";
+            conteoMotivos.put(descMotivo, conteoMotivos.getOrDefault(descMotivo, 0L) + 1);
+        }
+
+        tblMermas.setItems(FXCollections.observableArrayList(filtradas));
+
+        // Actualizar KPIs
+        if (lblKpiMermaTotalPerdida != null) {
+            lblKpiMermaTotalPerdida.setText(String.format("S/ %.2f", totalPerdida));
+        }
+        if (lblKpiMermaTotalUnidades != null) {
+            lblKpiMermaTotalUnidades.setText(String.valueOf(totalUnidades));
+        }
+        if (lblMermaTotalFiltrado != null) {
+            lblMermaTotalFiltrado.setText("Total registros: " + filtradas.size() + " | Pérdida: S/ " + String.format("%.2f", totalPerdida));
+        }
+
+        // Causa principal
+        if (lblKpiMermaCausaTop != null && lblKpiMermaCausaTopDetalle != null) {
+            if (conteoMotivos.isEmpty()) {
+                lblKpiMermaCausaTop.setText("Ninguna");
+                lblKpiMermaCausaTopDetalle.setText("0 incidencias registradas");
+            } else {
+                Map.Entry<String, Long> topCausa = conteoMotivos.entrySet().stream()
+                        .max(Map.Entry.comparingByValue())
+                        .orElse(null);
+                if (topCausa != null) {
+                    lblKpiMermaCausaTop.setText(topCausa.getKey());
+                    lblKpiMermaCausaTopDetalle.setText(topCausa.getValue() + " incidencia(s) en este período");
+                }
+            }
         }
     }
 
