@@ -1,5 +1,6 @@
 package pe.edu.utp.Grupo06.service;
 
+import pe.edu.utp.Grupo06.dto.venta.ProductoRotacionDTO;
 import pe.edu.utp.Grupo06.model.Compra;
 import pe.edu.utp.Grupo06.model.Merma;
 import pe.edu.utp.Grupo06.model.Producto;
@@ -18,4 +19,6 @@ public interface IExportacionService {
     void exportarMermasCsv(File destino, List<Merma> mermas, LocalDate inicio, LocalDate fin) throws Exception;
 
     void exportarInventarioCsv(File destino, List<Producto> productos) throws Exception;
+
+    void exportarRotacionCsv(File destino, List<ProductoRotacionDTO> rotacion, String periodo, String categoria) throws Exception;
 }

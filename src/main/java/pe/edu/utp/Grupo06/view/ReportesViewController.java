@@ -1445,6 +1445,91 @@ public class ReportesViewController {
     }
 
     @FXML
+    public void handleExportarDashboardVentasExcel() {
+        String opcion = cbDashPeriodo != null && cbDashPeriodo.getValue() != null
+                ? cbDashPeriodo.getValue() : "Hoy";
+        LocalDateTime inicio;
+        LocalDateTime fin = LocalDateTime.now();
+
+        switch (opcion) {
+            case "Hoy":
+                inicio = LocalDate.now().atStartOfDay();
+                break;
+            case "Últimos 7 Días":
+                inicio = LocalDate.now().minusDays(6).atStartOfDay();
+                break;
+            case "Este Mes":
+                inicio = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+                break;
+            case "Mes Específico":
+                int mesIdx = cbDashMes != null ? cbDashMes.getSelectionModel().getSelectedIndex() + 1 : LocalDate.now().getMonthValue();
+                if (mesIdx <= 0) mesIdx = LocalDate.now().getMonthValue();
+                Integer anioSel = cbDashAnio != null && cbDashAnio.getValue() != null ? cbDashAnio.getValue() : LocalDate.now().getYear();
+                YearMonth ym = YearMonth.of(anioSel, mesIdx);
+                inicio = ym.atDay(1).atStartOfDay();
+                fin = ym.atEndOfMonth().atTime(LocalTime.MAX);
+                break;
+            default:
+                inicio = LocalDate.now().atStartOfDay();
+                break;
+        }
+
+        List<Venta> ventas = ventaRepository.findVentasEntreFechas(inicio, fin);
+        if (ventas.isEmpty()) {
+            mostrarAlertaError("Sin registros", "No se encontraron ventas registradas en el período seleccionado.");
+            return;
+        }
+
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Exportar Ventas del Período a Excel");
+        fileChooser.setInitialFileName("Reporte_Ventas_Periodo_" + LocalDate.now() + ".csv");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos de Excel (*.csv)", "*.csv"));
+
+        Window window = cbDashPeriodo != null && cbDashPeriodo.getScene() != null
+                ? cbDashPeriodo.getScene().getWindow() : null;
+        File file = fileChooser.showSaveDialog(window);
+        if (file != null) {
+            try {
+                exportacionService.exportarVentasCsv(file, ventas, inicio.toLocalDate(), fin.toLocalDate());
+                mostrarAlertaExitoExportacion(file);
+            } catch (Exception e) {
+                mostrarAlertaError("Error al exportar", e.getMessage());
+            }
+        }
+    }
+
+    @FXML
+    public void handleExportarRotacionExcel() {
+        List<ProductoRotacionDTO> items = tblRotacion != null && tblRotacion.getItems() != null
+                ? new ArrayList<>(tblRotacion.getItems()) : Collections.emptyList();
+        if (items.isEmpty()) {
+            mostrarAlertaError("Sin registros", "No hay datos de rotación para exportar con los filtros seleccionados.");
+            return;
+        }
+
+        String periodo = cbPeriodoRotacion != null && cbPeriodoRotacion.getValue() != null ? cbPeriodoRotacion.getValue() : "Todo";
+        Categoria catSel = cbCategoriaRotacion != null ? cbCategoriaRotacion.getValue() : null;
+        String catNombre = catSel != null ? catSel.getNombre() : "Todas las Categorías";
+
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Exportar Ranking de Rotación a Excel");
+        fileChooser.setInitialFileName("Reporte_Rotacion_Productos_" + LocalDate.now() + ".csv");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos de Excel (*.csv)", "*.csv"));
+
+        Window window = tblRotacion != null && tblRotacion.getScene() != null
+                ? tblRotacion.getScene().getWindow() : null;
+        File file = fileChooser.showSaveDialog(window);
+        if (file != null) {
+            try {
+                exportacionService.exportarRotacionCsv(file, items, periodo, catNombre);
+                mostrarAlertaExitoExportacion(file);
+            } catch (Exception e) {
+                mostrarAlertaError("Error al exportar", e.getMessage());
+            }
+        }
+    }
+
+    @FXML
     public void handleExportarComprasExcel() {
         String opcion = cbDashCompPeriodo != null && cbDashCompPeriodo.getValue() != null
                 ? cbDashCompPeriodo.getValue() : "Hoy";

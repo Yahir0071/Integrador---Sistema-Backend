@@ -59,6 +59,7 @@
 
                     <Button text="🔍 Filtrar" onAction="#handleFiltrarRotacion" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
                     <Button text="Limpiar" onAction="#handleLimpiarRotacion" style="-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                    <Button text="📥 Exportar a Excel" onAction="#handleExportarRotacionExcel" style="-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
                     
                     <Region HBox.hgrow="ALWAYS"/>
                     <Label fx:id="lblTotalRotacion" text="Total Productos: 0" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #0284c7;"/>
@@ -131,6 +132,7 @@
                         </HBox>
 
                         <Button text="🔄 Generar Métricas" onAction="#handleActualizarDashboard" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                        <Button text="📥 Exportar a Excel" onAction="#handleExportarDashboardVentasExcel" style="-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
                         <Region HBox.hgrow="ALWAYS"/>
                         <Label fx:id="lblPeriodoActivo" text="Visualizando: Hoy" style="-fx-text-fill: #0284c7; -fx-font-weight: bold;"/>
                     </HBox>

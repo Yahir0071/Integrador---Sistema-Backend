@@ -1,6 +1,7 @@
 package pe.edu.utp.Grupo06.service.impl;
 
 import org.springframework.stereotype.Service;
+import pe.edu.utp.Grupo06.dto.venta.ProductoRotacionDTO;
 import pe.edu.utp.Grupo06.model.Compra;
 import pe.edu.utp.Grupo06.model.Merma;
 import pe.edu.utp.Grupo06.model.Producto;
@@ -241,6 +242,45 @@ public class ExportacionServiceImpl implements IExportacionService {
 
             writer.write(String.format(Locale.US, "TOTALES;;;;;%d;;;;;%.2f;%d Productos\n",
                     sumStock, sumValorizacion, productos.size()));
+        }
+    }
+
+    @Override
+    public void exportarRotacionCsv(File destino, List<ProductoRotacionDTO> rotacion, String periodo, String categoria) throws Exception {
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(destino), StandardCharsets.UTF_8))) {
+            writer.write('\ufeff');
+
+            writer.write("BODEGA & MINIMARKET SGCIVORP - RANKING DE ROTACIÓN DE PRODUCTOS\n");
+            writer.write("Métricas de Demanda Comercial y Productos Más Vendidos\n");
+            writer.write("Periodo evaluado: " + escape(periodo != null ? periodo : "Historial") + "\n");
+            writer.write("Categoría: " + escape(categoria != null ? categoria : "Todas las Categorías") + "\n");
+            writer.write("Fecha de emisión: " + escape(LocalDateTime.now().format(dtf)) + "\n");
+            writer.write("Total productos en ranking: " + rotacion.size() + "\n\n");
+
+            writer.write("Ranking N°;Código;Nombre del Producto;Unidades Vendidas;Total Recaudado (S/)\n");
+
+            long sumUnidades = 0;
+            BigDecimal sumRecaudado = BigDecimal.ZERO;
+            int rank = 1;
+
+            for (ProductoRotacionDTO r : rotacion) {
+                long cant = r.getCantidadTotalVendida() != null ? r.getCantidadTotalVendida() : 0L;
+                BigDecimal rec = r.getTotalRecaudado() != null ? r.getTotalRecaudado() : BigDecimal.ZERO;
+
+                sumUnidades += cant;
+                sumRecaudado = sumRecaudado.add(rec);
+
+                writer.write(String.format(Locale.US, "%d;%s;%s;%d;%.2f\n",
+                        rank++,
+                        escape(r.getCodigo()),
+                        escape(r.getNombre()),
+                        cant,
+                        rec
+                ));
+            }
+
+            writer.write(String.format(Locale.US, "TOTALES;;;%d;%.2f\n",
+                    sumUnidades, sumRecaudado));
         }
     }
 
