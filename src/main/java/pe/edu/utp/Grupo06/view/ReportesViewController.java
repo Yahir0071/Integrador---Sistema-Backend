@@ -155,6 +155,8 @@ public class ReportesViewController {
     private PieChart chartMetodosPago;
     @FXML
     private BarChart<String, Number> chartTopProductos;
+    @FXML
+    private CategoryAxis axisProductos;
 
     @FXML
     private TableView<VentaVendedorDTO> tblVentasPorVendedor;
@@ -194,6 +196,8 @@ public class ReportesViewController {
     private PieChart chartComprasPorProveedor;
     @FXML
     private BarChart<String, Number> chartTopProductosComprados;
+    @FXML
+    private CategoryAxis axisProductosComp;
 
     @FXML
     private TableView<ResumenProductoCompradoDTO> tblResumenProductosComprados;
@@ -697,7 +701,11 @@ public class ReportesViewController {
 
             // 4. Gráfico 3: Top 5 Productos más Vendidos
             chartTopProductos.getData().clear();
+            if (axisProductos != null) {
+                axisProductos.getCategories().clear();
+            }
             XYChart.Series<String, Number> seriesProductos = new XYChart.Series<>();
+            List<String> categoriasVentas = new ArrayList<>();
 
             List<Object[]> topProds = detalleVentaRepository.findTopProductosEntreFechas(inicio, fin);
             String prodTop = "Ninguno";
@@ -715,13 +723,25 @@ public class ReportesViewController {
                 }
 
                 if (count < 5) {
-                    String label = nom;
-                    if (label.length() > 18) label = label.substring(0, 16) + "..";
-                    seriesProductos.getData().add(new XYChart.Data<>(label, cant));
+                    String label = nom != null ? nom : "Producto";
+                    if (label.length() > 16) label = label.substring(0, 14) + "..";
+                    categoriasVentas.add(label);
+
+                    XYChart.Data<String, Number> data = new XYChart.Data<>(label, cant);
+                    final String tooltipText = nom + "\n" + cant + (cant == 1 ? " unidad vendida" : " unidades vendidas");
+                    data.nodeProperty().addListener((obs, oldNode, newNode) -> {
+                        if (newNode != null) {
+                            Tooltip.install(newNode, new Tooltip(tooltipText));
+                        }
+                    });
+                    seriesProductos.getData().add(data);
                 }
                 count++;
             }
 
+            if (axisProductos != null) {
+                axisProductos.setCategories(FXCollections.observableArrayList(categoriasVentas));
+            }
             lblKpiProductoTop.setText(prodTop);
             lblKpiProductoTopCant.setText(cantTop + (cantTop == 1 ? " unidad vendida" : " unidades vendidas"));
             chartTopProductos.getData().add(seriesProductos);
@@ -964,7 +984,11 @@ public class ReportesViewController {
             // 4. Gráfico 3: Top 5 Productos más Abastecidos (Unidades)
             if (chartTopProductosComprados != null) {
                 chartTopProductosComprados.getData().clear();
+                if (axisProductosComp != null) {
+                    axisProductosComp.getCategories().clear();
+                }
                 XYChart.Series<String, Number> seriesProductos = new XYChart.Series<>();
+                List<String> categoriasCompras = new ArrayList<>();
 
                 List<Object[]> topProds = detalleCompraRepository.findTopProductosCompradosEntreFechas(inicio, fin);
                 int count = 0;
@@ -975,9 +999,22 @@ public class ReportesViewController {
                     int cant = cantNum != null ? cantNum.intValue() : 0;
 
                     String label = nom != null ? nom : "Producto";
-                    if (label.length() > 18) label = label.substring(0, 16) + "..";
-                    seriesProductos.getData().add(new XYChart.Data<>(label, cant));
+                    if (label.length() > 16) label = label.substring(0, 14) + "..";
+                    categoriasCompras.add(label);
+
+                    XYChart.Data<String, Number> data = new XYChart.Data<>(label, cant);
+                    final String tooltipText = nom + "\n" + cant + " unidades abastecidas";
+                    data.nodeProperty().addListener((obs, oldNode, newNode) -> {
+                        if (newNode != null) {
+                            Tooltip.install(newNode, new Tooltip(tooltipText));
+                        }
+                    });
+                    seriesProductos.getData().add(data);
                     count++;
+                }
+
+                if (axisProductosComp != null) {
+                    axisProductosComp.setCategories(FXCollections.observableArrayList(categoriasCompras));
                 }
                 chartTopProductosComprados.getData().add(seriesProductos);
             }

@@ -182,11 +182,11 @@
                     <!-- Fila 3: Top Productos y Desempeño por Vendedor -->
                     <HBox spacing="14">
                         <!-- Gráfico 3: Top Productos del Periodo -->
-                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="500" prefHeight="300">
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="500" prefHeight="340">
                             <Label text="Top 5 Productos más Vendidos en este Período" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
                             <BarChart fx:id="chartTopProductos" VBox.vgrow="ALWAYS" legendVisible="false">
                                 <xAxis>
-                                    <CategoryAxis label="Producto" fx:id="axisProductos"/>
+                                    <CategoryAxis fx:id="axisProductos" label="Producto" tickLabelRotation="-25"/>
                                 </xAxis>
                                 <yAxis>
                                     <NumberAxis label="Unidades Vendidas" fx:id="axisUnidades"/>
@@ -195,7 +195,7 @@
                         </VBox>
 
                         <!-- Tabla: Ventas por Vendedor / Cajero -->
-                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="420" prefHeight="300" spacing="10">
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="420" prefHeight="340" spacing="10">
                             <Label text="Desempeño de Ventas por Empleado / Cajero" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
                             <TableView fx:id="tblVentasPorVendedor" VBox.vgrow="ALWAYS" styleClass="table-view">
                                 <columns>
@@ -286,11 +286,11 @@
                     <!-- Fila 3: Top Productos Comprados y Tabla Detalle de Mercadería -->
                     <HBox spacing="14">
                         <!-- Gráfico 3: Top Productos Comprados -->
-                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="480" prefHeight="300">
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="480" prefHeight="340">
                             <Label text="Top 5 Productos más Abastecidos (Unidades)" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
                             <BarChart fx:id="chartTopProductosComprados" VBox.vgrow="ALWAYS" legendVisible="false">
                                 <xAxis>
-                                    <CategoryAxis label="Producto" fx:id="axisProductosComp"/>
+                                    <CategoryAxis fx:id="axisProductosComp" label="Producto" tickLabelRotation="-25"/>
                                 </xAxis>
                                 <yAxis>
                                     <NumberAxis label="Unidades Compradas" fx:id="axisUnidadesComp"/>
@@ -299,7 +299,7 @@
                         </VBox>
 
                         <!-- Tabla: Desglose de Mercadería Adquirida -->
-                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="440" prefHeight="300" spacing="10">
+                        <VBox HBox.hgrow="ALWAYS" styleClass="card-box" prefWidth="440" prefHeight="340" spacing="10">
                             <Label text="Desglose de Mercadería Adquirida en el Período" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
                             <TableView fx:id="tblResumenProductosComprados" VBox.vgrow="ALWAYS" styleClass="table-view">
                                 <columns>
