@@ -37,6 +37,10 @@ public class Producto {
     @Column(nullable = false, length = 150)
     private String nombre;
 
+    @Size(max = 80, message = "La marca no puede superar los 80 caracteres")
+    @Column(length = 80)
+    private String marca;
+
     @Size(max = 255, message = "La descripción no puede superar los 255 caracteres")
     @Column(length = 255)
     private String descripcion;

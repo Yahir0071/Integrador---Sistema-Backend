@@ -71,6 +71,11 @@ public class VentaServiceImpl implements IVentaService {
             totalCalculado = totalCalculado.add(subtotal);
         }
 
+        BigDecimal subtotalSinIgv = totalCalculado.divide(BigDecimal.valueOf(1.18), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal igvCalculado = totalCalculado.subtract(subtotalSinIgv);
+
+        venta.setSubtotal(subtotalSinIgv);
+        venta.setIgv(igvCalculado);
         venta.setTotal(totalCalculado);
 
         // RNF06 (integridad): la suma de los pagos (efectivo + Yape + Plin, etc.)

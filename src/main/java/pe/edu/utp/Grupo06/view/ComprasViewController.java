@@ -212,7 +212,12 @@ public class ComprasViewController {
         tblDet.setPrefHeight(180);
 
         TableColumn<DetalleCompra, String> colNom = new TableColumn<>("Producto");
-        colNom.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getProducto() != null ? d.getValue().getProducto().getNombre() : ""));
+        colNom.setCellValueFactory(d -> {
+            if (d.getValue().getProducto() == null) return new SimpleStringProperty("");
+            String nom = d.getValue().getProducto().getNombre();
+            String marca = d.getValue().getProducto().getMarca();
+            return new SimpleStringProperty(nom + (marca != null && !marca.isBlank() ? " (" + marca + ")" : ""));
+        });
         colNom.setPrefWidth(220);
 
         TableColumn<DetalleCompra, Integer> colC = new TableColumn<>("Cantidad");
@@ -229,10 +234,25 @@ public class ComprasViewController {
 
         tblDet.getColumns().addAll(colNom, colC, colP, colS);
 
-        Label lblTot = new Label("TOTAL FACTURADO: S/ " + (c.getTotal() != null ? c.getTotal().setScale(2, java.math.RoundingMode.HALF_UP) : "0.00"));
-        lblTot.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #15803d; -fx-alignment: CENTER_RIGHT;");
+        BigDecimal tot = c.getTotal() != null ? c.getTotal() : BigDecimal.ZERO;
+        BigDecimal sub = c.getSubtotal() != null && c.getSubtotal().compareTo(BigDecimal.ZERO) > 0
+                ? c.getSubtotal()
+                : tot.divide(BigDecimal.valueOf(1.18), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal igv = c.getIgv() != null && c.getIgv().compareTo(BigDecimal.ZERO) > 0
+                ? c.getIgv()
+                : tot.subtract(sub);
 
-        root.getChildren().addAll(lblHeader, new Separator(), tblDet, lblTot);
+        VBox totBox = new VBox(4);
+        totBox.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+        Label lblSub = new Label("Base Imponible: S/ " + sub.setScale(2, java.math.RoundingMode.HALF_UP));
+        lblSub.setStyle("-fx-text-fill: #64748b; -fx-font-weight: bold;");
+        Label lblIgv = new Label("I.G.V. (18%): S/ " + igv.setScale(2, java.math.RoundingMode.HALF_UP));
+        lblIgv.setStyle("-fx-text-fill: #64748b; -fx-font-weight: bold;");
+        Label lblTot = new Label("TOTAL FACTURADO: S/ " + tot.setScale(2, java.math.RoundingMode.HALF_UP));
+        lblTot.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #15803d;");
+        totBox.getChildren().addAll(lblSub, lblIgv, lblTot);
+
+        root.getChildren().addAll(lblHeader, new Separator(), tblDet, totBox);
         factDialog.getDialogPane().setContent(root);
         factDialog.showAndWait();
     }
@@ -297,7 +317,9 @@ public class ComprasViewController {
         cbProd.setConverter(new javafx.util.StringConverter<>() {
             @Override
             public String toString(Producto p) {
-                return p != null ? p.getNombre() : "";
+                if (p == null) return "";
+                String marca = p.getMarca() != null && !p.getMarca().isBlank() ? " (" + p.getMarca() + ")" : "";
+                return p.getNombre() + marca;
             }
 
             @Override
@@ -340,7 +362,12 @@ public class ComprasViewController {
         tblItems.setPrefHeight(190);
 
         TableColumn<DetalleCompra, String> colPName = new TableColumn<>("Producto");
-        colPName.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getProducto().getNombre()));
+        colPName.setCellValueFactory(c -> {
+            if (c.getValue().getProducto() == null) return new SimpleStringProperty("");
+            String nom = c.getValue().getProducto().getNombre();
+            String marca = c.getValue().getProducto().getMarca();
+            return new SimpleStringProperty(nom + (marca != null && !marca.isBlank() ? " (" + marca + ")" : ""));
+        });
         colPName.setPrefWidth(240);
 
         TableColumn<DetalleCompra, Integer> colPCant = new TableColumn<>("Cantidad");
@@ -356,13 +383,16 @@ public class ComprasViewController {
         colPSub.setPrefWidth(100);
 
         Label lblTotal = new Label("Total Compra: S/ 0.00");
-        lblTotal.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #0284c7;");
+        lblTotal.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #0284c7;");
 
         Runnable actualizarTotal = () -> {
             BigDecimal totalSum = itemsCompra.stream()
                     .map(DetalleCompra::getSubtotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
-            lblTotal.setText("Total Compra: S/ " + totalSum.setScale(2, java.math.RoundingMode.HALF_UP));
+            BigDecimal subtotalSinIgv = totalSum.divide(BigDecimal.valueOf(1.18), 2, java.math.RoundingMode.HALF_UP);
+            BigDecimal igvCalculado = totalSum.subtract(subtotalSinIgv);
+            lblTotal.setText(String.format("Base: S/ %.2f | IGV (18%%): S/ %.2f | Total: S/ %.2f",
+                    subtotalSinIgv.doubleValue(), igvCalculado.doubleValue(), totalSum.doubleValue()));
         };
 
         TableColumn<DetalleCompra, Void> colPQuitar = new TableColumn<>("Acción");

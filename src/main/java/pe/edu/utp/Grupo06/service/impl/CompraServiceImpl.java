@@ -58,6 +58,11 @@ public class CompraServiceImpl implements ICompraService {
             totalCalculado = totalCalculado.add(subtotal);
         }
 
+        BigDecimal subtotalSinIgv = totalCalculado.divide(BigDecimal.valueOf(1.18), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal igvCalculado = totalCalculado.subtract(subtotalSinIgv);
+
+        compra.setSubtotal(subtotalSinIgv);
+        compra.setIgv(igvCalculado);
         compra.setTotal(totalCalculado);
         Compra compraGuardada = compraRepository.save(compra);
 

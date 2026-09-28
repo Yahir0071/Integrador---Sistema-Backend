@@ -16,6 +16,7 @@ public class ProductoResponseDTO {
     private Long id;
     private String codigo;
     private String nombre;
+    private String marca;
     private String descripcion;
     private BigDecimal precioCompra;
     private BigDecimal precioVenta;

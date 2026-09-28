@@ -40,6 +40,12 @@ public class Compra {
     @Column(name = "fecha_compra", nullable = false)
     private LocalDateTime fechaCompra = LocalDateTime.now();
 
+    @Column(precision = 10, scale = 2)
+    private BigDecimal subtotal = BigDecimal.ZERO;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal igv = BigDecimal.ZERO;
+
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal total = BigDecimal.ZERO;
 

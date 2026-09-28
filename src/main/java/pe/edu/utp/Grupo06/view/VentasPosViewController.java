@@ -46,6 +46,9 @@ public class VentasPosViewController {
     private TableColumn<Producto, String> colCatNombre;
 
     @FXML
+    private TableColumn<Producto, String> colCatMarca;
+
+    @FXML
     private TableColumn<Producto, BigDecimal> colCatPrecio;
 
     @FXML
@@ -65,6 +68,12 @@ public class VentasPosViewController {
 
     @FXML
     private TableColumn<DetalleVenta, BigDecimal> colCarSubtotal;
+
+    @FXML
+    private Label lblSubtotalVenta;
+
+    @FXML
+    private Label lblIgvVenta;
 
     @FXML
     private Label lblTotalVenta;
@@ -95,6 +104,10 @@ public class VentasPosViewController {
         // Catálogo
         colCatCodigo.setCellValueFactory(new PropertyValueFactory<>("codigo"));
         colCatNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
+        colCatMarca.setCellValueFactory(cellData -> {
+            String m = cellData.getValue().getMarca();
+            return new SimpleStringProperty(m != null && !m.isBlank() ? m : "Genérico");
+        });
         colCatPrecio.setCellValueFactory(new PropertyValueFactory<>("precioVenta"));
         colCatStock.setCellValueFactory(new PropertyValueFactory<>("stockActual"));
 
@@ -124,7 +137,9 @@ public class VentasPosViewController {
         }
         String query = texto.toLowerCase().trim();
         List<Producto> filtrados = listaCatalogo.stream()
-                .filter(p -> p.getNombre().toLowerCase().contains(query) || p.getCodigo().toLowerCase().contains(query))
+                .filter(p -> (p.getNombre() != null && p.getNombre().toLowerCase().contains(query)) ||
+                             (p.getCodigo() != null && p.getCodigo().toLowerCase().contains(query)) ||
+                             (p.getMarca() != null && p.getMarca().toLowerCase().contains(query)))
                 .toList();
         tblCatalogo.setItems(FXCollections.observableArrayList(filtrados));
     }
@@ -179,6 +194,16 @@ public class VentasPosViewController {
         totalVenta = listaCarrito.stream()
                 .map(DetalleVenta::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal subtotalSinIgv = totalVenta.divide(BigDecimal.valueOf(1.18), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal igvCalculado = totalVenta.subtract(subtotalSinIgv);
+
+        if (lblSubtotalVenta != null) {
+            lblSubtotalVenta.setText("S/ " + subtotalSinIgv);
+        }
+        if (lblIgvVenta != null) {
+            lblIgvVenta.setText("S/ " + igvCalculado);
+        }
 
         lblTotalVenta.setText("S/ " + totalVenta.setScale(2, java.math.RoundingMode.HALF_UP).toString());
         txtMontoEfectivo.setText(totalVenta.setScale(2, java.math.RoundingMode.HALF_UP).toString());
@@ -291,8 +316,17 @@ public class VentasPosViewController {
 
         Label lblItems = new Label(sbItems.toString());
 
+        BigDecimal subtotal = v.getSubtotal() != null && v.getSubtotal().compareTo(BigDecimal.ZERO) > 0
+                ? v.getSubtotal()
+                : v.getTotal().divide(BigDecimal.valueOf(1.18), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal igv = v.getIgv() != null && v.getIgv().compareTo(BigDecimal.ZERO) > 0
+                ? v.getIgv()
+                : v.getTotal().subtract(subtotal);
+
         StringBuilder sbPagos = new StringBuilder();
         sbPagos.append("------------------------------------------\n");
+        sbPagos.append(String.format("OP. GRAVADA (Subtotal):         S/ %7.2f\n", subtotal));
+        sbPagos.append(String.format("I.G.V. (18%%):                   S/ %7.2f\n", igv));
         sbPagos.append(String.format("TOTAL A PAGAR:                  S/ %7.2f\n", v.getTotal()));
         sbPagos.append("------------------------------------------\n");
         sbPagos.append("MÉTODOS DE PAGO:\n");

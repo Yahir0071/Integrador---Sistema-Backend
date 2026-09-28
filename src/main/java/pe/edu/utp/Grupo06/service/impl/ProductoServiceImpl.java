@@ -81,6 +81,7 @@ public class ProductoServiceImpl implements IProductoService {
     public Producto actualizar(Long id, Producto producto) {
         Producto existente = buscarPorId(id);
         existente.setNombre(producto.getNombre());
+        existente.setMarca(producto.getMarca());
         existente.setDescripcion(producto.getDescripcion());
         existente.setPrecioCompra(producto.getPrecioCompra());
         existente.setPrecioVenta(producto.getPrecioVenta());

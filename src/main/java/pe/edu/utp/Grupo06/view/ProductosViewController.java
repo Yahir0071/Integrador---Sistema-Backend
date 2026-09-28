@@ -49,6 +49,9 @@ public class ProductosViewController {
     private TableColumn<Producto, String> colNombre;
 
     @FXML
+    private TableColumn<Producto, String> colMarca;
+
+    @FXML
     private TableColumn<Producto, String> colCategoria;
 
     @FXML
@@ -90,6 +93,10 @@ public class ProductosViewController {
     private void configurarColumnas() {
         colCodigo.setCellValueFactory(new PropertyValueFactory<>("codigo"));
         colNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
+        colMarca.setCellValueFactory(cellData -> {
+            String m = cellData.getValue().getMarca();
+            return new SimpleStringProperty(m != null && !m.isBlank() ? m : "Genérico");
+        });
         colCategoria.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().getCategoria() != null ?
                         cellData.getValue().getCategoria().getNombre() : ""));
@@ -205,7 +212,8 @@ public class ProductosViewController {
             if (!texto.isEmpty()) {
                 boolean matchNom = p.getNombre() != null && p.getNombre().toLowerCase().contains(texto);
                 boolean matchCod = p.getCodigo() != null && p.getCodigo().toLowerCase().contains(texto);
-                if (!matchNom && !matchCod) return false;
+                boolean matchMarca = p.getMarca() != null && p.getMarca().toLowerCase().contains(texto);
+                if (!matchNom && !matchCod && !matchMarca) return false;
             }
 
             if (categoriaSel != null) {
@@ -241,6 +249,8 @@ public class ProductosViewController {
         TextField txtCod = new TextField(codigoSugerido);
         TextField txtNom = new TextField();
         txtNom.setPromptText("Nombre del producto");
+        TextField txtMarca = new TextField();
+        txtMarca.setPromptText("Marca (ej. Gloria, Costeño, San Fernando...)");
         TextField txtPCompra = new TextField();
         txtPCompra.setPromptText("0.00");
         TextField txtPVenta = new TextField();
@@ -294,6 +304,7 @@ public class ProductosViewController {
         form.getChildren().addAll(
                 new Label("Código (Autogenerado / Editable):"), txtCod,
                 new Label("Nombre del Producto:"), txtNom,
+                new Label("Marca del Producto:"), txtMarca,
                 new Label("Categoría:"), catBox,
                 new Label("Precio Compra (S/):"), txtPCompra,
                 new Label("Precio Venta (S/):"), txtPVenta,
@@ -309,6 +320,7 @@ public class ProductosViewController {
                     Producto p = new Producto();
                     p.setCodigo(txtCod.getText().trim());
                     p.setNombre(txtNom.getText().trim());
+                    p.setMarca(txtMarca.getText() != null && !txtMarca.getText().isBlank() ? txtMarca.getText().trim() : "Genérico");
                     p.setPrecioCompra(new BigDecimal(txtPCompra.getText().trim()));
                     p.setPrecioVenta(new BigDecimal(txtPVenta.getText().trim()));
                     p.setStockActual(0);
@@ -348,6 +360,8 @@ public class ProductosViewController {
         TextField txtCod = new TextField(p.getCodigo());
         txtCod.setDisable(true); // El código no se altera para conservar trazabilidad
         TextField txtNom = new TextField(p.getNombre());
+        TextField txtMarca = new TextField(p.getMarca() != null ? p.getMarca() : "");
+        txtMarca.setPromptText("Marca (ej. Gloria, Costeño, San Fernando...)");
         TextField txtPCompra = new TextField(p.getPrecioCompra() != null ? p.getPrecioCompra().toString() : "0.00");
         TextField txtPVenta = new TextField(p.getPrecioVenta() != null ? p.getPrecioVenta().toString() : "0.00");
         TextField txtStockMin = new TextField(p.getStockMinimo() != null ? p.getStockMinimo().toString() : "5");
@@ -381,6 +395,7 @@ public class ProductosViewController {
         form.getChildren().addAll(
                 new Label("Código (Inmutable):"), txtCod,
                 new Label("Nombre del Producto:"), txtNom,
+                new Label("Marca del Producto:"), txtMarca,
                 new Label("Categoría:"), cbCat,
                 new Label("Precio Compra (S/):"), txtPCompra,
                 new Label("Precio Venta (S/):"), txtPVenta,
@@ -396,6 +411,7 @@ public class ProductosViewController {
                     Producto actualizado = new Producto();
                     actualizado.setCodigo(p.getCodigo());
                     actualizado.setNombre(txtNom.getText().trim());
+                    actualizado.setMarca(txtMarca.getText() != null && !txtMarca.getText().isBlank() ? txtMarca.getText().trim() : "Genérico");
                     actualizado.setDescripcion(p.getDescripcion());
                     actualizado.setPrecioCompra(new BigDecimal(txtPCompra.getText().trim()));
                     actualizado.setPrecioVenta(new BigDecimal(txtPVenta.getText().trim()));

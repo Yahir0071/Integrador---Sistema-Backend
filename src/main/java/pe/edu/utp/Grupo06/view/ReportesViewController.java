@@ -987,8 +987,17 @@ public class ReportesViewController {
         Label lblItems = new Label(sbItems.toString());
 
         List<Pago> pagos = pagoRepository.findByVentaId(v.getId());
+        BigDecimal subtotal = v.getSubtotal() != null && v.getSubtotal().compareTo(BigDecimal.ZERO) > 0
+                ? v.getSubtotal()
+                : v.getTotal().divide(BigDecimal.valueOf(1.18), 2, RoundingMode.HALF_UP);
+        BigDecimal igv = v.getIgv() != null && v.getIgv().compareTo(BigDecimal.ZERO) > 0
+                ? v.getIgv()
+                : v.getTotal().subtract(subtotal);
+
         StringBuilder sbPagos = new StringBuilder();
         sbPagos.append("------------------------------------------\n");
+        sbPagos.append(String.format("OP. GRAVADA (Subtotal):         S/ %7.2f\n", subtotal));
+        sbPagos.append(String.format("I.G.V. (18%%):                   S/ %7.2f\n", igv));
         sbPagos.append(String.format("TOTAL DE LA VENTA:              S/ %7.2f\n", v.getTotal()));
         sbPagos.append("------------------------------------------\n");
         sbPagos.append("MÉTODOS DE PAGO:\n");

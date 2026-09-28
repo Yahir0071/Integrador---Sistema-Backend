@@ -40,8 +40,9 @@
     <TableView fx:id="tblProductos" VBox.vgrow="ALWAYS" styleClass="table-view">
         <columns>
             <TableColumn fx:id="colCodigo" text="Código" prefWidth="110"/>
-            <TableColumn fx:id="colNombre" text="Nombre del Producto" prefWidth="240"/>
-            <TableColumn fx:id="colCategoria" text="Categoría" prefWidth="140"/>
+            <TableColumn fx:id="colNombre" text="Nombre del Producto" prefWidth="210"/>
+            <TableColumn fx:id="colMarca" text="Marca" prefWidth="120"/>
+            <TableColumn fx:id="colCategoria" text="Categoría" prefWidth="130"/>
             <TableColumn fx:id="colPrecioCompra" text="P. Compra (S/)" prefWidth="110"/>
             <TableColumn fx:id="colPrecioVenta" text="P. Venta (S/)" prefWidth="110"/>
             <TableColumn fx:id="colStockActual" text="Stock Actual" prefWidth="100"/>

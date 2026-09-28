@@ -99,6 +99,7 @@ public class ProductoController {
         Producto producto = new Producto();
         producto.setCodigo(request.getCodigo());
         producto.setNombre(request.getNombre());
+        producto.setMarca(request.getMarca());
         producto.setDescripcion(request.getDescripcion());
         producto.setPrecioCompra(request.getPrecioCompra());
         producto.setPrecioVenta(request.getPrecioVenta());
@@ -124,6 +125,7 @@ public class ProductoController {
         Producto producto = new Producto();
         producto.setCodigo(request.getCodigo());
         producto.setNombre(request.getNombre());
+        producto.setMarca(request.getMarca());
         producto.setDescripcion(request.getDescripcion());
         producto.setPrecioCompra(request.getPrecioCompra());
         producto.setPrecioVenta(request.getPrecioVenta());
@@ -149,6 +151,7 @@ public class ProductoController {
                 p.getId(),
                 p.getCodigo(),
                 p.getNombre(),
+                p.getMarca(),
                 p.getDescripcion(),
                 p.getPrecioCompra(),
                 p.getPrecioVenta(),
