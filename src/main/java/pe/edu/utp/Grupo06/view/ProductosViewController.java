@@ -685,8 +685,8 @@ public class ProductosViewController {
 
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Guardar Inventario en Excel");
-        fileChooser.setInitialFileName("Inventario_SGCIVORP_" + LocalDate.now() + ".csv");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos de Excel (*.csv)", "*.csv"));
+        fileChooser.setInitialFileName("Inventario_SGCIVORP_" + LocalDate.now() + ".xlsx");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Libro de Excel (*.xlsx)", "*.xlsx"));
 
         Window window = tblProductos.getScene().getWindow();
         File file = fileChooser.showSaveDialog(window);

@@ -1,5 +1,10 @@
 package pe.edu.utp.Grupo06.service.impl;
 
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import pe.edu.utp.Grupo06.dto.venta.ProductoRotacionDTO;
 import pe.edu.utp.Grupo06.model.Compra;
@@ -8,18 +13,14 @@ import pe.edu.utp.Grupo06.model.Producto;
 import pe.edu.utp.Grupo06.model.Venta;
 import pe.edu.utp.Grupo06.service.IExportacionService;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
 
 @Service
 public class ExportacionServiceImpl implements IExportacionService {
@@ -28,21 +29,49 @@ public class ExportacionServiceImpl implements IExportacionService {
     private final DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     @Override
-    public void exportarVentasCsv(File destino, List<Venta> ventas, LocalDate inicio, LocalDate fin) throws Exception {
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(destino), StandardCharsets.UTF_8))) {
-            writer.write('\ufeff'); // UTF-8 BOM para reconocimiento nativo de tildes y símbolos en Microsoft Excel
+    public void exportarVentasExcel(File destino, List<Venta> ventas, LocalDate inicio, LocalDate fin) throws Exception {
+        try (XSSFWorkbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet("Reporte de Ventas");
+            sheet.setDisplayGridlines(true);
 
-            // Encabezado corporativo
-            writer.write("BODEGA & MINIMARKET SGCIVORP - REPORTE DE VENTAS\n");
-            writer.write("RUC: 20601234567 | Dirección: Av. Principal 123, Lima\n");
+            EstilosExcel estilos = new EstilosExcel(wb);
+
+            // 1. Título y Metadatos
+            int rowIdx = 0;
+            Row r0 = sheet.createRow(rowIdx++);
+            Cell c0 = r0.createCell(0);
+            c0.setCellValue("BODEGA & MINIMARKET SGCIVORP - REPORTE DE VENTAS");
+            c0.setCellStyle(estilos.titulo);
+
+            Row r1 = sheet.createRow(rowIdx++);
+            Cell c1 = r1.createCell(0);
+            c1.setCellValue("RUC: 20601234567 | Dirección: Av. Principal 123, Lima | Sistema de Gestión Comercial");
+            c1.setCellStyle(estilos.subtitulo);
+
             String rangoTxt = (inicio != null && fin != null) ? "Del " + inicio.format(df) + " al " + fin.format(df) : "Historial Completo";
-            writer.write("Periodo: " + escape(rangoTxt) + "\n");
-            writer.write("Fecha de emisión: " + escape(LocalDateTime.now().format(dtf)) + "\n");
-            writer.write("Total registros: " + ventas.size() + "\n\n");
+            Row r2 = sheet.createRow(rowIdx++);
+            Cell c2 = r2.createCell(0);
+            c2.setCellValue("Período evaluado: " + rangoTxt + "  |  Fecha de emisión: " + LocalDateTime.now().format(dtf) + "  |  Registros: " + ventas.size());
+            c2.setCellStyle(estilos.subtitulo);
 
-            // Cabeceras de tabla
-            writer.write("N° Ticket;Fecha y Hora;Vendedor / Cajero;Op. Gravada (S/);IGV 18% (S/);Total Venta (S/);Estado;Metodos de Pago\n");
+            rowIdx++; // Fila en blanco
 
+            // 2. Encabezados de tabla
+            String[] headers = {
+                    "N° Ticket", "Fecha y Hora", "Vendedor / Cajero",
+                    "Op. Gravada (S/)", "IGV 18% (S/)", "Total Venta (S/)",
+                    "Estado", "Métodos de Pago"
+            };
+
+            Row headerRow = sheet.createRow(rowIdx++);
+            headerRow.setHeightInPoints(24);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(estilos.cabecera);
+            }
+
+            // 3. Filas de Datos
             BigDecimal sumSubtotal = BigDecimal.ZERO;
             BigDecimal sumIgv = BigDecimal.ZERO;
             BigDecimal sumTotal = BigDecimal.ZERO;
@@ -68,37 +97,116 @@ public class ExportacionServiceImpl implements IExportacionService {
                     pagosStr = sb.toString();
                 }
 
-                writer.write(String.format(Locale.US, "%s;%s;%s;%.2f;%.2f;%.2f;%s;%s\n",
-                        escape(v.getNumeroTicket()),
-                        escape(v.getFechaVenta() != null ? v.getFechaVenta().format(dtf) : ""),
-                        escape(v.getUsuario() != null ? v.getUsuario().getNombreCompleto() : "N/A"),
-                        sub,
-                        igv,
-                        tot,
-                        escape(v.getEstado()),
-                        escape(pagosStr)
-                ));
+                Row row = sheet.createRow(rowIdx++);
+                row.setHeightInPoints(19);
+
+                Cell cTkt = row.createCell(0);
+                cTkt.setCellValue(v.getNumeroTicket() != null ? v.getNumeroTicket() : "");
+                cTkt.setCellStyle(estilos.centrado);
+
+                Cell cFec = row.createCell(1);
+                cFec.setCellValue(v.getFechaVenta() != null ? v.getFechaVenta().format(dtf) : "");
+                cFec.setCellStyle(estilos.centrado);
+
+                Cell cCaj = row.createCell(2);
+                cCaj.setCellValue(v.getUsuario() != null ? v.getUsuario().getNombreCompleto() : "N/A");
+                cCaj.setCellStyle(estilos.texto);
+
+                Cell cSub = row.createCell(3);
+                cSub.setCellValue(sub.doubleValue());
+                cSub.setCellStyle(estilos.moneda);
+
+                Cell cIgv = row.createCell(4);
+                cIgv.setCellValue(igv.doubleValue());
+                cIgv.setCellStyle(estilos.moneda);
+
+                Cell cTot = row.createCell(5);
+                cTot.setCellValue(tot.doubleValue());
+                cTot.setCellStyle(estilos.moneda);
+
+                Cell cEst = row.createCell(6);
+                cEst.setCellValue(v.getEstado() != null ? v.getEstado().name() : "COMPLETADA");
+                cEst.setCellStyle(estilos.centrado);
+
+                Cell cPag = row.createCell(7);
+                cPag.setCellValue(pagosStr);
+                cPag.setCellStyle(estilos.texto);
             }
 
-            // Fila de totales
-            writer.write(String.format(Locale.US, "TOTALES;;;%.2f;%.2f;%.2f;;%d Ventas\n",
-                    sumSubtotal, sumIgv, sumTotal, ventas.size()));
+            // 4. Fila de Totales
+            Row totRow = sheet.createRow(rowIdx++);
+            totRow.setHeightInPoints(22);
+            Cell cTotLbl = totRow.createCell(0);
+            cTotLbl.setCellValue("TOTALES (" + ventas.size() + " Ventas)");
+            cTotLbl.setCellStyle(estilos.totalTexto);
+
+            totRow.createCell(1).setCellStyle(estilos.totalTexto);
+            totRow.createCell(2).setCellStyle(estilos.totalTexto);
+
+            Cell cTotSub = totRow.createCell(3);
+            cTotSub.setCellValue(sumSubtotal.doubleValue());
+            cTotSub.setCellStyle(estilos.totalMoneda);
+
+            Cell cTotIgv = totRow.createCell(4);
+            cTotIgv.setCellValue(sumIgv.doubleValue());
+            cTotIgv.setCellStyle(estilos.totalMoneda);
+
+            Cell cTotTot = totRow.createCell(5);
+            cTotTot.setCellValue(sumTotal.doubleValue());
+            cTotTot.setCellStyle(estilos.totalMoneda);
+
+            totRow.createCell(6).setCellStyle(estilos.totalTexto);
+            totRow.createCell(7).setCellStyle(estilos.totalTexto);
+
+            // Autoajustar columnas con holgura
+            ajustarColumnas(sheet, headers.length);
+
+            // Escribir archivo
+            try (FileOutputStream fos = new FileOutputStream(destino)) {
+                wb.write(fos);
+            }
         }
     }
 
     @Override
-    public void exportarComprasCsv(File destino, List<Compra> compras, LocalDate inicio, LocalDate fin) throws Exception {
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(destino), StandardCharsets.UTF_8))) {
-            writer.write('\ufeff');
+    public void exportarComprasExcel(File destino, List<Compra> compras, LocalDate inicio, LocalDate fin) throws Exception {
+        try (XSSFWorkbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet("Reporte de Compras");
+            sheet.setDisplayGridlines(true);
 
-            writer.write("BODEGA & MINIMARKET SGCIVORP - REPORTE DE COMPRAS Y ABASTECIMIENTO\n");
-            writer.write("RUC: 20601234567 | Dirección: Av. Principal 123, Lima\n");
+            EstilosExcel estilos = new EstilosExcel(wb);
+
+            int rowIdx = 0;
+            Row r0 = sheet.createRow(rowIdx++);
+            Cell c0 = r0.createCell(0);
+            c0.setCellValue("BODEGA & MINIMARKET SGCIVORP - REPORTE DE COMPRAS Y ABASTECIMIENTO");
+            c0.setCellStyle(estilos.titulo);
+
+            Row r1 = sheet.createRow(rowIdx++);
+            Cell c1 = r1.createCell(0);
+            c1.setCellValue("RUC: 20601234567 | Dirección: Av. Principal 123, Lima | Auditoría de Proveedores");
+            c1.setCellStyle(estilos.subtitulo);
+
             String rangoTxt = (inicio != null && fin != null) ? "Del " + inicio.format(df) + " al " + fin.format(df) : "Historial Completo";
-            writer.write("Periodo: " + escape(rangoTxt) + "\n");
-            writer.write("Fecha de emisión: " + escape(LocalDateTime.now().format(dtf)) + "\n");
-            writer.write("Total facturas / compras: " + compras.size() + "\n\n");
+            Row r2 = sheet.createRow(rowIdx++);
+            Cell c2 = r2.createCell(0);
+            c2.setCellValue("Período evaluado: " + rangoTxt + "  |  Fecha de emisión: " + LocalDateTime.now().format(dtf) + "  |  Facturas: " + compras.size());
+            c2.setCellStyle(estilos.subtitulo);
 
-            writer.write("N° Factura;Fecha Compra;Proveedor;RUC Proveedor;Op. Gravada (S/);IGV 18% (S/);Total Factura (S/);Estado;Usuario Registrador\n");
+            rowIdx++;
+
+            String[] headers = {
+                    "N° Factura / Comprobante", "Fecha Compra", "Proveedor", "RUC Proveedor",
+                    "Op. Gravada (S/)", "IGV 18% (S/)", "Total Factura (S/)", "Estado", "Registrado Por"
+            };
+
+            Row headerRow = sheet.createRow(rowIdx++);
+            headerRow.setHeightInPoints(24);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(estilos.cabecera);
+            }
 
             BigDecimal sumSubtotal = BigDecimal.ZERO;
             BigDecimal sumIgv = BigDecimal.ZERO;
@@ -119,37 +227,119 @@ public class ExportacionServiceImpl implements IExportacionService {
                 String provRuc = c.getProveedor() != null ? c.getProveedor().getRuc() : "-";
                 String usuNombre = c.getUsuario() != null ? c.getUsuario().getNombreCompleto() : "N/A";
 
-                writer.write(String.format(Locale.US, "%s;%s;%s;%s;%.2f;%.2f;%.2f;%s;%s\n",
-                        escape(c.getNumeroComprobante()),
-                        escape(c.getFechaCompra() != null ? c.getFechaCompra().format(dtf) : ""),
-                        escape(provNombre),
-                        escape(provRuc),
-                        sub,
-                        igv,
-                        tot,
-                        "REGISTRADA",
-                        escape(usuNombre)
-                ));
+                Row row = sheet.createRow(rowIdx++);
+                row.setHeightInPoints(19);
+
+                Cell cComp = row.createCell(0);
+                cComp.setCellValue(c.getNumeroComprobante() != null ? c.getNumeroComprobante() : "");
+                cComp.setCellStyle(estilos.centrado);
+
+                Cell cFec = row.createCell(1);
+                cFec.setCellValue(c.getFechaCompra() != null ? c.getFechaCompra().format(dtf) : "");
+                cFec.setCellStyle(estilos.centrado);
+
+                Cell cProv = row.createCell(2);
+                cProv.setCellValue(provNombre);
+                cProv.setCellStyle(estilos.texto);
+
+                Cell cRuc = row.createCell(3);
+                cRuc.setCellValue(provRuc);
+                cRuc.setCellStyle(estilos.centrado);
+
+                Cell cSub = row.createCell(4);
+                cSub.setCellValue(sub.doubleValue());
+                cSub.setCellStyle(estilos.moneda);
+
+                Cell cIgv = row.createCell(5);
+                cIgv.setCellValue(igv.doubleValue());
+                cIgv.setCellStyle(estilos.moneda);
+
+                Cell cTot = row.createCell(6);
+                cTot.setCellValue(tot.doubleValue());
+                cTot.setCellStyle(estilos.moneda);
+
+                Cell cEst = row.createCell(7);
+                cEst.setCellValue("REGISTRADA");
+                cEst.setCellStyle(estilos.centrado);
+
+                Cell cUsu = row.createCell(8);
+                cUsu.setCellValue(usuNombre);
+                cUsu.setCellStyle(estilos.texto);
             }
 
-            writer.write(String.format(Locale.US, "TOTALES;;;;%.2f;%.2f;%.2f;;%d Compras\n",
-                    sumSubtotal, sumIgv, sumTotal, compras.size()));
+            Row totRow = sheet.createRow(rowIdx++);
+            totRow.setHeightInPoints(22);
+            Cell cTotLbl = totRow.createCell(0);
+            cTotLbl.setCellValue("TOTALES (" + compras.size() + " Compras)");
+            cTotLbl.setCellStyle(estilos.totalTexto);
+
+            totRow.createCell(1).setCellStyle(estilos.totalTexto);
+            totRow.createCell(2).setCellStyle(estilos.totalTexto);
+            totRow.createCell(3).setCellStyle(estilos.totalTexto);
+
+            Cell cTotSub = totRow.createCell(4);
+            cTotSub.setCellValue(sumSubtotal.doubleValue());
+            cTotSub.setCellStyle(estilos.totalMoneda);
+
+            Cell cTotIgv = totRow.createCell(5);
+            cTotIgv.setCellValue(sumIgv.doubleValue());
+            cTotIgv.setCellStyle(estilos.totalMoneda);
+
+            Cell cTotTot = totRow.createCell(6);
+            cTotTot.setCellValue(sumTotal.doubleValue());
+            cTotTot.setCellStyle(estilos.totalMoneda);
+
+            totRow.createCell(7).setCellStyle(estilos.totalTexto);
+            totRow.createCell(8).setCellStyle(estilos.totalTexto);
+
+            ajustarColumnas(sheet, headers.length);
+
+            try (FileOutputStream fos = new FileOutputStream(destino)) {
+                wb.write(fos);
+            }
         }
     }
 
     @Override
-    public void exportarMermasCsv(File destino, List<Merma> mermas, LocalDate inicio, LocalDate fin) throws Exception {
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(destino), StandardCharsets.UTF_8))) {
-            writer.write('\ufeff');
+    public void exportarMermasExcel(File destino, List<Merma> mermas, LocalDate inicio, LocalDate fin) throws Exception {
+        try (XSSFWorkbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet("Reporte de Mermas y Bajas");
+            sheet.setDisplayGridlines(true);
 
-            writer.write("BODEGA & MINIMARKET SGCIVORP - REPORTE DE MERMAS Y PÉRDIDAS DE INVENTARIO\n");
-            writer.write("Acreditación para Auditoría y Desmedro Contable / SUNAT\n");
+            EstilosExcel estilos = new EstilosExcel(wb);
+
+            int rowIdx = 0;
+            Row r0 = sheet.createRow(rowIdx++);
+            Cell c0 = r0.createCell(0);
+            c0.setCellValue("BODEGA & MINIMARKET SGCIVORP - CONTROL DE MERMAS Y BAJAS DE INVENTARIO");
+            c0.setCellStyle(estilos.titulo);
+
+            Row r1 = sheet.createRow(rowIdx++);
+            Cell c1 = r1.createCell(0);
+            c1.setCellValue("Auditoría de Pérdidas, Descomposición, Vencimientos y Bajas Operativas");
+            c1.setCellStyle(estilos.subtitulo);
+
             String rangoTxt = (inicio != null && fin != null) ? "Del " + inicio.format(df) + " al " + fin.format(df) : "Historial Completo";
-            writer.write("Periodo: " + escape(rangoTxt) + "\n");
-            writer.write("Fecha de emisión: " + escape(LocalDateTime.now().format(dtf)) + "\n");
-            writer.write("Total registros de baja: " + mermas.size() + "\n\n");
+            Row r2 = sheet.createRow(rowIdx++);
+            Cell c2 = r2.createCell(0);
+            c2.setCellValue("Período: " + rangoTxt + "  |  Fecha de emisión: " + LocalDateTime.now().format(dtf) + "  |  Total registros: " + mermas.size());
+            c2.setCellStyle(estilos.subtitulo);
 
-            writer.write("N° Baja;Fecha y Hora;Código Producto;Producto;Marca;Categoría;Cantidad;Motivo;P. Compra Unit (S/);Pérdida Total (S/);F. Caducidad;Usuario Auditor;Observación / Justificación\n");
+            rowIdx++;
+
+            String[] headers = {
+                    "Fecha y Hora", "Código", "Producto", "Marca", "Motivo de Merma",
+                    "F. Vencimiento", "Unidades Dadas de Baja", "Costo Unitario (S/)",
+                    "Pérdida Total (S/)", "Registrado Por", "Observaciones"
+            };
+
+            Row headerRow = sheet.createRow(rowIdx++);
+            headerRow.setHeightInPoints(24);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(estilos.cabecera);
+            }
 
             long sumUnidades = 0;
             BigDecimal sumPerdida = BigDecimal.ZERO;
@@ -159,51 +349,133 @@ public class ExportacionServiceImpl implements IExportacionService {
                 String cod = p != null ? p.getCodigo() : "-";
                 String nom = p != null ? p.getNombre() : "-";
                 String marca = (p != null && p.getMarca() != null && !p.getMarca().isBlank()) ? p.getMarca() : "Genérico";
-                String cat = (p != null && p.getCategoria() != null) ? p.getCategoria().getNombre() : "-";
-                String mot = m.getMotivo() != null ? m.getMotivo().getDescripcion() : "Otro";
-                String fVenc = m.getFechaVencimiento() != null ? m.getFechaVencimiento().format(df) : "-";
-                String usu = m.getUsuario() != null ? m.getUsuario().getNombreCompleto() : "N/A";
-
+                String motivo = m.getMotivo() != null ? m.getMotivo().getDescripcion() : "Otro";
                 int cant = m.getCantidad() != null ? m.getCantidad() : 0;
-                BigDecimal unit = m.getCostoUnitario() != null ? m.getCostoUnitario() : BigDecimal.ZERO;
-                BigDecimal tot = m.getCostoTotalPerdida() != null ? m.getCostoTotalPerdida() : BigDecimal.ZERO;
+                BigDecimal cu = m.getCostoUnitario() != null ? m.getCostoUnitario() : BigDecimal.ZERO;
+                BigDecimal perd = m.getCostoTotalPerdida() != null ? m.getCostoTotalPerdida() : BigDecimal.ZERO;
+                String usu = m.getUsuario() != null ? m.getUsuario().getNombreCompleto() : "N/A";
+                String fVenc = m.getFechaVencimiento() != null ? m.getFechaVencimiento().format(df) : "-";
+                String obs = m.getObservacion() != null ? m.getObservacion() : "";
 
                 sumUnidades += cant;
-                sumPerdida = sumPerdida.add(tot);
+                sumPerdida = sumPerdida.add(perd);
 
-                writer.write(String.format(Locale.US, "%d;%s;%s;%s;%s;%s;%d;%s;%.2f;%.2f;%s;%s;%s\n",
-                        m.getId(),
-                        escape(m.getFechaMerma() != null ? m.getFechaMerma().format(dtf) : ""),
-                        escape(cod),
-                        escape(nom),
-                        escape(marca),
-                        escape(cat),
-                        cant,
-                        escape(mot),
-                        unit,
-                        tot,
-                        escape(fVenc),
-                        escape(usu),
-                        escape(m.getObservacion() != null ? m.getObservacion() : "")
-                ));
+                Row row = sheet.createRow(rowIdx++);
+                row.setHeightInPoints(19);
+
+                Cell cFec = row.createCell(0);
+                cFec.setCellValue(m.getFechaMerma() != null ? m.getFechaMerma().format(dtf) : "");
+                cFec.setCellStyle(estilos.centrado);
+
+                Cell cCod = row.createCell(1);
+                cCod.setCellValue(cod);
+                cCod.setCellStyle(estilos.centrado);
+
+                Cell cNom = row.createCell(2);
+                cNom.setCellValue(nom);
+                cNom.setCellStyle(estilos.texto);
+
+                Cell cMar = row.createCell(3);
+                cMar.setCellValue(marca);
+                cMar.setCellStyle(estilos.centrado);
+
+                Cell cMot = row.createCell(4);
+                cMot.setCellValue(motivo);
+                cMot.setCellStyle(estilos.centrado);
+
+                Cell cVenc = row.createCell(5);
+                cVenc.setCellValue(fVenc);
+                cVenc.setCellStyle(estilos.centrado);
+
+                Cell cCant = row.createCell(6);
+                cCant.setCellValue(cant);
+                cCant.setCellStyle(estilos.entero);
+
+                Cell cCu = row.createCell(7);
+                cCu.setCellValue(cu.doubleValue());
+                cCu.setCellStyle(estilos.moneda);
+
+                Cell cPerd = row.createCell(8);
+                cPerd.setCellValue(perd.doubleValue());
+                cPerd.setCellStyle(estilos.moneda);
+
+                Cell cUsu = row.createCell(9);
+                cUsu.setCellValue(usu);
+                cUsu.setCellStyle(estilos.texto);
+
+                Cell cObs = row.createCell(10);
+                cObs.setCellValue(obs);
+                cObs.setCellStyle(estilos.texto);
             }
 
-            writer.write(String.format(Locale.US, "TOTALES;;;;;;%d;;;%.2f;;;%d Registros\n",
-                    sumUnidades, sumPerdida, mermas.size()));
+            Row totRow = sheet.createRow(rowIdx++);
+            totRow.setHeightInPoints(22);
+            Cell cTotLbl = totRow.createCell(0);
+            cTotLbl.setCellValue("TOTALES (" + mermas.size() + " Registros)");
+            cTotLbl.setCellStyle(estilos.totalTexto);
+
+            for (int k = 1; k <= 5; k++) totRow.createCell(k).setCellStyle(estilos.totalTexto);
+
+            Cell cTotCant = totRow.createCell(6);
+            cTotCant.setCellValue(sumUnidades);
+            cTotCant.setCellStyle(estilos.totalEntero);
+
+            totRow.createCell(7).setCellStyle(estilos.totalTexto);
+
+            Cell cTotPerd = totRow.createCell(8);
+            cTotPerd.setCellValue(sumPerdida.doubleValue());
+            cTotPerd.setCellStyle(estilos.totalMoneda);
+
+            totRow.createCell(9).setCellStyle(estilos.totalTexto);
+            totRow.createCell(10).setCellStyle(estilos.totalTexto);
+
+            ajustarColumnas(sheet, headers.length);
+
+            try (FileOutputStream fos = new FileOutputStream(destino)) {
+                wb.write(fos);
+            }
         }
     }
 
     @Override
-    public void exportarInventarioCsv(File destino, List<Producto> productos) throws Exception {
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(destino), StandardCharsets.UTF_8))) {
-            writer.write('\ufeff');
+    public void exportarInventarioExcel(File destino, List<Producto> productos) throws Exception {
+        try (XSSFWorkbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet("Inventario y Stock");
+            sheet.setDisplayGridlines(true);
 
-            writer.write("BODEGA & MINIMARKET SGCIVORP - REPORTE GENERAL DE INVENTARIO Y STOCK\n");
-            writer.write("Control de Existencias Físicas y Valorización de Almacén\n");
-            writer.write("Fecha de emisión: " + escape(LocalDateTime.now().format(dtf)) + "\n");
-            writer.write("Total productos activos: " + productos.size() + "\n\n");
+            EstilosExcel estilos = new EstilosExcel(wb);
 
-            writer.write("Código;Producto;Marca;Categoría;Unidad Medida;Stock Actual;Stock Mínimo;Estado Stock;P. Compra (S/);P. Venta (S/);Valorización Almacén (S/);Estado\n");
+            int rowIdx = 0;
+            Row r0 = sheet.createRow(rowIdx++);
+            Cell c0 = r0.createCell(0);
+            c0.setCellValue("BODEGA & MINIMARKET SGCIVORP - CATÁLOGO DE INVENTARIO Y STOCK");
+            c0.setCellStyle(estilos.titulo);
+
+            Row r1 = sheet.createRow(rowIdx++);
+            Cell c1 = r1.createCell(0);
+            c1.setCellValue("Control de Existencias Físicas y Valorización Total de Almacén");
+            c1.setCellStyle(estilos.subtitulo);
+
+            Row r2 = sheet.createRow(rowIdx++);
+            Cell c2 = r2.createCell(0);
+            c2.setCellValue("Fecha de emisión: " + LocalDateTime.now().format(dtf) + "  |  Total productos activos: " + productos.size());
+            c2.setCellStyle(estilos.subtitulo);
+
+            rowIdx++;
+
+            String[] headers = {
+                    "Código", "Producto", "Marca", "Categoría", "Unidad Medida",
+                    "Stock Actual", "Stock Mínimo", "Estado Stock",
+                    "P. Compra (S/)", "P. Venta (S/)", "Valorización Almacén (S/)", "Estado"
+            };
+
+            Row headerRow = sheet.createRow(rowIdx++);
+            headerRow.setHeightInPoints(24);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(estilos.cabecera);
+            }
 
             long sumStock = 0;
             BigDecimal sumValorizacion = BigDecimal.ZERO;
@@ -224,40 +496,127 @@ public class ExportacionServiceImpl implements IExportacionService {
                 sumStock += stock;
                 sumValorizacion = sumValorizacion.add(valorizacion);
 
-                writer.write(String.format(Locale.US, "%s;%s;%s;%s;%s;%d;%d;%s;%.2f;%.2f;%.2f;%s\n",
-                        escape(p.getCodigo()),
-                        escape(p.getNombre()),
-                        escape(marca),
-                        escape(cat),
-                        escape(um),
-                        stock,
-                        min,
-                        escape(estadoStock),
-                        pc,
-                        pv,
-                        valorizacion,
-                        Boolean.TRUE.equals(p.getEstado()) ? "ACTIVO" : "INACTIVO"
-                ));
+                Row row = sheet.createRow(rowIdx++);
+                row.setHeightInPoints(19);
+
+                Cell cCod = row.createCell(0);
+                cCod.setCellValue(p.getCodigo() != null ? p.getCodigo() : "");
+                cCod.setCellStyle(estilos.centrado);
+
+                Cell cNom = row.createCell(1);
+                cNom.setCellValue(p.getNombre() != null ? p.getNombre() : "");
+                cNom.setCellStyle(estilos.texto);
+
+                Cell cMar = row.createCell(2);
+                cMar.setCellValue(marca);
+                cMar.setCellStyle(estilos.centrado);
+
+                Cell cCat = row.createCell(3);
+                cCat.setCellValue(cat);
+                cCat.setCellStyle(estilos.centrado);
+
+                Cell cUm = row.createCell(4);
+                cUm.setCellValue(um);
+                cUm.setCellStyle(estilos.centrado);
+
+                Cell cStk = row.createCell(5);
+                cStk.setCellValue(stock);
+                cStk.setCellStyle(estilos.entero);
+
+                Cell cMin = row.createCell(6);
+                cMin.setCellValue(min);
+                cMin.setCellStyle(estilos.entero);
+
+                Cell cEstStk = row.createCell(7);
+                cEstStk.setCellValue(estadoStock);
+                cEstStk.setCellStyle(stock <= min ? estilos.alertaBajoStock : estilos.centrado);
+
+                Cell cPc = row.createCell(8);
+                cPc.setCellValue(pc.doubleValue());
+                cPc.setCellStyle(estilos.moneda);
+
+                Cell cPv = row.createCell(9);
+                cPv.setCellValue(pv.doubleValue());
+                cPv.setCellStyle(estilos.moneda);
+
+                Cell cVal = row.createCell(10);
+                cVal.setCellValue(valorizacion.doubleValue());
+                cVal.setCellStyle(estilos.moneda);
+
+                Cell cEst = row.createCell(11);
+                cEst.setCellValue(Boolean.TRUE.equals(p.getEstado()) ? "ACTIVO" : "INACTIVO");
+                cEst.setCellStyle(estilos.centrado);
             }
 
-            writer.write(String.format(Locale.US, "TOTALES;;;;;%d;;;;;%.2f;%d Productos\n",
-                    sumStock, sumValorizacion, productos.size()));
+            Row totRow = sheet.createRow(rowIdx++);
+            totRow.setHeightInPoints(22);
+            Cell cTotLbl = totRow.createCell(0);
+            cTotLbl.setCellValue("TOTALES (" + productos.size() + " Productos)");
+            cTotLbl.setCellStyle(estilos.totalTexto);
+
+            for (int k = 1; k <= 4; k++) totRow.createCell(k).setCellStyle(estilos.totalTexto);
+
+            Cell cTotStk = totRow.createCell(5);
+            cTotStk.setCellValue(sumStock);
+            cTotStk.setCellStyle(estilos.totalEntero);
+
+            for (int k = 6; k <= 9; k++) totRow.createCell(k).setCellStyle(estilos.totalTexto);
+
+            Cell cTotVal = totRow.createCell(10);
+            cTotVal.setCellValue(sumValorizacion.doubleValue());
+            cTotVal.setCellStyle(estilos.totalMoneda);
+
+            totRow.createCell(11).setCellStyle(estilos.totalTexto);
+
+            ajustarColumnas(sheet, headers.length);
+
+            try (FileOutputStream fos = new FileOutputStream(destino)) {
+                wb.write(fos);
+            }
         }
     }
 
     @Override
-    public void exportarRotacionCsv(File destino, List<ProductoRotacionDTO> rotacion, String periodo, String categoria) throws Exception {
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(destino), StandardCharsets.UTF_8))) {
-            writer.write('\ufeff');
+    public void exportarRotacionExcel(File destino, List<ProductoRotacionDTO> rotacion, String periodo, String categoria) throws Exception {
+        try (XSSFWorkbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet("Ranking de Rotación");
+            sheet.setDisplayGridlines(true);
 
-            writer.write("BODEGA & MINIMARKET SGCIVORP - RANKING DE ROTACIÓN DE PRODUCTOS\n");
-            writer.write("Métricas de Demanda Comercial y Productos Más Vendidos\n");
-            writer.write("Periodo evaluado: " + escape(periodo != null ? periodo : "Historial") + "\n");
-            writer.write("Categoría: " + escape(categoria != null ? categoria : "Todas las Categorías") + "\n");
-            writer.write("Fecha de emisión: " + escape(LocalDateTime.now().format(dtf)) + "\n");
-            writer.write("Total productos en ranking: " + rotacion.size() + "\n\n");
+            EstilosExcel estilos = new EstilosExcel(wb);
 
-            writer.write("Ranking N°;Código;Nombre del Producto;Unidades Vendidas;Total Recaudado (S/)\n");
+            int rowIdx = 0;
+            Row r0 = sheet.createRow(rowIdx++);
+            Cell c0 = r0.createCell(0);
+            c0.setCellValue("BODEGA & MINIMARKET SGCIVORP - RANKING DE ROTACIÓN DE PRODUCTOS");
+            c0.setCellStyle(estilos.titulo);
+
+            Row r1 = sheet.createRow(rowIdx++);
+            Cell c1 = r1.createCell(0);
+            c1.setCellValue("Métricas de Demanda Comercial y Productos Más Vendidos");
+            c1.setCellStyle(estilos.subtitulo);
+
+            Row r2 = sheet.createRow(rowIdx++);
+            Cell c2 = r2.createCell(0);
+            c2.setCellValue("Período evaluado: " + (periodo != null ? periodo : "Historial") +
+                    "  |  Categoría: " + (categoria != null ? categoria : "Todas") +
+                    "  |  Fecha de emisión: " + LocalDateTime.now().format(dtf) +
+                    "  |  Total productos en ranking: " + rotacion.size());
+            c2.setCellStyle(estilos.subtitulo);
+
+            rowIdx++;
+
+            String[] headers = {
+                    "Puesto / Ranking", "Código", "Nombre del Producto",
+                    "Unidades Vendidas", "Total Recaudado (S/)"
+            };
+
+            Row headerRow = sheet.createRow(rowIdx++);
+            headerRow.setHeightInPoints(24);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(estilos.cabecera);
+            }
 
             long sumUnidades = 0;
             BigDecimal sumRecaudado = BigDecimal.ZERO;
@@ -270,26 +629,214 @@ public class ExportacionServiceImpl implements IExportacionService {
                 sumUnidades += cant;
                 sumRecaudado = sumRecaudado.add(rec);
 
-                writer.write(String.format(Locale.US, "%d;%s;%s;%d;%.2f\n",
-                        rank++,
-                        escape(r.getCodigo()),
-                        escape(r.getNombre()),
-                        cant,
-                        rec
-                ));
+                Row row = sheet.createRow(rowIdx++);
+                row.setHeightInPoints(19);
+
+                Cell cRank = row.createCell(0);
+                cRank.setCellValue(rank++);
+                cRank.setCellStyle(estilos.centrado);
+
+                Cell cCod = row.createCell(1);
+                cCod.setCellValue(r.getCodigo() != null ? r.getCodigo() : "");
+                cCod.setCellStyle(estilos.centrado);
+
+                Cell cNom = row.createCell(2);
+                cNom.setCellValue(r.getNombre() != null ? r.getNombre() : "");
+                cNom.setCellStyle(estilos.texto);
+
+                Cell cCant = row.createCell(3);
+                cCant.setCellValue(cant);
+                cCant.setCellStyle(estilos.entero);
+
+                Cell cRec = row.createCell(4);
+                cRec.setCellValue(rec.doubleValue());
+                cRec.setCellStyle(estilos.moneda);
             }
 
-            writer.write(String.format(Locale.US, "TOTALES;;;%d;%.2f\n",
-                    sumUnidades, sumRecaudado));
+            Row totRow = sheet.createRow(rowIdx++);
+            totRow.setHeightInPoints(22);
+            Cell cTotLbl = totRow.createCell(0);
+            cTotLbl.setCellValue("TOTALES (" + rotacion.size() + " Productos)");
+            cTotLbl.setCellStyle(estilos.totalTexto);
+
+            totRow.createCell(1).setCellStyle(estilos.totalTexto);
+            totRow.createCell(2).setCellStyle(estilos.totalTexto);
+
+            Cell cTotCant = totRow.createCell(3);
+            cTotCant.setCellValue(sumUnidades);
+            cTotCant.setCellStyle(estilos.totalEntero);
+
+            Cell cTotRec = totRow.createCell(4);
+            cTotRec.setCellValue(sumRecaudado.doubleValue());
+            cTotRec.setCellStyle(estilos.totalMoneda);
+
+            ajustarColumnas(sheet, headers.length);
+
+            try (FileOutputStream fos = new FileOutputStream(destino)) {
+                wb.write(fos);
+            }
         }
     }
 
-    private String escape(Object val) {
-        if (val == null) return "";
-        String s = val.toString().replace("\"", "\"\"");
-        if (s.contains(";") || s.contains("\n") || s.contains("\r") || s.contains("\"")) {
-            return "\"" + s + "\"";
+    private void ajustarColumnas(Sheet sheet, int totalColumnas) {
+        for (int i = 0; i < totalColumnas; i++) {
+            sheet.autoSizeColumn(i);
+            int curWidth = sheet.getColumnWidth(i);
+            // Agregar holgura adicional para que ningún texto toque los bordes de la celda
+            sheet.setColumnWidth(i, Math.max(curWidth + 1400, 3200));
         }
-        return s;
+    }
+
+    // Helper interno para paleta de estilos y formatos nativos de Excel
+    private static class EstilosExcel {
+        final CellStyle titulo;
+        final CellStyle subtitulo;
+        final CellStyle cabecera;
+        final CellStyle texto;
+        final CellStyle centrado;
+        final CellStyle entero;
+        final CellStyle moneda;
+        final CellStyle alertaBajoStock;
+        final CellStyle totalTexto;
+        final CellStyle totalEntero;
+        final CellStyle totalMoneda;
+
+        EstilosExcel(XSSFWorkbook wb) {
+            DataFormat df = wb.createDataFormat();
+            short formatoMoneda = df.getFormat("\"S/ \"#,##0.00");
+            short formatoEntero = df.getFormat("#,##0");
+
+            // Colores corporativos
+            byte[] azulRGB = new byte[]{(byte) 2, (byte) 132, (byte) 199};      // #0284C7
+            byte[] grisFilaRGB = new byte[]{(byte) 241, (byte) 245, (byte) 249}; // #F1F5F9
+            byte[] rojoAlertaRGB = new byte[]{(byte) 254, (byte) 226, (byte) 226}; // #FEE2E2
+            byte[] bordeRGB = new byte[]{(byte) 203, (byte) 213, (byte) 225};   // #CBD5E1
+
+            XSSFColor colorAzul = new XSSFColor(azulRGB, null);
+            XSSFColor colorGris = new XSSFColor(grisFilaRGB, null);
+            XSSFColor colorRojoAlerta = new XSSFColor(rojoAlertaRGB, null);
+            XSSFColor colorBorde = new XSSFColor(bordeRGB, null);
+
+            // Fuentes
+            XSSFFont fTitulo = wb.createFont();
+            fTitulo.setFontName("Segoe UI");
+            fTitulo.setFontHeightInPoints((short) 14);
+            fTitulo.setBold(true);
+
+            XSSFFont fSubtitulo = wb.createFont();
+            fSubtitulo.setFontName("Segoe UI");
+            fSubtitulo.setFontHeightInPoints((short) 9.5);
+            fSubtitulo.setItalic(true);
+
+            XSSFFont fCabecera = wb.createFont();
+            fCabecera.setFontName("Segoe UI");
+            fCabecera.setFontHeightInPoints((short) 10);
+            fCabecera.setBold(true);
+            fCabecera.setColor(new XSSFColor(new byte[]{(byte) 255, (byte) 255, (byte) 255}, null));
+
+            XSSFFont fDatos = wb.createFont();
+            fDatos.setFontName("Segoe UI");
+            fDatos.setFontHeightInPoints((short) 10);
+
+            XSSFFont fAlerta = wb.createFont();
+            fAlerta.setFontName("Segoe UI");
+            fAlerta.setFontHeightInPoints((short) 9.5);
+            fAlerta.setBold(true);
+            fAlerta.setColor(new XSSFColor(new byte[]{(byte) 220, (byte) 38, (byte) 38}, null)); // #DC2626
+
+            XSSFFont fTotal = wb.createFont();
+            fTotal.setFontName("Segoe UI");
+            fTotal.setFontHeightInPoints((short) 10);
+            fTotal.setBold(true);
+
+            // Estilos
+            titulo = wb.createCellStyle();
+            titulo.setFont(fTitulo);
+
+            subtitulo = wb.createCellStyle();
+            subtitulo.setFont(fSubtitulo);
+
+            cabecera = wb.createCellStyle();
+            ((XSSFCellStyle) cabecera).setFillForegroundColor(colorAzul);
+            cabecera.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            cabecera.setFont(fCabecera);
+            cabecera.setAlignment(HorizontalAlignment.CENTER);
+            cabecera.setVerticalAlignment(VerticalAlignment.CENTER);
+            aplicarBordes(cabecera, colorBorde);
+
+            texto = wb.createCellStyle();
+            texto.setFont(fDatos);
+            texto.setVerticalAlignment(VerticalAlignment.CENTER);
+            aplicarBordes(texto, colorBorde);
+
+            centrado = wb.createCellStyle();
+            centrado.setFont(fDatos);
+            centrado.setAlignment(HorizontalAlignment.CENTER);
+            centrado.setVerticalAlignment(VerticalAlignment.CENTER);
+            aplicarBordes(centrado, colorBorde);
+
+            entero = wb.createCellStyle();
+            entero.setFont(fDatos);
+            entero.setDataFormat(formatoEntero);
+            entero.setAlignment(HorizontalAlignment.RIGHT);
+            entero.setVerticalAlignment(VerticalAlignment.CENTER);
+            aplicarBordes(entero, colorBorde);
+
+            moneda = wb.createCellStyle();
+            moneda.setFont(fDatos);
+            moneda.setDataFormat(formatoMoneda);
+            moneda.setAlignment(HorizontalAlignment.RIGHT);
+            moneda.setVerticalAlignment(VerticalAlignment.CENTER);
+            aplicarBordes(moneda, colorBorde);
+
+            alertaBajoStock = wb.createCellStyle();
+            ((XSSFCellStyle) alertaBajoStock).setFillForegroundColor(colorRojoAlerta);
+            alertaBajoStock.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            alertaBajoStock.setFont(fAlerta);
+            alertaBajoStock.setAlignment(HorizontalAlignment.CENTER);
+            alertaBajoStock.setVerticalAlignment(VerticalAlignment.CENTER);
+            aplicarBordes(alertaBajoStock, colorBorde);
+
+            totalTexto = wb.createCellStyle();
+            ((XSSFCellStyle) totalTexto).setFillForegroundColor(colorGris);
+            totalTexto.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            totalTexto.setFont(fTotal);
+            totalTexto.setVerticalAlignment(VerticalAlignment.CENTER);
+            totalTexto.setBorderTop(BorderStyle.THIN);
+            totalTexto.setBorderBottom(BorderStyle.DOUBLE);
+
+            totalEntero = wb.createCellStyle();
+            ((XSSFCellStyle) totalEntero).setFillForegroundColor(colorGris);
+            totalEntero.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            totalEntero.setFont(fTotal);
+            totalEntero.setDataFormat(formatoEntero);
+            totalEntero.setAlignment(HorizontalAlignment.RIGHT);
+            totalEntero.setVerticalAlignment(VerticalAlignment.CENTER);
+            totalEntero.setBorderTop(BorderStyle.THIN);
+            totalEntero.setBorderBottom(BorderStyle.DOUBLE);
+
+            totalMoneda = wb.createCellStyle();
+            ((XSSFCellStyle) totalMoneda).setFillForegroundColor(colorGris);
+            totalMoneda.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            totalMoneda.setFont(fTotal);
+            totalMoneda.setDataFormat(formatoMoneda);
+            totalMoneda.setAlignment(HorizontalAlignment.RIGHT);
+            totalMoneda.setVerticalAlignment(VerticalAlignment.CENTER);
+            totalMoneda.setBorderTop(BorderStyle.THIN);
+            totalMoneda.setBorderBottom(BorderStyle.DOUBLE);
+        }
+
+        private void aplicarBordes(CellStyle s, XSSFColor c) {
+            s.setBorderTop(BorderStyle.THIN);
+            s.setBorderBottom(BorderStyle.THIN);
+            s.setBorderLeft(BorderStyle.THIN);
+            s.setBorderRight(BorderStyle.THIN);
+            if (s instanceof XSSFCellStyle xs) {
+                xs.setTopBorderColor(c);
+                xs.setBottomBorderColor(c);
+                xs.setLeftBorderColor(c);
+                xs.setRightBorderColor(c);
+            }
+        }
     }
 }

@@ -1428,15 +1428,15 @@ public class ReportesViewController {
 
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Exportar Reporte de Ventas a Excel");
-        fileChooser.setInitialFileName("Reporte_Ventas_" + LocalDate.now() + ".csv");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos de Excel (*.csv)", "*.csv"));
+        fileChooser.setInitialFileName("Reporte_Ventas_" + LocalDate.now() + ".xlsx");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Libro de Excel (*.xlsx)", "*.xlsx"));
 
         Window window = tblHistorialVentas != null && tblHistorialVentas.getScene() != null
                 ? tblHistorialVentas.getScene().getWindow() : null;
         File file = fileChooser.showSaveDialog(window);
         if (file != null) {
             try {
-                exportacionService.exportarVentasCsv(file, datos, inicio, fin);
+                exportacionService.exportarVentasExcel(file, datos, inicio, fin);
                 mostrarAlertaExitoExportacion(file);
             } catch (Exception e) {
                 mostrarAlertaError("Error al exportar", e.getMessage());
@@ -1482,15 +1482,15 @@ public class ReportesViewController {
 
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Exportar Ventas del Período a Excel");
-        fileChooser.setInitialFileName("Reporte_Ventas_Periodo_" + LocalDate.now() + ".csv");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos de Excel (*.csv)", "*.csv"));
+        fileChooser.setInitialFileName("Reporte_Ventas_Periodo_" + LocalDate.now() + ".xlsx");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Libro de Excel (*.xlsx)", "*.xlsx"));
 
         Window window = cbDashPeriodo != null && cbDashPeriodo.getScene() != null
                 ? cbDashPeriodo.getScene().getWindow() : null;
         File file = fileChooser.showSaveDialog(window);
         if (file != null) {
             try {
-                exportacionService.exportarVentasCsv(file, ventas, inicio.toLocalDate(), fin.toLocalDate());
+                exportacionService.exportarVentasExcel(file, ventas, inicio.toLocalDate(), fin.toLocalDate());
                 mostrarAlertaExitoExportacion(file);
             } catch (Exception e) {
                 mostrarAlertaError("Error al exportar", e.getMessage());
@@ -1513,15 +1513,15 @@ public class ReportesViewController {
 
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Exportar Ranking de Rotación a Excel");
-        fileChooser.setInitialFileName("Reporte_Rotacion_Productos_" + LocalDate.now() + ".csv");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos de Excel (*.csv)", "*.csv"));
+        fileChooser.setInitialFileName("Reporte_Rotacion_Productos_" + LocalDate.now() + ".xlsx");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Libro de Excel (*.xlsx)", "*.xlsx"));
 
         Window window = tblRotacion != null && tblRotacion.getScene() != null
                 ? tblRotacion.getScene().getWindow() : null;
         File file = fileChooser.showSaveDialog(window);
         if (file != null) {
             try {
-                exportacionService.exportarRotacionCsv(file, items, periodo, catNombre);
+                exportacionService.exportarRotacionExcel(file, items, periodo, catNombre);
                 mostrarAlertaExitoExportacion(file);
             } catch (Exception e) {
                 mostrarAlertaError("Error al exportar", e.getMessage());
@@ -1567,15 +1567,15 @@ public class ReportesViewController {
 
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Exportar Reporte de Compras a Excel");
-        fileChooser.setInitialFileName("Reporte_Compras_" + LocalDate.now() + ".csv");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos de Excel (*.csv)", "*.csv"));
+        fileChooser.setInitialFileName("Reporte_Compras_" + LocalDate.now() + ".xlsx");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Libro de Excel (*.xlsx)", "*.xlsx"));
 
         Window window = cbDashCompPeriodo != null && cbDashCompPeriodo.getScene() != null
                 ? cbDashCompPeriodo.getScene().getWindow() : null;
         File file = fileChooser.showSaveDialog(window);
         if (file != null) {
             try {
-                exportacionService.exportarComprasCsv(file, compras, inicio.toLocalDate(), fin.toLocalDate());
+                exportacionService.exportarComprasExcel(file, compras, inicio.toLocalDate(), fin.toLocalDate());
                 mostrarAlertaExitoExportacion(file);
             } catch (Exception e) {
                 mostrarAlertaError("Error al exportar", e.getMessage());
@@ -1597,15 +1597,15 @@ public class ReportesViewController {
 
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Exportar Reporte de Mermas a Excel");
-        fileChooser.setInitialFileName("Reporte_Mermas_" + LocalDate.now() + ".csv");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos de Excel (*.csv)", "*.csv"));
+        fileChooser.setInitialFileName("Reporte_Mermas_" + LocalDate.now() + ".xlsx");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Libro de Excel (*.xlsx)", "*.xlsx"));
 
         Window window = tblMermas != null && tblMermas.getScene() != null
                 ? tblMermas.getScene().getWindow() : null;
         File file = fileChooser.showSaveDialog(window);
         if (file != null) {
             try {
-                exportacionService.exportarMermasCsv(file, mermas, inicio, fin);
+                exportacionService.exportarMermasExcel(file, mermas, inicio, fin);
                 mostrarAlertaExitoExportacion(file);
             } catch (Exception e) {
                 mostrarAlertaError("Error al exportar", e.getMessage());
