@@ -33,3 +33,5 @@ build/
 .vscode/
 docx_extracted/
 graphify-out/
+
+applecication.properties
