@@ -7,6 +7,8 @@ import pe.edu.utp.Grupo06.model.Producto;
 import pe.edu.utp.Grupo06.repository.ProductoRepository;
 import pe.edu.utp.Grupo06.service.IAlertaReposicionService;
 import pe.edu.utp.Grupo06.service.IProductoService;
+import pe.edu.utp.Grupo06.service.IPresentacionProductoService;
+import pe.edu.utp.Grupo06.model.enums.UnidadMedida;
 import pe.edu.utp.Grupo06.util.Validador;
 
 import java.util.List;
@@ -22,6 +24,9 @@ public class ProductoServiceImpl implements IProductoService {
 
     @Autowired
     private Validador validador;
+
+    @Autowired
+    private IPresentacionProductoService presentacionService;
 
     @Override
     @Transactional(readOnly = true)
@@ -70,8 +75,10 @@ public class ProductoServiceImpl implements IProductoService {
     @Override
     @Transactional
     public Producto registrar(Producto producto) {
+        validarUnidadNueva(producto.getUnidadMedida());
         validador.validar(producto);
         Producto guardado = productoRepository.save(producto);
+        presentacionService.crearBase(guardado.getId());
         alertaReposicionService.verificarYGenerarAlerta(guardado.getId());
         return guardado;
     }
@@ -80,6 +87,8 @@ public class ProductoServiceImpl implements IProductoService {
     @Transactional
     public Producto actualizar(Long id, Producto producto) {
         Producto existente = buscarPorId(id);
+        if (producto.getUnidadMedida() != existente.getUnidadMedida())
+            throw new IllegalArgumentException("La unidad base de un producto existente requiere migración manual de stock e historial");
         existente.setNombre(producto.getNombre());
         existente.setMarca(producto.getMarca());
         existente.setDescripcion(producto.getDescripcion());
@@ -113,5 +122,10 @@ public class ProductoServiceImpl implements IProductoService {
         }
         producto.setEstado(false);
         productoRepository.save(producto);
+    }
+
+    private void validarUnidadNueva(UnidadMedida unidad) {
+        if (unidad == null || unidad == UnidadMedida.PAQUETE || unidad == UnidadMedida.CAJA || unidad == UnidadMedida.DOCENA)
+            throw new IllegalArgumentException("Seleccione una unidad base: UNIDAD, KILOGRAMO, GRAMO, LITRO o MILILITRO");
     }
 }

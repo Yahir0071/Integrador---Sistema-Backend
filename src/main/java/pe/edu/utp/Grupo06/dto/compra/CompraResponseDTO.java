@@ -16,6 +16,8 @@ import java.util.List;
 public class CompraResponseDTO {
     private Long id;
     private String numeroComprobante;
+    private String tipoComprobante;
+    private String estadoCompra;
     private LocalDateTime fechaCompra;
     private BigDecimal total;
     private Long proveedorId;

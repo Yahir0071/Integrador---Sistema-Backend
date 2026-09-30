@@ -20,6 +20,8 @@ public class CompraRequestDTO {
     @NotBlank(message = "El número de comprobante es obligatorio")
     private String numeroComprobante;
 
+    private String tipoComprobante;
+
     @NotNull(message = "El proveedor es obligatorio")
     private Long proveedorId;
 

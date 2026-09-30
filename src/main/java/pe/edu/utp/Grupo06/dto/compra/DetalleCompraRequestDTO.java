@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import pe.edu.utp.Grupo06.model.enums.MotivoDiferencia;
 
 @Getter
 @Setter
@@ -19,11 +20,15 @@ public class DetalleCompraRequestDTO {
     @NotNull(message = "El producto es obligatorio en el detalle")
     private Long productoId;
 
-    @NotNull(message = "La cantidad es obligatoria")
-    @Positive(message = "La cantidad debe ser mayor a 0")
     private Integer cantidad;
 
-    @NotNull(message = "El precio unitario de compra es obligatorio")
-    @PositiveOrZero(message = "El precio unitario no puede ser negativo")
     private BigDecimal precioUnitario;
+
+    private Long presentacionId;
+    @Positive private Integer cantidadPresentaciones;
+    @PositiveOrZero private BigDecimal precioPresentacion;
+    @PositiveOrZero private Integer unidadesRecibidas;
+    @PositiveOrZero private Integer unidadesRechazadas;
+    private MotivoDiferencia motivoDiferencia;
+    private String observacion;
 }

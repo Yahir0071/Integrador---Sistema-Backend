@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pe.edu.utp.Grupo06.model.Categoria;
 import pe.edu.utp.Grupo06.model.Producto;
+import pe.edu.utp.Grupo06.model.PresentacionProducto;
 import pe.edu.utp.Grupo06.model.Usuario;
 import pe.edu.utp.Grupo06.model.enums.MotivoMerma;
 import pe.edu.utp.Grupo06.model.enums.UnidadMedida;
@@ -24,6 +25,7 @@ import pe.edu.utp.Grupo06.service.ICategoriaService;
 import pe.edu.utp.Grupo06.service.IExportacionService;
 import pe.edu.utp.Grupo06.service.IMermaService;
 import pe.edu.utp.Grupo06.service.IProductoService;
+import pe.edu.utp.Grupo06.service.IPresentacionProductoService;
 import pe.edu.utp.Grupo06.service.IUsuarioService;
 
 import java.io.File;
@@ -39,6 +41,9 @@ public class ProductosViewController {
 
     @Autowired
     private IProductoService productoService;
+
+    @Autowired
+    private IPresentacionProductoService presentacionService;
 
     @Autowired
     private ICategoriaService categoriaService;
@@ -95,6 +100,7 @@ public class ProductosViewController {
     private TableColumn<Producto, Void> colAcciones;
 
     private final ObservableList<Producto> listaProductosBase = FXCollections.observableArrayList();
+    private final Categoria categoriaTodas = new Categoria();
     private FilteredList<Producto> filteredProductos;
 
     @FXML
@@ -205,8 +211,12 @@ public class ProductosViewController {
 
     private void cargarCategoriasFiltro() {
         try {
+            Long categoriaAnteriorId = cbCategoriaFiltro.getValue() != null
+                    ? cbCategoriaFiltro.getValue().getId() : null;
             List<Categoria> categorias = categoriaService.listarActivas();
-            cbCategoriaFiltro.getItems().setAll(categorias);
+            categoriaTodas.setNombre("Todas las Categorías");
+            cbCategoriaFiltro.getItems().setAll(categoriaTodas);
+            cbCategoriaFiltro.getItems().addAll(categorias);
 
             javafx.util.StringConverter<Categoria> converter = new javafx.util.StringConverter<>() {
                 @Override
@@ -220,6 +230,9 @@ public class ProductosViewController {
                 }
             };
             cbCategoriaFiltro.setConverter(converter);
+            cbCategoriaFiltro.setValue(categorias.stream()
+                    .filter(c -> categoriaAnteriorId != null && categoriaAnteriorId.equals(c.getId()))
+                    .findFirst().orElse(categoriaTodas));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -245,7 +258,7 @@ public class ProductosViewController {
                 if (!matchNom && !matchCod && !matchMarca) return false;
             }
 
-            if (categoriaSel != null) {
+            if (categoriaSel != null && categoriaSel.getId() != null) {
                 if (p.getCategoria() == null || !p.getCategoria().getId().equals(categoriaSel.getId())) {
                     return false;
                 }
@@ -327,7 +340,8 @@ public class ProductosViewController {
         catBox.setAlignment(Pos.CENTER_LEFT);
 
         ComboBox<UnidadMedida> cbUnidad = new ComboBox<>();
-        cbUnidad.getItems().setAll(UnidadMedida.values());
+        cbUnidad.getItems().setAll(UnidadMedida.UNIDAD, UnidadMedida.KILOGRAMO,
+                UnidadMedida.GRAMO, UnidadMedida.LITRO, UnidadMedida.MILILITRO);
         cbUnidad.setValue(UnidadMedida.UNIDAD);
 
         form.getChildren().addAll(
@@ -368,8 +382,9 @@ public class ProductosViewController {
 
         dialog.showAndWait().ifPresent(nuevo -> {
             try {
-                productoService.registrar(nuevo);
+                Producto guardado = productoService.registrar(nuevo);
                 cargarProductos();
+                administrarPresentaciones(guardado);
             } catch (Exception ex) {
                 mostrarAlertaError("Error al guardar", ex.getMessage());
             }
@@ -418,7 +433,8 @@ public class ProductosViewController {
         }
 
         ComboBox<UnidadMedida> cbUnidad = new ComboBox<>();
-        cbUnidad.getItems().setAll(UnidadMedida.values());
+        cbUnidad.getItems().setAll(p.getUnidadMedida());
+        cbUnidad.setDisable(true); // requiere migración manual si cambia la unidad base
         cbUnidad.setValue(p.getUnidadMedida() != null ? p.getUnidadMedida() : UnidadMedida.UNIDAD);
 
         form.getChildren().addAll(
@@ -431,6 +447,10 @@ public class ProductosViewController {
                 new Label("Stock Mínimo de Seguridad:"), txtStockMin,
                 new Label("Unidad de Medida:"), cbUnidad
         );
+
+        Button btnPresentaciones = new Button("Administrar presentaciones");
+        btnPresentaciones.setOnAction(e -> administrarPresentaciones(p));
+        form.getChildren().addAll(new Label("Presentaciones del producto:"), btnPresentaciones);
 
         dialog.getDialogPane().setContent(form);
 
@@ -467,6 +487,87 @@ public class ProductosViewController {
                 mostrarAlertaError("Error al actualizar", ex.getMessage());
             }
         });
+    }
+
+    private void administrarPresentaciones(Producto producto) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Presentaciones: " + producto.getNombre());
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        TableView<PresentacionProducto> tabla = new TableView<>();
+        tabla.setPrefHeight(220);
+        TableColumn<PresentacionProducto, String> nombre = new TableColumn<>("Presentación");
+        nombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombrePresentacion()));
+        TableColumn<PresentacionProducto, Integer> factor = new TableColumn<>("Factor a unidad base");
+        factor.setCellValueFactory(new PropertyValueFactory<>("factorConversion"));
+        TableColumn<PresentacionProducto, String> estado = new TableColumn<>("Estado");
+        estado.setCellValueFactory(c -> new SimpleStringProperty(Boolean.TRUE.equals(c.getValue().getEstado()) ? "ACTIVO" : "INACTIVO"));
+        tabla.getColumns().addAll(nombre, factor, estado);
+        Button agregar = new Button("Agregar");
+        Button editar = new Button("Editar seleccionado");
+        Button cambiarEstado = new Button("Desactivar seleccionado");
+        Runnable actualizarEstado = () -> {
+            PresentacionProducto seleccionada = tabla.getSelectionModel().getSelectedItem();
+            boolean inactiva = seleccionada != null && !Boolean.TRUE.equals(seleccionada.getEstado());
+            cambiarEstado.setText(inactiva ? "Activar seleccionado" : "Desactivar seleccionado");
+            cambiarEstado.setDisable(seleccionada == null ||
+                    (!inactiva && presentacionService.esBase(producto.getId(), seleccionada.getId())));
+        };
+        tabla.getSelectionModel().selectedItemProperty().addListener((obs, anterior, seleccionada) -> actualizarEstado.run());
+        Runnable recargar = () -> {
+            PresentacionProducto seleccionada = tabla.getSelectionModel().getSelectedItem();
+            Long idSeleccionado = seleccionada == null ? null : seleccionada.getId();
+            tabla.getItems().setAll(presentacionService.listar(producto.getId(), false));
+            if (idSeleccionado != null) tabla.getItems().stream()
+                    .filter(p -> idSeleccionado.equals(p.getId())).findFirst()
+                    .ifPresent(p -> tabla.getSelectionModel().select(p));
+            actualizarEstado.run();
+        };
+        recargar.run();
+        agregar.setOnAction(e -> editarPresentacion(producto, null, recargar));
+        editar.setOnAction(e -> {
+            PresentacionProducto seleccionada = tabla.getSelectionModel().getSelectedItem();
+            if (seleccionada != null) editarPresentacion(producto, seleccionada, recargar);
+        });
+        cambiarEstado.setOnAction(e -> {
+            PresentacionProducto seleccionada = tabla.getSelectionModel().getSelectedItem();
+            if (seleccionada == null) return;
+            try {
+                if (Boolean.TRUE.equals(seleccionada.getEstado())) presentacionService.desactivar(seleccionada.getId());
+                else presentacionService.activar(seleccionada.getId());
+                recargar.run();
+            } catch (Exception ex) { mostrarAlertaError("No se pudo cambiar el estado", ex.getMessage()); }
+        });
+        VBox contenido = new VBox(10, new Label("Unidad base: " + producto.getUnidadMedida()),
+                tabla, new HBox(8, agregar, editar, cambiarEstado));
+        contenido.setPrefWidth(570);
+        dialog.getDialogPane().setContent(contenido);
+        dialog.showAndWait();
+    }
+
+    private void editarPresentacion(Producto producto, PresentacionProducto actual, Runnable recargar) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle(actual == null ? "Agregar presentación" : "Editar presentación");
+        ButtonType guardar = new ButtonType("Guardar", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(guardar, ButtonType.CANCEL);
+        TextField nombre = new TextField(actual == null ? "" : actual.getNombrePresentacion());
+        TextField factor = new TextField(actual == null ? "" : actual.getFactorConversion().toString());
+        boolean esBase = actual != null && presentacionService.esBase(producto.getId(), actual.getId());
+        factor.setDisable(esBase);
+        dialog.getDialogPane().setContent(new VBox(8, new Label("Nombre:"), nombre,
+                new Label(esBase ? "Unidades base por presentación (la base conserva factor 1):"
+                        : "Unidades base por presentación:"), factor));
+        Button boton = (Button) dialog.getDialogPane().lookupButton(guardar);
+        boton.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
+            try {
+                presentacionService.guardar(producto.getId(), actual == null ? null : actual.getId(),
+                        nombre.getText(), Integer.valueOf(factor.getText().trim()));
+                recargar.run();
+            } catch (Exception ex) {
+                mostrarAlertaError("Presentación inválida", ex.getMessage());
+                e.consume();
+            }
+        });
+        dialog.showAndWait();
     }
 
     private void eliminarProducto(Producto p) {

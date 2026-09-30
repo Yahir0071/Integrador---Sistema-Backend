@@ -898,7 +898,7 @@ public class ReportesViewController {
     private void actualizarMetricasPeriodoCompras(LocalDateTime inicio, LocalDateTime fin, String modoPeriodo) {
         try {
             // 1. Obtener compras realizadas en el periodo
-            List<Compra> comprasPeriodo = compraRepository.findComprasEntreFechas(inicio, fin);
+            List<Compra> comprasPeriodo = compraRepository.findComprasRegistradasEntreFechas(inicio, fin);
 
             BigDecimal totalGastado = BigDecimal.ZERO;
             for (Compra c : comprasPeriodo) {

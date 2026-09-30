@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import pe.edu.utp.Grupo06.model.enums.EstadoCompra;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -36,6 +37,13 @@ public class Compra {
     @NotBlank(message = "El número de comprobante es obligatorio")
     @Column(name = "numero_comprobante", nullable = false, length = 50)
     private String numeroComprobante;
+
+    @Column(name = "tipo_comprobante", nullable = false, length = 30)
+    private String tipoComprobante = "OTRO";
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_compra", nullable = false, length = 20)
+    private EstadoCompra estadoCompra = EstadoCompra.REGISTRADA;
 
     @Column(name = "fecha_compra", nullable = false)
     private LocalDateTime fechaCompra = LocalDateTime.now();

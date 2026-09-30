@@ -19,6 +19,9 @@ import pe.edu.utp.Grupo06.service.ICompraService;
 import pe.edu.utp.Grupo06.service.IProductoService;
 import pe.edu.utp.Grupo06.service.IProveedorService;
 import pe.edu.utp.Grupo06.service.IUsuarioService;
+import pe.edu.utp.Grupo06.service.IPresentacionProductoService;
+import pe.edu.utp.Grupo06.model.PresentacionProducto;
+import pe.edu.utp.Grupo06.repository.DetalleCompraRepository;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -41,6 +44,12 @@ public class CompraController {
 
     @Autowired
     private IProductoService productoService;
+
+    @Autowired
+    private IPresentacionProductoService presentacionService;
+
+    @Autowired
+    private DetalleCompraRepository detalleCompraRepository;
 
     @GetMapping
     public ResponseEntity<List<CompraResponseDTO>> listarCompras() {
@@ -75,6 +84,7 @@ public class CompraController {
 
         Compra compra = new Compra();
         compra.setNumeroComprobante(request.getNumeroComprobante());
+        compra.setTipoComprobante(request.getTipoComprobante());
         compra.setProveedor(proveedor);
         compra.setUsuario(usuario);
 
@@ -83,8 +93,20 @@ public class CompraController {
             Producto producto = productoService.buscarPorId(detDto.getProductoId());
             DetalleCompra detalle = new DetalleCompra();
             detalle.setProducto(producto);
-            detalle.setCantidad(detDto.getCantidad());
-            detalle.setPrecioUnitario(detDto.getPrecioUnitario());
+            PresentacionProducto presentacion = detDto.getPresentacionId() == null
+                    ? presentacionService.listar(producto.getId(), true).stream()
+                        .filter(p -> p.getFactorConversion() == 1).findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException("Falta la presentación base del producto"))
+                    : presentacionService.buscar(detDto.getPresentacionId());
+            detalle.setPresentacion(presentacion);
+            Integer cantidad = detDto.getCantidadPresentaciones() != null ? detDto.getCantidadPresentaciones() : detDto.getCantidad();
+            detalle.setCantidadPresentaciones(cantidad);
+            detalle.setPrecioPresentacion(detDto.getPrecioPresentacion() != null ? detDto.getPrecioPresentacion() : detDto.getPrecioUnitario());
+            detalle.setUnidadesRecibidas(detDto.getUnidadesRecibidas() != null ? detDto.getUnidadesRecibidas()
+                    : cantidad == null ? null : Math.multiplyExact(cantidad, presentacion.getFactorConversion()));
+            detalle.setUnidadesRechazadas(detDto.getUnidadesRechazadas() == null ? 0 : detDto.getUnidadesRechazadas());
+            detalle.setMotivoDiferencia(detDto.getMotivoDiferencia());
+            detalle.setObservacion(detDto.getObservacion());
             detalles.add(detalle);
         }
         compra.setDetalles(detalles);
@@ -93,29 +115,50 @@ public class CompraController {
         return ResponseEntity.status(HttpStatus.CREATED).body(mapearADTO(compraGuardada));
     }
 
-    private CompraResponseDTO mapearADTO(Compra c) {
-        List<DetalleCompraResponseDTO> detalles = c.getDetalles() != null ? c.getDetalles().stream().map(d ->
-                new DetalleCompraResponseDTO(
-                        d.getId(),
-                        d.getProducto() != null ? d.getProducto().getId() : null,
-                        d.getProducto() != null ? d.getProducto().getNombre() : null,
-                        d.getProducto() != null ? d.getProducto().getCodigo() : null,
-                        d.getCantidad(),
-                        d.getPrecioUnitario(),
-                        d.getSubtotal()
-                )
-        ).collect(Collectors.toList()) : List.of();
+    @PostMapping("/{id}/anular")
+    public ResponseEntity<CompraResponseDTO> anularCompra(@PathVariable Long id, @RequestParam Long usuarioId,
+                                                           @RequestParam(required = false) String motivo) {
+        return ResponseEntity.ok(mapearADTO(compraService.anularCompra(id, usuarioId, motivo)));
+    }
 
-        return new CompraResponseDTO(
-                c.getId(),
-                c.getNumeroComprobante(),
-                c.getFechaCompra(),
-                c.getTotal(),
-                c.getProveedor() != null ? c.getProveedor().getId() : null,
-                c.getProveedor() != null ? c.getProveedor().getRazonSocial() : null,
-                c.getUsuario() != null ? c.getUsuario().getId() : null,
-                c.getUsuario() != null ? c.getUsuario().getNombreCompleto() : null,
-                detalles
-        );
+    private CompraResponseDTO mapearADTO(Compra c) {
+        List<DetalleCompra> origen = c.getId() == null ? c.getDetalles() : detalleCompraRepository.findByCompraId(c.getId());
+        List<DetalleCompraResponseDTO> detalles = origen != null ? origen.stream().map(d -> {
+            DetalleCompraResponseDTO dto = new DetalleCompraResponseDTO();
+            dto.setId(d.getId());
+            dto.setProductoId(d.getProducto().getId());
+            dto.setProductoNombre(d.getProducto().getNombre());
+            dto.setProductoCodigo(d.getProducto().getCodigo());
+            dto.setCantidad(d.getCantidad());
+            dto.setPrecioUnitario(d.getPrecioUnitario());
+            dto.setSubtotal(d.getSubtotal());
+            dto.setPresentacionId(d.getPresentacion().getId());
+            dto.setNombrePresentacion(d.getNombrePresentacion());
+            dto.setCantidadPresentaciones(d.getCantidadPresentaciones());
+            dto.setFactorConversion(d.getFactorConversion());
+            dto.setUnidadesEsperadas(d.getUnidadesEsperadas());
+            dto.setUnidadesRecibidas(d.getUnidadesRecibidas());
+            dto.setUnidadesRechazadas(d.getUnidadesRechazadas());
+            dto.setUnidadesIngresadas(d.getUnidadesIngresadas());
+            dto.setPrecioPresentacion(d.getPrecioPresentacion());
+            dto.setCostoUnitario(d.getCostoUnitario());
+            dto.setMotivoDiferencia(d.getMotivoDiferencia().name());
+            dto.setObservacion(d.getObservacion());
+            return dto;
+        }).collect(Collectors.toList()) : List.of();
+
+        CompraResponseDTO dto = new CompraResponseDTO();
+        dto.setId(c.getId());
+        dto.setNumeroComprobante(c.getNumeroComprobante());
+        dto.setTipoComprobante(c.getTipoComprobante());
+        dto.setEstadoCompra(c.getEstadoCompra().name());
+        dto.setFechaCompra(c.getFechaCompra());
+        dto.setTotal(c.getTotal());
+        dto.setProveedorId(c.getProveedor().getId());
+        dto.setProveedorRazonSocial(c.getProveedor().getRazonSocial());
+        dto.setUsuarioId(c.getUsuario().getId());
+        dto.setUsuarioNombre(c.getUsuario().getNombreCompleto());
+        dto.setDetalles(detalles);
+        return dto;
     }
 }

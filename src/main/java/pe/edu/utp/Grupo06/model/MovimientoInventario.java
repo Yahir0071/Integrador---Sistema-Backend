@@ -18,8 +18,8 @@ import java.time.LocalDateTime;
     }
 )
 @org.hibernate.annotations.Check(
-        constraints = "((tipo_movimiento = 'AJUSTE' AND cantidad >= 0) " +
-                "OR (tipo_movimiento <> 'AJUSTE' AND cantidad > 0)) " +
+        constraints = "((tipo_movimiento IN ('AJUSTE', 'ENTRADA_COMPRA', 'ANULACION_COMPRA') AND cantidad >= 0) " +
+                "OR (tipo_movimiento NOT IN ('AJUSTE', 'ENTRADA_COMPRA', 'ANULACION_COMPRA') AND cantidad > 0)) " +
                 "AND stock_anterior >= 0 AND stock_posterior >= 0"
 )
 @AllArgsConstructor

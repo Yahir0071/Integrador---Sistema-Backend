@@ -5,5 +5,7 @@ public enum TipoMovimiento {
     SALIDA,       // Salida por venta realizada
     AJUSTE,       // Corrección manual de inventario
     REPOSICION,   // Ingreso por atención de reposición
-    MERMA         // Pérdida por vencimiento, rotura o deterioro
+    MERMA,        // Pérdida por vencimiento, rotura o deterioro
+    ENTRADA_COMPRA,
+    ANULACION_COMPRA
 }

@@ -15,7 +15,11 @@ import pe.edu.utp.Grupo06.model.Compra;
 import pe.edu.utp.Grupo06.model.DetalleCompra;
 import pe.edu.utp.Grupo06.model.Producto;
 import pe.edu.utp.Grupo06.model.Proveedor;
+import pe.edu.utp.Grupo06.model.PresentacionProducto;
+import pe.edu.utp.Grupo06.model.enums.EstadoCompra;
+import pe.edu.utp.Grupo06.model.enums.MotivoDiferencia;
 import pe.edu.utp.Grupo06.service.ICompraService;
+import pe.edu.utp.Grupo06.service.IPresentacionProductoService;
 import pe.edu.utp.Grupo06.service.IProductoService;
 import pe.edu.utp.Grupo06.service.IProveedorService;
 
@@ -37,6 +41,9 @@ public class ComprasViewController {
 
     @Autowired
     private IProductoService productoService;
+
+    @Autowired
+    private IPresentacionProductoService presentacionService;
 
     @FXML
     private TextField txtFiltroCompra;
@@ -67,6 +74,9 @@ public class ComprasViewController {
 
     @FXML
     private TableColumn<Compra, BigDecimal> colTotal;
+
+    @FXML
+    private TableColumn<Compra, String> colEstadoCompra;
 
     @FXML
     private TableColumn<Compra, Void> colAcciones;
@@ -109,9 +119,11 @@ public class ComprasViewController {
                         cellData.getValue().getUsuario().getNombreCompleto() : ""));
 
         colTotal.setCellValueFactory(new PropertyValueFactory<>("total"));
+        colEstadoCompra.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getEstadoCompra().name()));
 
         colAcciones.setCellFactory(param -> new TableCell<>() {
             private final Button btnVer = new Button("Ver Detalle");
+            private final Button btnAnular = new Button("Anular");
 
             {
                 btnVer.setStyle("-fx-background-color: #e0f2fe; -fx-text-fill: #0284c7; -fx-font-weight: bold; -fx-cursor: hand;");
@@ -119,6 +131,7 @@ public class ComprasViewController {
                     Compra c = getTableView().getItems().get(getIndex());
                     mostrarDetalleFactura(c);
                 });
+                btnAnular.setOnAction(event -> anularCompra(getTableView().getItems().get(getIndex())));
             }
 
             @Override
@@ -127,7 +140,9 @@ public class ComprasViewController {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    HBox pane = new HBox(btnVer);
+                    Compra compra = getTableView().getItems().get(getIndex());
+                    btnAnular.setDisable(compra.getEstadoCompra() == EstadoCompra.ANULADA);
+                    HBox pane = new HBox(5, btnVer, btnAnular);
                     pane.setAlignment(javafx.geometry.Pos.CENTER);
                     setGraphic(pane);
                 }
@@ -140,6 +155,23 @@ public class ComprasViewController {
         tblCompras.setItems(sorted);
 
         txtFiltroCompra.textProperty().addListener((obs, old, n) -> aplicarFiltroCompras());
+    }
+
+    private void anularCompra(Compra compra) {
+        Alert confirmar = new Alert(Alert.AlertType.CONFIRMATION,
+                "Se revertirán " + compra.getNumeroComprobante() + " y sus unidades ingresadas. Si ya se vendieron y el stock no alcanza, se cancelará la anulación.",
+                ButtonType.OK, ButtonType.CANCEL);
+        confirmar.setTitle("Anular compra");
+        if (confirmar.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
+        TextInputDialog motivo = new TextInputDialog();
+        motivo.setTitle("Motivo de anulación");
+        motivo.setHeaderText("Indique el motivo de la anulación");
+        motivo.showAndWait().ifPresent(texto -> {
+            try {
+                compraService.anularCompra(compra.getId(), LoginViewController.getUsuarioSesion().getId(), texto);
+                cargarCompras();
+            } catch (Exception ex) { mostrarAlerta("No se pudo anular", ex.getMessage()); }
+        });
     }
 
     @FXML
@@ -180,6 +212,7 @@ public class ComprasViewController {
         });
 
         BigDecimal total = filteredCompras.stream()
+                .filter(c -> c.getEstadoCompra() == EstadoCompra.REGISTRADA)
                 .map(Compra::getTotal)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -201,6 +234,7 @@ public class ComprasViewController {
         Label lblHeader = new Label(
                 "COMPROBANTE DE COMPRA A PROVEEDOR\n" +
                 "N° Comprobante: " + c.getNumeroComprobante() + "\n" +
+                "Tipo: " + c.getTipoComprobante() + " | Estado: " + c.getEstadoCompra() + "\n" +
                 "Proveedor: " + (c.getProveedor() != null ? c.getProveedor().getRazonSocial() + " (RUC: " + c.getProveedor().getRuc() + ")" : "N/A") + "\n" +
                 "Fecha: " + (c.getFechaCompra() != null ? c.getFechaCompra().format(formatter) : "") + "\n" +
                 "Recepcionado por: " + (c.getUsuario() != null ? c.getUsuario().getNombreCompleto() : "")
@@ -221,18 +255,33 @@ public class ComprasViewController {
         colNom.setPrefWidth(220);
 
         TableColumn<DetalleCompra, Integer> colC = new TableColumn<>("Cantidad");
-        colC.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
+        colC.setCellValueFactory(new PropertyValueFactory<>("cantidadPresentaciones"));
         colC.setPrefWidth(80);
 
-        TableColumn<DetalleCompra, BigDecimal> colP = new TableColumn<>("P. Unit (S/)");
-        colP.setCellValueFactory(new PropertyValueFactory<>("precioUnitario"));
+        TableColumn<DetalleCompra, BigDecimal> colP = new TableColumn<>("P. Presentación (S/)");
+        colP.setCellValueFactory(new PropertyValueFactory<>("precioPresentacion"));
         colP.setPrefWidth(100);
 
         TableColumn<DetalleCompra, BigDecimal> colS = new TableColumn<>("Subtotal (S/)");
         colS.setCellValueFactory(new PropertyValueFactory<>("subtotal"));
         colS.setPrefWidth(110);
 
-        tblDet.getColumns().addAll(colNom, colC, colP, colS);
+        TableColumn<DetalleCompra, String> colPres = new TableColumn<>("Presentación");
+        colPres.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombrePresentacion() + " x" + d.getValue().getFactorConversion()));
+        TableColumn<DetalleCompra, Integer> colEsp = new TableColumn<>("Esperadas");
+        colEsp.setCellValueFactory(new PropertyValueFactory<>("unidadesEsperadas"));
+        TableColumn<DetalleCompra, Integer> colRec = new TableColumn<>("Recibidas");
+        colRec.setCellValueFactory(new PropertyValueFactory<>("unidadesRecibidas"));
+        TableColumn<DetalleCompra, Integer> colRech = new TableColumn<>("Rechazadas");
+        colRech.setCellValueFactory(new PropertyValueFactory<>("unidadesRechazadas"));
+        TableColumn<DetalleCompra, Integer> colIng = new TableColumn<>("Ingresadas");
+        colIng.setCellValueFactory(new PropertyValueFactory<>("unidadesIngresadas"));
+        TableColumn<DetalleCompra, String> colMot = new TableColumn<>("Motivo");
+        colMot.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getMotivoDiferencia().name()));
+        TableColumn<DetalleCompra, String> colObs = new TableColumn<>("Observación");
+        colObs.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getObservacion()));
+        tblDet.getColumns().addAll(colNom, colPres, colC, colEsp, colRec, colRech, colIng, colP, colS, colMot, colObs);
+        root.setPrefWidth(1100);
 
         BigDecimal tot = c.getTotal() != null ? c.getTotal() : BigDecimal.ZERO;
         BigDecimal sub = c.getSubtotal() != null && c.getSubtotal().compareTo(BigDecimal.ZERO) > 0
@@ -287,6 +336,9 @@ public class ComprasViewController {
         txtComp.setPromptText("Ej: F001-000456");
         txtComp.setPrefWidth(220);
 
+        ComboBox<String> cbTipo = new ComboBox<>(FXCollections.observableArrayList("FACTURA", "BOLETA", "OTRO"));
+        cbTipo.setValue("FACTURA");
+
         ComboBox<Proveedor> cbProv = new ComboBox<>();
         cbProv.getItems().setAll(proveedorService.listarActivos());
         cbProv.setPrefWidth(350);
@@ -304,7 +356,7 @@ public class ComprasViewController {
         if (!cbProv.getItems().isEmpty()) cbProv.setValue(cbProv.getItems().get(0));
 
         VBox boxProv = new VBox(4, new Label("Proveedor:"), cbProv);
-        row1.getChildren().addAll(boxComp, boxProv);
+        row1.getChildren().addAll(new VBox(4, new Label("Tipo:"), cbTipo), boxComp, boxProv);
 
         // Fila 2: Selector de Producto a añadir a la compra
         HBox row2 = new HBox(10);
@@ -329,32 +381,81 @@ public class ComprasViewController {
         });
         if (!cbProd.getItems().isEmpty()) cbProd.setValue(cbProd.getItems().get(0));
 
-        Spinner<Integer> spnCant = new Spinner<>(1, 1000, 10);
-        spnCant.setEditable(true);
-        spnCant.setPrefWidth(85);
+        ComboBox<PresentacionProducto> cbPresentacion = new ComboBox<>();
+        cbPresentacion.setPrefWidth(155);
+        cbPresentacion.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(PresentacionProducto p) {
+                return p == null ? "" : p.getNombrePresentacion() + " x" + p.getFactorConversion();
+            }
+            @Override public PresentacionProducto fromString(String s) { return null; }
+        });
+        TextField txtCantidad = new TextField("1");
+        txtCantidad.setPrefWidth(70);
+        TextField txtRecibidas = new TextField("1");
+        txtRecibidas.setPrefWidth(80);
+        TextField txtRechazadas = new TextField("0");
+        txtRechazadas.setPrefWidth(80);
+        Label lblEsperadas = new Label("1");
+        Label lblIngresadas = new Label("1");
+        ComboBox<MotivoDiferencia> cbMotivo = new ComboBox<>(FXCollections.observableArrayList(MotivoDiferencia.values()));
+        cbMotivo.setValue(MotivoDiferencia.SIN_DIFERENCIA);
+        TextField txtObservacion = new TextField();
+        txtObservacion.setPromptText("Detalle de faltante, daño u otra diferencia");
+        txtObservacion.setPrefWidth(300);
 
         TextField txtPrecio = new TextField();
         txtPrecio.setPrefWidth(95);
         txtPrecio.setPromptText("P. Compra");
 
+        Runnable recalcular = () -> {
+            try {
+                int cantidad = Integer.parseInt(txtCantidad.getText().trim());
+                int factor = cbPresentacion.getValue() == null ? 1 : cbPresentacion.getValue().getFactorConversion();
+                int esperadas = Math.multiplyExact(cantidad, factor);
+                lblEsperadas.setText(String.valueOf(esperadas));
+                lblIngresadas.setText(String.valueOf(Integer.parseInt(txtRecibidas.getText().trim()) - Integer.parseInt(txtRechazadas.getText().trim())));
+            } catch (Exception ex) { lblEsperadas.setText("—"); lblIngresadas.setText("—"); }
+        };
         cbProd.setOnAction(e -> {
             if (cbProd.getValue() != null) {
                 txtPrecio.setText(cbProd.getValue().getPrecioCompra().setScale(2, java.math.RoundingMode.HALF_UP).toString());
+                cbPresentacion.getItems().setAll(presentacionService.listar(cbProd.getValue().getId(), true));
+                cbPresentacion.setValue(cbPresentacion.getItems().isEmpty() ? null : cbPresentacion.getItems().get(0));
             }
+            recalcular.run();
         });
         if (cbProd.getValue() != null) {
             txtPrecio.setText(cbProd.getValue().getPrecioCompra().setScale(2, java.math.RoundingMode.HALF_UP).toString());
+            cbPresentacion.getItems().setAll(presentacionService.listar(cbProd.getValue().getId(), true));
+            cbPresentacion.setValue(cbPresentacion.getItems().isEmpty() ? null : cbPresentacion.getItems().get(0));
         }
+        cbPresentacion.valueProperty().addListener((o, a, b) -> {
+            if (b != null && cbProd.getValue() != null && cbProd.getValue().getPrecioCompra() != null)
+                txtPrecio.setText(cbProd.getValue().getPrecioCompra().multiply(BigDecimal.valueOf(b.getFactorConversion())).setScale(2, java.math.RoundingMode.HALF_UP).toString());
+            recalcular.run();
+            if (!lblEsperadas.getText().equals("—")) txtRecibidas.setText(lblEsperadas.getText());
+        });
+        txtCantidad.textProperty().addListener((o, a, b) -> { recalcular.run(); if (!lblEsperadas.getText().equals("—")) txtRecibidas.setText(lblEsperadas.getText()); });
+        txtRecibidas.textProperty().addListener((o, a, b) -> recalcular.run());
+        txtRechazadas.textProperty().addListener((o, a, b) -> recalcular.run());
 
         Button btnAdd = new Button("➕ Añadir Ítem");
         btnAdd.setStyle("-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
 
         row2.getChildren().addAll(
                 new VBox(3, new Label("Producto:"), cbProd),
-                new VBox(3, new Label("Cantidad:"), spnCant),
-                new VBox(3, new Label("P. Unit (S/):"), txtPrecio),
+                new VBox(3, new Label("Presentación:"), cbPresentacion),
+                new VBox(3, new Label("Cantidad:"), txtCantidad),
+                new VBox(3, new Label("Precio por presentación:"), txtPrecio),
                 btnAdd
         );
+        HBox rowRecepcion = new HBox(12,
+                new VBox(3, new Label("Unidades esperadas:"), lblEsperadas),
+                new VBox(3, new Label("Recibidas:"), txtRecibidas),
+                new VBox(3, new Label("Rechazadas:"), txtRechazadas),
+                new VBox(3, new Label("Ingresarán:"), lblIngresadas),
+                new VBox(3, new Label("Motivo:"), cbMotivo));
+        HBox rowObservacion = new HBox(8, new Label("Observación:"), txtObservacion);
 
         // Tabla de ítems incluidos en esta compra
         ObservableList<DetalleCompra> itemsCompra = FXCollections.observableArrayList();
@@ -371,11 +472,11 @@ public class ComprasViewController {
         colPName.setPrefWidth(240);
 
         TableColumn<DetalleCompra, Integer> colPCant = new TableColumn<>("Cantidad");
-        colPCant.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
+        colPCant.setCellValueFactory(new PropertyValueFactory<>("cantidadPresentaciones"));
         colPCant.setPrefWidth(80);
 
-        TableColumn<DetalleCompra, BigDecimal> colPPrice = new TableColumn<>("P. Unit (S/)");
-        colPPrice.setCellValueFactory(new PropertyValueFactory<>("precioUnitario"));
+        TableColumn<DetalleCompra, BigDecimal> colPPrice = new TableColumn<>("P. Presentación (S/)");
+        colPPrice.setCellValueFactory(new PropertyValueFactory<>("precioPresentacion"));
         colPPrice.setPrefWidth(95);
 
         TableColumn<DetalleCompra, BigDecimal> colPSub = new TableColumn<>("Subtotal (S/)");
@@ -420,7 +521,18 @@ public class ComprasViewController {
             }
         });
 
-        tblItems.getColumns().addAll(colPName, colPCant, colPPrice, colPSub, colPQuitar);
+        TableColumn<DetalleCompra, String> colPPres = new TableColumn<>("Presentación");
+        colPPres.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombrePresentacion() + " x" + c.getValue().getFactorConversion()));
+        TableColumn<DetalleCompra, Integer> colPEsp = new TableColumn<>("Esperadas");
+        colPEsp.setCellValueFactory(new PropertyValueFactory<>("unidadesEsperadas"));
+        TableColumn<DetalleCompra, Integer> colPRec = new TableColumn<>("Recibidas");
+        colPRec.setCellValueFactory(new PropertyValueFactory<>("unidadesRecibidas"));
+        TableColumn<DetalleCompra, Integer> colPRech = new TableColumn<>("Rechazadas");
+        colPRech.setCellValueFactory(new PropertyValueFactory<>("unidadesRechazadas"));
+        TableColumn<DetalleCompra, Integer> colPIng = new TableColumn<>("Ingresadas");
+        colPIng.setCellValueFactory(new PropertyValueFactory<>("unidadesIngresadas"));
+        tblItems.getColumns().addAll(colPName, colPPres, colPCant, colPEsp, colPRec, colPRech, colPIng, colPPrice, colPSub, colPQuitar);
+        root.setPrefWidth(1100);
 
         btnAdd.setOnAction(e -> {
             try {
@@ -429,34 +541,41 @@ public class ComprasViewController {
                     mostrarAlerta("Seleccione producto", "Debe seleccionar un producto de la lista.");
                     return;
                 }
-                int cant = spnCant.getValue();
+                PresentacionProducto presentacion = cbPresentacion.getValue();
+                if (presentacion == null) throw new IllegalArgumentException("Seleccione presentación");
+                int cant = Integer.parseInt(txtCantidad.getText().trim());
+                int recibidas = Integer.parseInt(txtRecibidas.getText().trim());
+                int rechazadas = Integer.parseInt(txtRechazadas.getText().trim());
+                int esperadas = Math.multiplyExact(cant, presentacion.getFactorConversion());
+                if (cant <= 0 || recibidas < 0 || rechazadas < 0 || rechazadas > recibidas)
+                    throw new IllegalArgumentException("Cantidad, recibidas o rechazadas inválidas");
+                if ((esperadas != recibidas || rechazadas > 0) && cbMotivo.getValue() == MotivoDiferencia.SIN_DIFERENCIA)
+                    throw new IllegalArgumentException("Seleccione un motivo de diferencia");
                 BigDecimal pu = new BigDecimal(txtPrecio.getText().trim().replace(",", "."));
                 if (pu.compareTo(BigDecimal.ZERO) < 0) {
                     mostrarAlerta("Precio inválido", "El precio unitario no puede ser negativo.");
                     return;
                 }
 
-                DetalleCompra existente = itemsCompra.stream()
-                        .filter(d -> d.getProducto().getId().equals(prodSel.getId()))
-                        .findFirst().orElse(null);
-
-                if (existente != null) {
-                    existente.setCantidad(existente.getCantidad() + cant);
-                    existente.setPrecioUnitario(pu);
-                    existente.setSubtotal(pu.multiply(BigDecimal.valueOf(existente.getCantidad())));
-                    tblItems.refresh();
-                } else {
-                    DetalleCompra det = new DetalleCompra();
-                    det.setProducto(prodSel);
-                    det.setCantidad(cant);
-                    det.setPrecioUnitario(pu);
-                    det.setSubtotal(pu.multiply(BigDecimal.valueOf(cant)));
-                    itemsCompra.add(det);
-                }
+                DetalleCompra det = new DetalleCompra();
+                det.setProducto(prodSel);
+                det.setPresentacion(presentacion);
+                det.setNombrePresentacion(presentacion.getNombrePresentacion());
+                det.setFactorConversion(presentacion.getFactorConversion());
+                det.setCantidadPresentaciones(cant);
+                det.setPrecioPresentacion(pu);
+                det.setUnidadesEsperadas(esperadas);
+                det.setUnidadesRecibidas(recibidas);
+                det.setUnidadesRechazadas(rechazadas);
+                det.setUnidadesIngresadas(recibidas - rechazadas);
+                det.setMotivoDiferencia(cbMotivo.getValue());
+                det.setObservacion(txtObservacion.getText().trim());
+                det.setSubtotal(pu.multiply(BigDecimal.valueOf(cant)));
+                itemsCompra.add(det);
 
                 actualizarTotal.run();
             } catch (Exception ex) {
-                mostrarAlerta("Datos inválidos", "Verifique el precio unitario ingresado (use números decimales válidos).");
+                mostrarAlerta("Datos inválidos", ex.getMessage());
             }
         });
 
@@ -471,11 +590,12 @@ public class ComprasViewController {
         HBox.setHgrow(botRow.getChildren().get(1), javafx.scene.layout.Priority.ALWAYS);
         botRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
-        root.getChildren().addAll(row1, row2, tblItems, botRow);
+        root.getChildren().addAll(row1, row2, rowRecepcion, rowObservacion, tblItems, botRow);
         dialog.getDialogPane().setContent(root);
 
         // Prevenir que la ventana se cierre si faltan datos
         Button btnConfirmar = (Button) dialog.getDialogPane().lookupButton(btnGuardar);
+        final boolean[] registrada = {false};
         btnConfirmar.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
             if (txtComp.getText().isBlank()) {
                 mostrarAlerta("Dato Requerido", "Ingrese el número de comprobante (factura/boleta de compra).");
@@ -490,30 +610,27 @@ public class ComprasViewController {
             if (itemsCompra.isEmpty()) {
                 mostrarAlerta("Lista Vacía", "Debe añadir al menos un producto a la compra antes de guardar.");
                 event.consume();
+                return;
             }
-        });
-
-        dialog.setResultConverter(btn -> {
-            if (btn == btnGuardar) {
-                Compra compra = new Compra();
-                compra.setNumeroComprobante(txtComp.getText().trim());
-                compra.setProveedor(cbProv.getValue());
-                compra.setUsuario(LoginViewController.getUsuarioSesion());
-                compra.setDetalles(new java.util.ArrayList<>(itemsCompra));
-                return compra;
-            }
-            return null;
-        });
-
-        dialog.showAndWait().ifPresent(c -> {
+            Compra compra = new Compra();
+            compra.setNumeroComprobante(txtComp.getText().trim());
+            compra.setTipoComprobante(cbTipo.getValue());
+            compra.setProveedor(cbProv.getValue());
+            compra.setUsuario(LoginViewController.getUsuarioSesion());
+            compra.setDetalles(new java.util.ArrayList<>(itemsCompra));
             try {
-                compraService.registrarCompra(c);
-                cargarCompras();
-                mostrarAlerta("Compra Registrada con Éxito", "Se aumentó el inventario de los productos comprados correctamente.");
+                compraService.registrarCompra(compra);
+                registrada[0] = true;
             } catch (Exception ex) {
                 mostrarAlerta("Error al registrar compra", ex.getMessage());
+                event.consume(); // conserva los ítems y el diálogo para corregir
             }
         });
+        dialog.showAndWait();
+        if (registrada[0]) {
+            cargarCompras();
+            mostrarAlerta("Compra registrada", "Se ingresaron al stock las unidades recibidas y aceptadas.");
+        }
     }
 
     private void mostrarAlerta(String titulo, String contenido) {

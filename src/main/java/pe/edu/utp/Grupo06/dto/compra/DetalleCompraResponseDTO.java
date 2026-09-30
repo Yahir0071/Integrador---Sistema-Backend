@@ -19,4 +19,16 @@ public class DetalleCompraResponseDTO {
     private Integer cantidad;
     private BigDecimal precioUnitario;
     private BigDecimal subtotal;
+    private Long presentacionId;
+    private String nombrePresentacion;
+    private Integer cantidadPresentaciones;
+    private Integer factorConversion;
+    private Integer unidadesEsperadas;
+    private Integer unidadesRecibidas;
+    private Integer unidadesRechazadas;
+    private Integer unidadesIngresadas;
+    private BigDecimal precioPresentacion;
+    private BigDecimal costoUnitario;
+    private String motivoDiferencia;
+    private String observacion;
 }

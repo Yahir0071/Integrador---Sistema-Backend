@@ -6,8 +6,11 @@ import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import pe.edu.utp.Grupo06.dto.venta.ProductoRotacionDTO;
 import pe.edu.utp.Grupo06.model.Compra;
+import pe.edu.utp.Grupo06.model.DetalleCompra;
+import pe.edu.utp.Grupo06.repository.DetalleCompraRepository;
 import pe.edu.utp.Grupo06.model.Merma;
 import pe.edu.utp.Grupo06.model.Producto;
 import pe.edu.utp.Grupo06.model.Venta;
@@ -24,6 +27,9 @@ import java.util.List;
 
 @Service
 public class ExportacionServiceImpl implements IExportacionService {
+
+    @Autowired
+    private DetalleCompraRepository detalleCompraRepository;
 
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private final DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -197,7 +203,8 @@ public class ExportacionServiceImpl implements IExportacionService {
 
             String[] headers = {
                     "N° Factura / Comprobante", "Fecha Compra", "Proveedor", "RUC Proveedor",
-                    "Op. Gravada (S/)", "IGV 18% (S/)", "Total Factura (S/)", "Estado", "Registrado Por"
+                    "Op. Gravada (S/)", "IGV 18% (S/)", "Total Factura (S/)", "Estado", "Registrado Por",
+                    "Unidades esperadas", "Unidades recibidas", "Unidades rechazadas", "Unidades ingresadas"
             };
 
             Row headerRow = sheet.createRow(rowIdx++);
@@ -211,6 +218,7 @@ public class ExportacionServiceImpl implements IExportacionService {
             BigDecimal sumSubtotal = BigDecimal.ZERO;
             BigDecimal sumIgv = BigDecimal.ZERO;
             BigDecimal sumTotal = BigDecimal.ZERO;
+            long sumIngresadas = 0;
 
             for (Compra c : compras) {
                 BigDecimal tot = c.getTotal() != null ? c.getTotal() : BigDecimal.ZERO;
@@ -219,9 +227,11 @@ public class ExportacionServiceImpl implements IExportacionService {
                 BigDecimal igv = c.getIgv() != null && c.getIgv().compareTo(BigDecimal.ZERO) > 0 ?
                         c.getIgv() : tot.subtract(sub);
 
-                sumSubtotal = sumSubtotal.add(sub);
-                sumIgv = sumIgv.add(igv);
-                sumTotal = sumTotal.add(tot);
+                if (c.getEstadoCompra() == pe.edu.utp.Grupo06.model.enums.EstadoCompra.REGISTRADA) {
+                    sumSubtotal = sumSubtotal.add(sub);
+                    sumIgv = sumIgv.add(igv);
+                    sumTotal = sumTotal.add(tot);
+                }
 
                 String provNombre = c.getProveedor() != null ? c.getProveedor().getRazonSocial() : "N/A";
                 String provRuc = c.getProveedor() != null ? c.getProveedor().getRuc() : "-";
@@ -259,18 +269,32 @@ public class ExportacionServiceImpl implements IExportacionService {
                 cTot.setCellStyle(estilos.moneda);
 
                 Cell cEst = row.createCell(7);
-                cEst.setCellValue("REGISTRADA");
+                cEst.setCellValue(c.getEstadoCompra().name());
                 cEst.setCellStyle(estilos.centrado);
 
                 Cell cUsu = row.createCell(8);
                 cUsu.setCellValue(usuNombre);
                 cUsu.setCellStyle(estilos.texto);
+                List<DetalleCompra> detalles = detalleCompraRepository.findByCompraId(c.getId());
+                long esperadas = detalles.stream().mapToLong(d -> d.getUnidadesEsperadas()).sum();
+                long recibidas = detalles.stream().mapToLong(d -> d.getUnidadesRecibidas()).sum();
+                long rechazadas = detalles.stream().mapToLong(d -> d.getUnidadesRechazadas()).sum();
+                long ingresadas = detalles.stream().mapToLong(d -> d.getUnidadesIngresadas()).sum();
+                long[] cantidades = {esperadas, recibidas, rechazadas, ingresadas};
+                for (int i = 0; i < cantidades.length; i++) {
+                    Cell celda = row.createCell(9 + i);
+                    celda.setCellValue(cantidades[i]);
+                    celda.setCellStyle(estilos.centrado);
+                }
+                if (c.getEstadoCompra() == pe.edu.utp.Grupo06.model.enums.EstadoCompra.REGISTRADA)
+                    sumIngresadas += ingresadas;
             }
 
             Row totRow = sheet.createRow(rowIdx++);
             totRow.setHeightInPoints(22);
             Cell cTotLbl = totRow.createCell(0);
-            cTotLbl.setCellValue("TOTALES (" + compras.size() + " Compras)");
+            long vigentes = compras.stream().filter(c -> c.getEstadoCompra() == pe.edu.utp.Grupo06.model.enums.EstadoCompra.REGISTRADA).count();
+            cTotLbl.setCellValue("TOTALES (" + vigentes + " Compras vigentes)");
             cTotLbl.setCellStyle(estilos.totalTexto);
 
             totRow.createCell(1).setCellStyle(estilos.totalTexto);
@@ -291,6 +315,10 @@ public class ExportacionServiceImpl implements IExportacionService {
 
             totRow.createCell(7).setCellStyle(estilos.totalTexto);
             totRow.createCell(8).setCellStyle(estilos.totalTexto);
+            for (int i = 9; i <= 11; i++) totRow.createCell(i).setCellStyle(estilos.totalTexto);
+            Cell cIngresadas = totRow.createCell(12);
+            cIngresadas.setCellValue(sumIngresadas);
+            cIngresadas.setCellStyle(estilos.totalTexto);
 
             ajustarColumnas(sheet, headers.length);
 

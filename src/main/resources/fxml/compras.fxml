@@ -42,6 +42,7 @@
             <TableColumn fx:id="colFecha" text="Fecha de Compra" prefWidth="160"/>
             <TableColumn fx:id="colUsuario" text="Registrado Por" prefWidth="160"/>
             <TableColumn fx:id="colTotal" text="Total Compra (S/)" prefWidth="130"/>
+            <TableColumn fx:id="colEstadoCompra" text="Estado" prefWidth="110"/>
             <TableColumn fx:id="colAcciones" text="Acción" prefWidth="120"/>
         </columns>
         <columnResizePolicy>

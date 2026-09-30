@@ -39,7 +39,7 @@ public class MovimientoInventarioServiceImpl implements IMovimientoInventarioSer
             throw new RuntimeException("La cantidad no puede ser negativa");
         }
 
-        if (tipo != TipoMovimiento.AJUSTE && cantidad == 0) {
+        if (tipo != TipoMovimiento.AJUSTE && tipo != TipoMovimiento.ENTRADA_COMPRA && tipo != TipoMovimiento.ANULACION_COMPRA && cantidad == 0) {
             throw new RuntimeException("La cantidad debe ser mayor a 0");
         }
 
@@ -53,9 +53,9 @@ public class MovimientoInventarioServiceImpl implements IMovimientoInventarioSer
         int stockPosterior = stockAnterior;
         String motivoFinal = motivo;
 
-        if (tipo == TipoMovimiento.ENTRADA || tipo == TipoMovimiento.REPOSICION) {
-            stockPosterior += cantidad;
-        } else if (tipo == TipoMovimiento.SALIDA || tipo == TipoMovimiento.MERMA) {
+        if (tipo == TipoMovimiento.ENTRADA || tipo == TipoMovimiento.REPOSICION || tipo == TipoMovimiento.ENTRADA_COMPRA) {
+            stockPosterior = Math.addExact(stockAnterior, cantidad);
+        } else if (tipo == TipoMovimiento.SALIDA || tipo == TipoMovimiento.MERMA || tipo == TipoMovimiento.ANULACION_COMPRA) {
             if (stockAnterior < cantidad) {
                 throw new RuntimeException("Stock insuficiente para realizar " + (tipo == TipoMovimiento.MERMA ? "la merma" : "la salida") + ". Stock actual: " + stockAnterior);
             }
