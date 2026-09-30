@@ -19,13 +19,13 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     @EntityGraph(attributePaths = {"usuario"})
     List<Venta> findByUsuarioIdOrderByFechaVentaDesc(Long usuarioId);
 
-    @EntityGraph(attributePaths = {"usuario"})
+    @EntityGraph(attributePaths = {"usuario", "pagos"})
     @Query("SELECT v FROM Venta v")
     List<Venta> findAllConUsuario();
 
     Optional<Venta> findTopByNumeroTicketStartingWithOrderByIdDesc(String prefix);
 
-    @EntityGraph(attributePaths = {"usuario"})
+    @EntityGraph(attributePaths = {"usuario", "pagos"})
     @Query("SELECT v FROM Venta v WHERE v.fechaVenta BETWEEN :inicio AND :fin AND v.estado = pe.edu.utp.Grupo06.model.enums.EstadoVenta.EMITIDA ORDER BY v.fechaVenta ASC")
     List<Venta> findVentasEntreFechas(@org.springframework.data.repository.query.Param("inicio") java.time.LocalDateTime inicio,
                                       @org.springframework.data.repository.query.Param("fin") java.time.LocalDateTime fin);

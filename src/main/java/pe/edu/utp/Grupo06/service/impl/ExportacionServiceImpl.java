@@ -94,7 +94,7 @@ public class ExportacionServiceImpl implements IExportacionService {
                 sumTotal = sumTotal.add(tot);
 
                 String pagosStr = "";
-                if (v.getPagos() != null && !v.getPagos().isEmpty()) {
+                if (v.getPagos() != null && org.hibernate.Hibernate.isInitialized(v.getPagos()) && !v.getPagos().isEmpty()) {
                     StringBuilder sb = new StringBuilder();
                     for (int i = 0; i < v.getPagos().size(); i++) {
                         if (i > 0) sb.append(", ");
