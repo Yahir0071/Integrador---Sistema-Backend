@@ -30,6 +30,8 @@ public class MainLayoutController {
     @FXML
     private Button btnPos;
 
+    @FXML private Button btnPedidos;
+
     @FXML
     private Button btnProductos;
 
@@ -76,6 +78,8 @@ public class MainLayoutController {
         activarBoton(btnPos);
         cargarVista("/fxml/ventas_pos.fxml");
     }
+
+    @FXML public void mostrarPedidos() { activarBoton(btnPedidos); cargarVista("/fxml/pedidos_web.fxml"); }
 
     @FXML
     public void mostrarProductos() {
@@ -227,7 +231,7 @@ public class MainLayoutController {
     }
 
     private void activarBoton(Button botonActivo) {
-        Button[] botones = {btnPos, btnProductos, btnAlertas, btnCompras, btnReportes, btnAdmin};
+        Button[] botones = {btnPos, btnPedidos, btnProductos, btnAlertas, btnCompras, btnReportes, btnAdmin};
         for (Button b : botones) {
             if (b != null) {
                 b.getStyleClass().remove("sidebar-btn-active");

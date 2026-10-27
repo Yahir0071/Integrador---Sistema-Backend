@@ -30,6 +30,8 @@
                 <Button fx:id="btnPos" text="🛒 Punto de Venta" onAction="#mostrarPos"
                         maxWidth="Infinity" styleClass="sidebar-btn-active"/>
 
+                <Button fx:id="btnPedidos" text="📦 Pedidos web" onAction="#mostrarPedidos" maxWidth="Infinity" styleClass="sidebar-btn"/>
+
                 <Button fx:id="btnProductos" text="📦 Inventario &amp; Productos" onAction="#mostrarProductos"
                         maxWidth="Infinity" styleClass="sidebar-btn"/>
 
