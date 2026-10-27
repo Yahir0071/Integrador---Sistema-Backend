@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/ventas")
-@CrossOrigin(origins = "*")
 public class VentaController {
 
     @Autowired
@@ -86,8 +85,9 @@ public class VentaController {
     }
 
     @PostMapping
-    public ResponseEntity<VentaResponseDTO> registrarVenta(@Valid @RequestBody VentaRequestDTO request) {
-        Usuario usuario = usuarioService.buscarPorId(request.getUsuarioId());
+    public ResponseEntity<VentaResponseDTO> registrarVenta(@Valid @RequestBody VentaRequestDTO request,
+                                                         java.security.Principal principal) {
+        Usuario usuario = usuarioService.buscarPorId(Long.parseLong(principal.getName()));
 
         Venta venta = new Venta();
         venta.setNumeroTicket(request.getNumeroTicket());
@@ -119,9 +119,9 @@ public class VentaController {
     @PostMapping("/{id}/anular")
     public ResponseEntity<VentaResponseDTO> anularVenta(
             @PathVariable Long id,
-            @RequestParam Long usuarioId,
-            @RequestParam(required = false) String motivo) {
-        Venta ventaAnulada = ventaService.anularVenta(id, usuarioId, motivo);
+            @RequestParam(required = false) Long usuarioId,
+            @RequestParam(required = false) String motivo, java.security.Principal principal) {
+        Venta ventaAnulada = ventaService.anularVenta(id, Long.parseLong(principal.getName()), motivo);
         return ResponseEntity.ok(mapearADTO(ventaAnulada));
     }
 

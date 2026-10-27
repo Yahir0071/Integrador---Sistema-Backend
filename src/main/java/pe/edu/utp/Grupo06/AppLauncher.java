@@ -7,6 +7,6 @@ package pe.edu.utp.Grupo06;
  */
 public class AppLauncher {
     public static void main(String[] args) {
-        Grupo06Application.main(args);
+        javafx.application.Application.launch(pe.edu.utp.Grupo06.view.JavaFxApplication.class, args);
     }
 }

@@ -19,7 +19,7 @@ public class MovimientoRequestDTO {
     @NotNull(message = "El producto es obligatorio")
     private Long productoId;
 
-    @NotNull(message = "El usuario es obligatorio")
+    // Compatibilidad con clientes anteriores; la API usa la identidad del token.
     private Long usuarioId;
 
     @NotNull(message = "El tipo de movimiento es obligatorio")

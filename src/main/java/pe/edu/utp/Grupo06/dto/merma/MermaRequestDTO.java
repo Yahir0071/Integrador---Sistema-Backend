@@ -16,7 +16,7 @@ public class MermaRequestDTO {
     @NotNull(message = "El ID del producto es obligatorio")
     private Long productoId;
 
-    @NotNull(message = "El ID del usuario es obligatorio")
+    // Compatibilidad con clientes anteriores; la API usa la identidad del token.
     private Long usuarioId;
 
     @NotNull(message = "La cantidad es obligatoria")

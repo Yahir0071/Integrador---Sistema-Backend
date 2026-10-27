@@ -18,17 +18,17 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/mermas")
-@CrossOrigin(origins = "*")
 public class MermaController {
 
     @Autowired
     private IMermaService mermaService;
 
     @PostMapping
-    public ResponseEntity<MermaResponseDTO> registrarMerma(@Valid @RequestBody MermaRequestDTO request) {
+    public ResponseEntity<MermaResponseDTO> registrarMerma(@Valid @RequestBody MermaRequestDTO request,
+                                                         java.security.Principal principal) {
         Merma merma = mermaService.registrarMerma(
                 request.getProductoId(),
-                request.getUsuarioId(),
+                Long.parseLong(principal.getName()),
                 request.getCantidad(),
                 request.getMotivo(),
                 request.getFechaVencimiento(),

@@ -18,17 +18,17 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/movimientos")
-@CrossOrigin(origins = "*")
 public class MovimientoInventarioController {
 
     @Autowired
     private IMovimientoInventarioService movimientoService;
 
     @PostMapping
-    public ResponseEntity<MovimientoResponseDTO> registrarMovimiento(@Valid @RequestBody MovimientoRequestDTO request) {
+    public ResponseEntity<MovimientoResponseDTO> registrarMovimiento(@Valid @RequestBody MovimientoRequestDTO request,
+                                                                    java.security.Principal principal) {
         MovimientoInventario movimiento = movimientoService.registrarMovimiento(
                 request.getProductoId(),
-                request.getUsuarioId(),
+                Long.parseLong(principal.getName()),
                 request.getTipoMovimiento(),
                 request.getCantidad(),
                 request.getMotivo()

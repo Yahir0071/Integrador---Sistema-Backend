@@ -20,7 +20,7 @@ public class VentaRequestDTO {
     @NotBlank(message = "El número de ticket es obligatorio")
     private String numeroTicket;
 
-    @NotNull(message = "El usuario es obligatorio")
+    // Compatibilidad con clientes anteriores; la API usa la identidad del token.
     private Long usuarioId;
 
     @NotEmpty(message = "La venta debe incluir al menos un producto")

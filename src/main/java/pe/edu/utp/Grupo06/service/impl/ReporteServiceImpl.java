@@ -60,11 +60,11 @@ public class ReporteServiceImpl implements IReporteService {
     public ResumenVentasDTO obtenerResumenVentasPorPeriodo(LocalDateTime inicio, LocalDateTime fin) {
         List<Venta> ventas = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(inicio, fin);
 
-        long emitidas = ventas.stream().filter(v -> v.getEstado() == EstadoVenta.EMITIDA).count();
-        long anuladas = ventas.stream().filter(v -> v.getEstado() == EstadoVenta.ANULADA).count();
+        long emitidas = ventas.stream().filter(v -> !v.isDemo()).filter(v -> v.getEstado() == EstadoVenta.EMITIDA).count();
+        long anuladas = ventas.stream().filter(v -> !v.isDemo()).filter(v -> v.getEstado() == EstadoVenta.ANULADA).count();
 
         BigDecimal totalRecaudado = ventas.stream()
-                .filter(v -> v.getEstado() == EstadoVenta.EMITIDA)
+                .filter(v -> !v.isDemo()).filter(v -> v.getEstado() == EstadoVenta.EMITIDA)
                 .map(Venta::getTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 

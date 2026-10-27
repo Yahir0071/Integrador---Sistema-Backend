@@ -34,4 +34,18 @@ build/
 docx_extracted/
 graphify-out/
 
-applecication.properties
+# Respaldos y configuracion privada local
+/.local/
+*.dump
+*.backup
+.env
+.env.*
+!.env.example
+/conexion-db.properties
+/configuracion-tienda.local.properties
+*.log
+__pycache__/
+*.pyc
+*.pem
+*.key
+

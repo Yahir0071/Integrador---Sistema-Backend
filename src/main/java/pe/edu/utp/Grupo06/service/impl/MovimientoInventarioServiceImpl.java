@@ -43,7 +43,7 @@ public class MovimientoInventarioServiceImpl implements IMovimientoInventarioSer
             throw new RuntimeException("La cantidad debe ser mayor a 0");
         }
 
-        Producto producto = productoRepository.findById(productoId)
+        Producto producto = productoRepository.findLockedById(productoId)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productoId));
 
         Usuario usuario = usuarioRepository.findById(usuarioId)
@@ -67,6 +67,9 @@ public class MovimientoInventarioServiceImpl implements IMovimientoInventarioSer
                     String.format("Ajuste de inventario (físico: %d, variación: %+d)", stockPosterior, variacion);
         }
 
+        if (stockPosterior < producto.getStockReservado()) {
+            throw new IllegalArgumentException("Stock comprometido en pedidos web. Disponible: " + producto.getStockDisponible());
+        }
         producto.setStockActual(stockPosterior);
         productoRepository.save(producto);
 

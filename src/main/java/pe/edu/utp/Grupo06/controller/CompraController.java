@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/compras")
-@CrossOrigin(origins = "*")
 public class CompraController {
 
     @Autowired
@@ -78,9 +77,10 @@ public class CompraController {
     }
 
     @PostMapping
-    public ResponseEntity<CompraResponseDTO> registrarCompra(@Valid @RequestBody CompraRequestDTO request) {
+    public ResponseEntity<CompraResponseDTO> registrarCompra(@Valid @RequestBody CompraRequestDTO request,
+                                                            java.security.Principal principal) {
         Proveedor proveedor = proveedorService.buscarPorId(request.getProveedorId());
-        Usuario usuario = usuarioService.buscarPorId(request.getUsuarioId());
+        Usuario usuario = usuarioService.buscarPorId(Long.parseLong(principal.getName()));
 
         Compra compra = new Compra();
         compra.setNumeroComprobante(request.getNumeroComprobante());
@@ -116,9 +116,11 @@ public class CompraController {
     }
 
     @PostMapping("/{id}/anular")
-    public ResponseEntity<CompraResponseDTO> anularCompra(@PathVariable Long id, @RequestParam Long usuarioId,
-                                                           @RequestParam(required = false) String motivo) {
-        return ResponseEntity.ok(mapearADTO(compraService.anularCompra(id, usuarioId, motivo)));
+    public ResponseEntity<CompraResponseDTO> anularCompra(@PathVariable Long id,
+                                                           @RequestParam(required = false) Long usuarioId,
+                                                           @RequestParam(required = false) String motivo,
+                                                           java.security.Principal principal) {
+        return ResponseEntity.ok(mapearADTO(compraService.anularCompra(id, Long.parseLong(principal.getName()), motivo)));
     }
 
     private CompraResponseDTO mapearADTO(Compra c) {

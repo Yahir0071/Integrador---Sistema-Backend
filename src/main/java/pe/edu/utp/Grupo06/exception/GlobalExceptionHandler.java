@@ -11,6 +11,34 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> archivoGrande(Exception ex) {
+        return ResponseEntity.status(413).body(new ErrorResponse(413,"Payload Too Large","Adjunte una imagen PNG o JPEG de hasta 3 MB"));
+    }
+
+    @ExceptionHandler(PedidoConflictException.class)
+    public ResponseEntity<ErrorResponse> pedidoConflict(PedidoConflictException ex) {
+        return ResponseEntity.status(409).body(new ErrorResponse(409,"Conflict",ex.getMessage()));
+    }
+
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> manejarConflicto(Exception ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(409, "Conflict", "Los datos ya existen o no cumplen las restricciones requeridas"));
+    }
+
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> manejarAutenticacion(Exception ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse(401, "Unauthorized", "Usuario o contraseña incorrectos"));
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> manejarAccesoDenegado(Exception ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(403, "Forbidden", "No tiene permisos para esta operación"));
+    }
 
     @ExceptionHandler(ValidacionException.class)
     public ResponseEntity<ErrorResponse> manejarValidacionException(ValidacionException ex) {

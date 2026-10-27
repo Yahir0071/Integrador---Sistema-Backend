@@ -25,7 +25,7 @@ public class CompraRequestDTO {
     @NotNull(message = "El proveedor es obligatorio")
     private Long proveedorId;
 
-    @NotNull(message = "El usuario es obligatorio")
+    // Compatibilidad con clientes anteriores; la API usa la identidad del token.
     private Long usuarioId;
 
     @NotEmpty(message = "La compra debe incluir al menos un detalle")

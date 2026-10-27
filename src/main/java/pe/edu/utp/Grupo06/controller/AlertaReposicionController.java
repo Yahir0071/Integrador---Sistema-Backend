@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/alertas")
-@CrossOrigin(origins = "*")
 public class AlertaReposicionController {
 
     @Autowired

@@ -19,8 +19,9 @@ public class JavaFxApplication extends Application {
     @Override
     public void init() {
         applicationContext = new SpringApplicationBuilder(Grupo06Application.class)
+                .web(org.springframework.boot.WebApplicationType.NONE)
                 .headless(false)
-                .run();
+                .run(getParameters().getRaw().toArray(String[]::new));
     }
 
     @Override

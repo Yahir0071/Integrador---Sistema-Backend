@@ -44,7 +44,7 @@ public class LoginViewController {
     @FXML
     public void handleLogin() {
         String username = txtUsername.getText() != null ? txtUsername.getText().trim() : "";
-        String password = txtPassword.getText() != null ? txtPassword.getText().trim() : "";
+        String password = txtPassword.getText() != null ? txtPassword.getText() : "";
 
         if (username.isEmpty() || password.isEmpty()) {
             mostrarError("Por favor ingrese usuario y contraseña");
@@ -59,7 +59,7 @@ public class LoginViewController {
 
         new Thread(() -> {
             try {
-                Usuario usuario = usuarioService.validarCredenciales(username, password);
+                Usuario usuario = usuarioService.validarCredencialesPersonal(username, password);
                 usuarioSesion = usuario;
 
                 Platform.runLater(() -> {
