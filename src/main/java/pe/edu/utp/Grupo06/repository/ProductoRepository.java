@@ -13,6 +13,10 @@ import org.springframework.data.jpa.repository.EntityGraph;
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Producto p where p.id = :id")
+    Optional<Producto> findLockedById(Long id);
+
     @EntityGraph(attributePaths = {"categoria", "proveedor"})
     List<Producto> findByEstadoTrue();
 

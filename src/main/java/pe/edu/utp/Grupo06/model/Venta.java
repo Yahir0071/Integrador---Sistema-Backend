@@ -50,6 +50,9 @@ public class Venta {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal total = BigDecimal.ZERO;
 
+    @Column(nullable = false)
+    private boolean demo = false;
+
     @NotNull(message = "El estado de la venta es obligatorio")
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)

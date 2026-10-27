@@ -26,6 +26,8 @@ public class Usuario {
     // La validación de longitud mínima de la contraseña en texto plano se hace
     // ANTES de encriptarla, en UsuarioServiceImpl, no sobre este campo.
     @NotBlank(message = "La contraseña es obligatoria")
+    @ToString.Exclude
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Column(nullable = false, length = 150)
     private String password;
 

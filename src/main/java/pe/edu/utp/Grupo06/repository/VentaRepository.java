@@ -12,6 +12,9 @@ import java.util.Optional;
 
 @Repository
 public interface VentaRepository extends JpaRepository<Venta, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select v from Venta v where v.id=:id")
+    Optional<Venta> locked(Long id);
     Optional<Venta> findByNumeroTicket(String numeroTicket);
     @EntityGraph(attributePaths = {"usuario"})
     List<Venta> findByFechaVentaBetweenOrderByFechaVentaDesc(LocalDateTime inicio, LocalDateTime fin);
@@ -26,13 +29,13 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     Optional<Venta> findTopByNumeroTicketStartingWithOrderByIdDesc(String prefix);
 
     @EntityGraph(attributePaths = {"usuario", "pagos"})
-    @Query("SELECT v FROM Venta v WHERE v.fechaVenta BETWEEN :inicio AND :fin AND v.estado = pe.edu.utp.Grupo06.model.enums.EstadoVenta.EMITIDA ORDER BY v.fechaVenta ASC")
+    @Query("SELECT v FROM Venta v WHERE v.fechaVenta BETWEEN :inicio AND :fin AND v.demo = false AND v.estado = pe.edu.utp.Grupo06.model.enums.EstadoVenta.EMITIDA ORDER BY v.fechaVenta ASC")
     List<Venta> findVentasEntreFechas(@org.springframework.data.repository.query.Param("inicio") java.time.LocalDateTime inicio,
                                       @org.springframework.data.repository.query.Param("fin") java.time.LocalDateTime fin);
 
     @Query("SELECT v.usuario.nombreCompleto, COUNT(v), SUM(v.total) " +
            "FROM Venta v " +
-           "WHERE v.fechaVenta BETWEEN :inicio AND :fin AND v.estado = pe.edu.utp.Grupo06.model.enums.EstadoVenta.EMITIDA " +
+           "WHERE v.fechaVenta BETWEEN :inicio AND :fin AND v.demo = false AND v.estado = pe.edu.utp.Grupo06.model.enums.EstadoVenta.EMITIDA " +
            "GROUP BY v.usuario.nombreCompleto " +
            "ORDER BY SUM(v.total) DESC")
     List<Object[]> findVentasPorVendedorEntreFechas(@org.springframework.data.repository.query.Param("inicio") java.time.LocalDateTime inicio,

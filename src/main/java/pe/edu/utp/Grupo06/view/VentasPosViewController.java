@@ -109,7 +109,7 @@ public class VentasPosViewController {
             return new SimpleStringProperty(m != null && !m.isBlank() ? m : "Genérico");
         });
         colCatPrecio.setCellValueFactory(new PropertyValueFactory<>("precioVenta"));
-        colCatStock.setCellValueFactory(new PropertyValueFactory<>("stockActual"));
+        colCatStock.setCellValueFactory(new PropertyValueFactory<>("stockDisponible"));
 
         // Carrito
         colCarProducto.setCellValueFactory(cellData ->
@@ -152,7 +152,7 @@ public class VentasPosViewController {
             return;
         }
 
-        if (seleccionado.getStockActual() <= 0) {
+        if (seleccionado.getStockDisponible() <= 0) {
             mostrarAlerta(Alert.AlertType.ERROR, "Sin Stock", "El producto seleccionado no tiene unidades disponibles.");
             return;
         }
@@ -167,9 +167,9 @@ public class VentasPosViewController {
 
         int cantidadFinal = (existente != null ? existente.getCantidad() : 0) + cantidadAAgregar;
 
-        if (cantidadFinal > seleccionado.getStockActual()) {
+        if (cantidadFinal > seleccionado.getStockDisponible()) {
             mostrarAlerta(Alert.AlertType.WARNING, "Stock Límite",
-                    "No puede agregar " + cantidadFinal + " unidades. Stock disponible: " + seleccionado.getStockActual() + ".");
+                    "No puede agregar " + cantidadFinal + " unidades. Stock disponible: " + seleccionado.getStockDisponible() + ".");
             return;
         }
 
@@ -363,3 +363,4 @@ public class VentasPosViewController {
         alert.showAndWait();
     }
 }
+

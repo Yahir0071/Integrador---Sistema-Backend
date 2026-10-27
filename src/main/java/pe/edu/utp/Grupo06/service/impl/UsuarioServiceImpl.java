@@ -159,16 +159,26 @@ public class UsuarioServiceImpl implements IUsuarioService {
     @Transactional(readOnly = true)
     public Usuario validarCredenciales(String username, String password) {
         Usuario usuario = usuarioRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario o contraseña incorrectos"));
+                .orElseThrow(() -> new org.springframework.security.authentication.BadCredentialsException("Usuario o contraseña incorrectos"));
 
         if (!Boolean.TRUE.equals(usuario.getActivo())) {
-            throw new RuntimeException("El usuario se encuentra inactivo");
+            throw new org.springframework.security.authentication.BadCredentialsException("Usuario o contraseña incorrectos");
         }
 
         if (!passwordEncoder.matches(password, usuario.getPassword())) {
-            throw new RuntimeException("Usuario o contraseña incorrectos");
+            throw new org.springframework.security.authentication.BadCredentialsException("Usuario o contraseña incorrectos");
         }
 
+        return usuario;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Usuario validarCredencialesPersonal(String username, String password) {
+        Usuario usuario = validarCredenciales(username, password);
+        if (usuario.getRol().getNombre() == pe.edu.utp.Grupo06.model.enums.RolNombre.CLIENTE) {
+            throw new org.springframework.security.access.AccessDeniedException("Esta cuenta pertenece a la tienda web. El panel es exclusivo del personal.");
+        }
         return usuario;
     }
 
@@ -178,6 +188,9 @@ public class UsuarioServiceImpl implements IUsuarioService {
         }
         if (password.length() < PASSWORD_MIN_LENGTH) {
             throw new RuntimeException("La contraseña debe tener al menos " + PASSWORD_MIN_LENGTH + " caracteres");
+        }
+        if (password.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
+            throw new IllegalArgumentException("La contraseña no puede superar 72 bytes en UTF-8");
         }
     }
 }

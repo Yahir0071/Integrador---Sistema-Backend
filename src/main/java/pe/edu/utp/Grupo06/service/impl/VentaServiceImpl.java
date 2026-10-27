@@ -37,6 +37,8 @@ public class VentaServiceImpl implements IVentaService {
 
     @Autowired
     private Validador validador;
+    @Autowired private pe.edu.utp.Grupo06.service.TicketService tickets;
+    @Autowired private pe.edu.utp.Grupo06.repository.PedidoRepository pedidos;
 
     @Override
     @Transactional
@@ -48,6 +50,9 @@ public class VentaServiceImpl implements IVentaService {
             throw new RuntimeException("La venta debe registrar al menos un método de pago");
         }
 
+        venta.setDemo(false);
+        venta.getDetalles().stream().map(d -> d.getProducto().getId()).distinct().sorted()
+            .forEach(id -> productoRepository.findLockedById(id).orElseThrow(() -> new IllegalArgumentException("Producto no encontrado")));
         BigDecimal totalCalculado = BigDecimal.ZERO;
         venta.setFechaVenta(LocalDateTime.now());
         venta.setEstado(EstadoVenta.EMITIDA);
@@ -58,9 +63,9 @@ public class VentaServiceImpl implements IVentaService {
             Producto producto = productoRepository.findById(detalle.getProducto().getId())
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado ID: " + detalle.getProducto().getId()));
 
-            if (producto.getStockActual() < detalle.getCantidad()) {
+            if (producto.getStockDisponible() < detalle.getCantidad()) {
                 throw new RuntimeException("Stock insuficiente para el producto: " + producto.getNombre() +
-                        ". Disponible: " + producto.getStockActual() + ", Requerido: " + detalle.getCantidad());
+                        ". Disponible: " + producto.getStockDisponible() + ", Requerido: " + detalle.getCantidad());
             }
 
             detalle.setPrecioUnitario(producto.getPrecioVenta());
@@ -148,7 +153,8 @@ public class VentaServiceImpl implements IVentaService {
     @Override
     @Transactional
     public Venta anularVenta(Long ventaId, Long usuarioId, String motivo) {
-        Venta venta = buscarPorId(ventaId);
+        if (pedidos.existsByVentaId(ventaId)) throw new IllegalArgumentException("Gestione la devolución desde Pedidos web");
+        Venta venta = ventaRepository.locked(ventaId).orElseThrow(() -> new IllegalArgumentException("Venta no encontrada"));
 
         if (venta.getEstado() == EstadoVenta.ANULADA) {
             throw new RuntimeException("La venta con ticket " + venta.getNumeroTicket() + " ya se encuentra anulada");
@@ -173,22 +179,8 @@ public class VentaServiceImpl implements IVentaService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public String generarSiguienteNumeroTicket() {
-        String prefijo = "B001-";
-        java.util.Optional<Venta> ultimaVenta = ventaRepository.findTopByNumeroTicketStartingWithOrderByIdDesc(prefijo);
-        if (ultimaVenta.isEmpty()) {
-            return prefijo + "00000001";
-        }
-
-        String ultimoTicket = ultimaVenta.get().getNumeroTicket();
-        try {
-            String numeroStr = ultimoTicket.substring(prefijo.length());
-            long correlativo = Long.parseLong(numeroStr);
-            return String.format("%s%08d", prefijo, correlativo + 1);
-        } catch (Exception e) {
-            long fallback = ultimaVenta.get().getId() != null ? ultimaVenta.get().getId() + 1 : 1;
-            return String.format("%s%08d", prefijo, fallback);
-        }
+        return tickets.siguiente("B001");
     }
 }

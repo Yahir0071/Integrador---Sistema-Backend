@@ -75,6 +75,7 @@ public class ProductoServiceImpl implements IProductoService {
     @Override
     @Transactional
     public Producto registrar(Producto producto) {
+        producto.setStockReservado(0);
         validarUnidadNueva(producto.getUnidadMedida());
         validador.validar(producto);
         Producto guardado = productoRepository.save(producto);

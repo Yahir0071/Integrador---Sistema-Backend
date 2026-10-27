@@ -1067,7 +1067,7 @@ public class ReportesViewController {
                 "           BODEGA SGCIVORP                \n" +
                 "       RUC: 20123456789 - LIMA PERÚ       \n" +
                 "==========================================\n" +
-                "Ticket N°: " + v.getNumeroTicket() + "\n" +
+                (v.isDemo() ? "DEMO - SIN COBRO REAL\n" : "") + "Ticket N°: " + v.getNumeroTicket() + "\n" +
                 "Fecha: " + v.getFechaVenta().format(dtf) + "\n" +
                 "Cajero: " + (v.getUsuario() != null ? v.getUsuario().getNombreCompleto() : "N/A") + "\n" +
                 "------------------------------------------\n" +

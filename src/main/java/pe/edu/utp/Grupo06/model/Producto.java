@@ -60,6 +60,12 @@ public class Producto {
     @Column(name = "stock_actual", nullable = false)
     private Integer stockActual = 0;
 
+    @Column(name = "stock_reservado", nullable = false)
+    private Integer stockReservado = 0;
+
+    @Transient
+    public int getStockDisponible() { return Math.max(0, stockActual - stockReservado); }
+
     @PositiveOrZero(message = "El stock mínimo no puede ser negativo")
     @org.hibernate.annotations.ColumnDefault("5")
     @Column(name = "stock_minimo", nullable = false)

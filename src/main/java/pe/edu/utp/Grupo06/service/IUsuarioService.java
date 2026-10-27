@@ -22,5 +22,7 @@ public interface IUsuarioService {
      */
     Usuario validarCredenciales(String username, String password);
 
+    Usuario validarCredencialesPersonal(String username, String password);
+
     Usuario actualizarPerfil(Long id, String nombreCompleto, String email, String telefono, String passwordActual, String nuevaPassword);
 }

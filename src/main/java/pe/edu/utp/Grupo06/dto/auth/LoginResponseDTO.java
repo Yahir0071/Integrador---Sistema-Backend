@@ -17,4 +17,7 @@ public class LoginResponseDTO {
     private String email;
     private RolNombre rol;
     private String mensaje;
+    private String accessToken;
+    private String tokenType;
+    private long expiresIn;
 }
