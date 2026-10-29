@@ -17,16 +17,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pe.edu.utp.Grupo06.model.Categoria;
 import pe.edu.utp.Grupo06.model.Producto;
+import pe.edu.utp.Grupo06.model.Empleado;
 import pe.edu.utp.Grupo06.model.PresentacionProducto;
-import pe.edu.utp.Grupo06.model.Usuario;
 import pe.edu.utp.Grupo06.model.enums.MotivoMerma;
 import pe.edu.utp.Grupo06.model.enums.UnidadMedida;
 import pe.edu.utp.Grupo06.service.ICategoriaService;
+import pe.edu.utp.Grupo06.service.IEmpleadoService;
 import pe.edu.utp.Grupo06.service.IExportacionService;
 import pe.edu.utp.Grupo06.service.IMermaService;
 import pe.edu.utp.Grupo06.service.IProductoService;
 import pe.edu.utp.Grupo06.service.IPresentacionProductoService;
-import pe.edu.utp.Grupo06.service.IUsuarioService;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -52,7 +52,7 @@ public class ProductosViewController {
     private IMermaService mermaService;
 
     @Autowired
-    private IUsuarioService usuarioService;
+    private IEmpleadoService empleadoService;
 
     @Autowired
     private IExportacionService exportacionService;
@@ -751,12 +751,12 @@ public class ProductosViewController {
                     LocalDate fechaVenc = dpVencimiento.getValue();
                     String obs = txtObservacion.getText();
 
-                    Usuario usuario = LoginViewController.getUsuarioSesion();
+                    Empleado usuario = LoginViewController.getUsuarioSesion();
                     if (usuario == null) {
-                        usuario = usuarioService.listarTodos().stream()
+                        usuario = empleadoService.listarTodos().stream()
                                 .filter(u -> Boolean.TRUE.equals(u.getActivo()))
                                 .findFirst()
-                                .orElseThrow(() -> new RuntimeException("No hay ningún usuario activo registrado para auditar la merma"));
+                                .orElseThrow(() -> new RuntimeException("No hay ningún empleado activo registrado para auditar la merma"));
                     }
 
                     mermaService.registrarMerma(prod.getId(), usuario.getId(), cant, motivo, fechaVenc, obs);

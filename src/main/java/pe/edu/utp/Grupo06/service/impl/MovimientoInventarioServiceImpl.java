@@ -4,12 +4,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pe.edu.utp.Grupo06.model.MovimientoInventario;
+import pe.edu.utp.Grupo06.model.Empleado;
 import pe.edu.utp.Grupo06.model.Producto;
-import pe.edu.utp.Grupo06.model.Usuario;
 import pe.edu.utp.Grupo06.model.enums.TipoMovimiento;
+import pe.edu.utp.Grupo06.repository.EmpleadoRepository;
 import pe.edu.utp.Grupo06.repository.MovimientoInventarioRepository;
 import pe.edu.utp.Grupo06.repository.ProductoRepository;
-import pe.edu.utp.Grupo06.repository.UsuarioRepository;
 import pe.edu.utp.Grupo06.service.IAlertaReposicionService;
 import pe.edu.utp.Grupo06.service.IMovimientoInventarioService;
 
@@ -26,7 +26,7 @@ public class MovimientoInventarioServiceImpl implements IMovimientoInventarioSer
     private ProductoRepository productoRepository;
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
+    private EmpleadoRepository empleadoRepository;
 
     @Autowired
     private IAlertaReposicionService alertaReposicionService;
@@ -46,8 +46,8 @@ public class MovimientoInventarioServiceImpl implements IMovimientoInventarioSer
         Producto producto = productoRepository.findLockedById(productoId)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productoId));
 
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + usuarioId));
+        Empleado usuario = empleadoRepository.findById(usuarioId)
+                .orElseThrow(() -> new RuntimeException("Empleado no encontrado con ID: " + usuarioId));
 
         int stockAnterior = producto.getStockActual();
         int stockPosterior = stockAnterior;

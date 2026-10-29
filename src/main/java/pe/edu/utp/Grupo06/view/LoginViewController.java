@@ -9,14 +9,14 @@ import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextField;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import pe.edu.utp.Grupo06.model.Usuario;
-import pe.edu.utp.Grupo06.service.IUsuarioService;
+import pe.edu.utp.Grupo06.model.Empleado;
+import pe.edu.utp.Grupo06.service.IEmpleadoService;
 
 @Component
 public class LoginViewController {
 
     @Autowired
-    private IUsuarioService usuarioService;
+    private IEmpleadoService empleadoService;
 
     @FXML
     private TextField txtUsername;
@@ -33,7 +33,7 @@ public class LoginViewController {
     @FXML
     private ProgressIndicator progressIndicator;
 
-    private static Usuario usuarioSesion;
+    private static Empleado usuarioSesion;
 
     @FXML
     public void initialize() {
@@ -59,8 +59,8 @@ public class LoginViewController {
 
         new Thread(() -> {
             try {
-                Usuario usuario = usuarioService.validarCredencialesPersonal(username, password);
-                usuarioSesion = usuario;
+                Empleado empleado = empleadoService.validarCredenciales(username, password);
+                usuarioSesion = empleado;
 
                 Platform.runLater(() -> {
                     JavaFxApplication.mostrarVentanaPrincipal();
@@ -82,7 +82,7 @@ public class LoginViewController {
         lblError.setManaged(true);
     }
 
-    public static Usuario getUsuarioSesion() {
+    public static Empleado getUsuarioSesion() {
         return usuarioSesion;
     }
 

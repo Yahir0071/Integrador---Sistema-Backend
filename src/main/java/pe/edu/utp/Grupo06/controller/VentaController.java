@@ -9,11 +9,11 @@ import org.springframework.web.bind.annotation.*;
 import pe.edu.utp.Grupo06.dto.venta.*;
 import pe.edu.utp.Grupo06.model.DetalleVenta;
 import pe.edu.utp.Grupo06.model.Pago;
+import pe.edu.utp.Grupo06.model.Empleado;
 import pe.edu.utp.Grupo06.model.Producto;
-import pe.edu.utp.Grupo06.model.Usuario;
 import pe.edu.utp.Grupo06.model.Venta;
+import pe.edu.utp.Grupo06.service.IEmpleadoService;
 import pe.edu.utp.Grupo06.service.IProductoService;
-import pe.edu.utp.Grupo06.service.IUsuarioService;
 import pe.edu.utp.Grupo06.service.IVentaService;
 
 import java.math.BigDecimal;
@@ -30,7 +30,7 @@ public class VentaController {
     private IVentaService ventaService;
 
     @Autowired
-    private IUsuarioService usuarioService;
+    private IEmpleadoService empleadoService;
 
     @Autowired
     private IProductoService productoService;
@@ -87,7 +87,7 @@ public class VentaController {
     @PostMapping
     public ResponseEntity<VentaResponseDTO> registrarVenta(@Valid @RequestBody VentaRequestDTO request,
                                                          java.security.Principal principal) {
-        Usuario usuario = usuarioService.buscarPorId(Long.parseLong(principal.getName()));
+        Empleado usuario = empleadoService.buscarPorId(Long.parseLong(principal.getName()));
 
         Venta venta = new Venta();
         venta.setNumeroTicket(request.getNumeroTicket());

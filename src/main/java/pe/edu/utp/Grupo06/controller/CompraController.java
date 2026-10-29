@@ -13,12 +13,12 @@ import pe.edu.utp.Grupo06.dto.compra.DetalleCompraResponseDTO;
 import pe.edu.utp.Grupo06.model.Compra;
 import pe.edu.utp.Grupo06.model.DetalleCompra;
 import pe.edu.utp.Grupo06.model.Producto;
+import pe.edu.utp.Grupo06.model.Empleado;
 import pe.edu.utp.Grupo06.model.Proveedor;
-import pe.edu.utp.Grupo06.model.Usuario;
 import pe.edu.utp.Grupo06.service.ICompraService;
+import pe.edu.utp.Grupo06.service.IEmpleadoService;
 import pe.edu.utp.Grupo06.service.IProductoService;
 import pe.edu.utp.Grupo06.service.IProveedorService;
-import pe.edu.utp.Grupo06.service.IUsuarioService;
 import pe.edu.utp.Grupo06.service.IPresentacionProductoService;
 import pe.edu.utp.Grupo06.model.PresentacionProducto;
 import pe.edu.utp.Grupo06.repository.DetalleCompraRepository;
@@ -39,7 +39,7 @@ public class CompraController {
     private IProveedorService proveedorService;
 
     @Autowired
-    private IUsuarioService usuarioService;
+    private IEmpleadoService empleadoService;
 
     @Autowired
     private IProductoService productoService;
@@ -80,7 +80,7 @@ public class CompraController {
     public ResponseEntity<CompraResponseDTO> registrarCompra(@Valid @RequestBody CompraRequestDTO request,
                                                             java.security.Principal principal) {
         Proveedor proveedor = proveedorService.buscarPorId(request.getProveedorId());
-        Usuario usuario = usuarioService.buscarPorId(Long.parseLong(principal.getName()));
+        Empleado usuario = empleadoService.buscarPorId(Long.parseLong(principal.getName()));
 
         Compra compra = new Compra();
         compra.setNumeroComprobante(request.getNumeroComprobante());

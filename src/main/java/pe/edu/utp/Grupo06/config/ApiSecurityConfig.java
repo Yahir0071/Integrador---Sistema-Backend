@@ -17,6 +17,8 @@ import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.*;
+import pe.edu.utp.Grupo06.repository.ClienteRepository;
+import pe.edu.utp.Grupo06.repository.EmpleadoRepository;
 import pe.edu.utp.Grupo06.repository.UsuarioRepository;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -71,7 +73,10 @@ public class ApiSecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain apiSecurity(HttpSecurity http, UsuarioRepository usuarios,
+    SecurityFilterChain apiSecurity(HttpSecurity http, 
+                                   UsuarioRepository usuarios,
+                                   ClienteRepository clientes,
+                                   EmpleadoRepository empleados,
                                    CorsConfigurationSource corsConfigurationSource) throws Exception {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource))
                 // Solo Authorization: Bearer, sin autenticacion por cookies.
@@ -82,11 +87,11 @@ public class ApiSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/catalogo/productos", "/api/catalogo/productos/{id}",
                                 "/api/catalogo/categorias", "/api/tienda").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/registro").permitAll()
-                        .requestMatchers("/api/auth/me").authenticated()
-                        .requestMatchers("/api/personal/pedidos/**").hasAnyRole("ADMINISTRADOR","VENDEDOR")
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/registro", "/api/personal/auth/login").permitAll()
+                        .requestMatchers("/api/auth/me", "/api/personal/auth/me").authenticated()
+                        .requestMatchers("/api/personal/**").hasAnyRole("ADMINISTRADOR","VENDEDOR")
                         .requestMatchers("/api/pedidos/**").hasRole("CLIENTE")
-                        .requestMatchers("/api/usuarios/**", "/api/compras/**", "/api/proveedores/**", "/api/reportes/**",
+                        .requestMatchers("/api/usuarios/**", "/api/empleados/**", "/api/compras/**", "/api/proveedores/**", "/api/reportes/**",
                                 "/api/ventas/reporte/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**")
                                 .hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.GET, "/api/productos/**", "/api/categorias/**")
@@ -108,9 +113,34 @@ public class ApiSecurityConfig {
                             response.getWriter().write("{\"status\":403,\"mensaje\":\"No tiene permisos para esta operación\"}");
                         }))
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(token -> {
-                    // Estado y rol actuales; no se confia en roles almacenados en el token.
                     try {
-                        var u = usuarios.findById(Long.parseLong(token.getSubject()))
+                        Long id = Long.parseLong(token.getSubject());
+                        String tipo = token.getClaimAsString("tipo");
+
+                        if ("CLIENTE".equalsIgnoreCase(tipo)) {
+                            var c = clientes.findById(id)
+                                    .filter(cl -> Boolean.TRUE.equals(cl.getActivo()))
+                                    .orElseThrow(() -> new IllegalArgumentException("Cuenta de cliente no disponible"));
+                            return new JwtAuthenticationToken(token, List.of(new SimpleGrantedAuthority("ROLE_CLIENTE")), c.getId().toString());
+                        } else if ("EMPLEADO".equalsIgnoreCase(tipo)) {
+                            var e = empleados.findById(id)
+                                    .filter(emp -> Boolean.TRUE.equals(emp.getActivo()))
+                                    .orElseThrow(() -> new IllegalArgumentException("Cuenta de personal no disponible"));
+                            return new JwtAuthenticationToken(token, List.of(new SimpleGrantedAuthority("ROLE_" + e.getRol().name())), e.getId().toString());
+                        }
+
+                        // Fallback para tokens legados o pruebas unitarias
+                        var empFallback = empleados.findById(id).filter(e -> Boolean.TRUE.equals(e.getActivo())).orElse(null);
+                        if (empFallback != null) {
+                            return new JwtAuthenticationToken(token, List.of(new SimpleGrantedAuthority("ROLE_" + empFallback.getRol().name())), empFallback.getId().toString());
+                        }
+
+                        var cliFallback = clientes.findById(id).filter(c -> Boolean.TRUE.equals(c.getActivo())).orElse(null);
+                        if (cliFallback != null) {
+                            return new JwtAuthenticationToken(token, List.of(new SimpleGrantedAuthority("ROLE_CLIENTE")), cliFallback.getId().toString());
+                        }
+
+                        var u = usuarios.findById(id)
                                 .filter(user -> Boolean.TRUE.equals(user.getActivo()))
                                 .orElseThrow(() -> new IllegalArgumentException("Cuenta no disponible"));
                         return new JwtAuthenticationToken(token, List.of(new SimpleGrantedAuthority(

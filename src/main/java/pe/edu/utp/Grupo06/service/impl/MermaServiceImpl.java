@@ -3,14 +3,14 @@ package pe.edu.utp.Grupo06.service.impl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pe.edu.utp.Grupo06.model.Empleado;
 import pe.edu.utp.Grupo06.model.Merma;
 import pe.edu.utp.Grupo06.model.Producto;
-import pe.edu.utp.Grupo06.model.Usuario;
 import pe.edu.utp.Grupo06.model.enums.MotivoMerma;
 import pe.edu.utp.Grupo06.model.enums.TipoMovimiento;
+import pe.edu.utp.Grupo06.repository.EmpleadoRepository;
 import pe.edu.utp.Grupo06.repository.MermaRepository;
 import pe.edu.utp.Grupo06.repository.ProductoRepository;
-import pe.edu.utp.Grupo06.repository.UsuarioRepository;
 import pe.edu.utp.Grupo06.service.IMermaService;
 import pe.edu.utp.Grupo06.service.IMovimientoInventarioService;
 
@@ -29,7 +29,7 @@ public class MermaServiceImpl implements IMermaService {
     private ProductoRepository productoRepository;
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
+    private EmpleadoRepository empleadoRepository;
 
     @Autowired
     private IMovimientoInventarioService movimientoInventarioService;
@@ -48,8 +48,8 @@ public class MermaServiceImpl implements IMermaService {
         Producto producto = productoRepository.findById(productoId)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productoId));
 
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + usuarioId));
+        Empleado usuario = empleadoRepository.findById(usuarioId)
+                .orElseThrow(() -> new RuntimeException("Empleado no encontrado con ID: " + usuarioId));
 
         if (producto.getStockActual() < cantidad) {
             throw new RuntimeException("Stock insuficiente para dar de baja. Stock actual: " +

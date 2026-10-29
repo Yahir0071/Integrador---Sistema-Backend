@@ -9,14 +9,15 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import pe.edu.utp.Grupo06.model.Usuario;
-import pe.edu.utp.Grupo06.service.IUsuarioService;
+import pe.edu.utp.Grupo06.model.Empleado;
+import pe.edu.utp.Grupo06.model.enums.RolNombre;
+import pe.edu.utp.Grupo06.service.IEmpleadoService;
 
 @Component
 public class MainLayoutController {
 
     @Autowired
-    private IUsuarioService usuarioService;
+    private IEmpleadoService empleadoService;
 
     @FXML
     private Label lblUsuarioNombre;
@@ -49,15 +50,15 @@ public class MainLayoutController {
 
     @FXML
     public void initialize() {
-        Usuario usuario = LoginViewController.getUsuarioSesion();
+        Empleado usuario = LoginViewController.getUsuarioSesion();
         if (usuario != null) {
             lblUsuarioNombre.setText(usuario.getNombreCompleto());
-            lblUsuarioRol.setText("Rol: " + (usuario.getRol() != null ? usuario.getRol().getNombre().name() : "N/A"));
+            lblUsuarioRol.setText("Rol: " + (usuario.getRol() != null ? usuario.getRol().name() : "N/A"));
 
             // Restricciones por Rol (RNF03):
             // Si es VENDEDOR, solo accede a Punto de Venta e Inventario;
             // Ocultamos Compras, Reportes y Administración (solo para ADMINISTRADOR).
-            boolean esAdmin = usuario.getRol() != null && usuario.getRol().getNombre() == pe.edu.utp.Grupo06.model.enums.RolNombre.ADMINISTRADOR;
+            boolean esAdmin = usuario.getRol() == RolNombre.ADMINISTRADOR;
             
             btnCompras.setVisible(esAdmin);
             btnCompras.setManaged(esAdmin);
@@ -113,7 +114,7 @@ public class MainLayoutController {
 
     @FXML
     public void handleAbrirPerfil() {
-        Usuario usuario = LoginViewController.getUsuarioSesion();
+        Empleado usuario = LoginViewController.getUsuarioSesion();
         if (usuario == null) return;
 
         Dialog<Boolean> dialog = new Dialog<>();
@@ -129,7 +130,7 @@ public class MainLayoutController {
         Label lblUser = new Label("Usuario: @" + usuario.getUsername());
         lblUser.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #1e293b;");
 
-        Label lblRolBadge = new Label("Rol: " + (usuario.getRol() != null ? usuario.getRol().getNombre().name() : "N/A"));
+        Label lblRolBadge = new Label("Rol: " + (usuario.getRol() != null ? usuario.getRol().name() : "N/A"));
         lblRolBadge.setStyle("-fx-background-color: #e0f2fe; -fx-text-fill: #0369a1; -fx-font-weight: bold; -fx-padding: 3 8; -fx-background-radius: 12;");
 
         TextField txtNombre = new TextField(usuario.getNombreCompleto());
@@ -194,7 +195,7 @@ public class MainLayoutController {
                         }
                     }
 
-                    Usuario actualizado = usuarioService.actualizarPerfil(usuario.getId(), nombre, email, tel, passActual, nuevaPass);
+                    Empleado actualizado = empleadoService.actualizarPerfil(usuario.getId(), nombre, email, tel, passActual, nuevaPass);
                     // Actualizar datos en la sesión local
                     usuario.setNombreCompleto(actualizado.getNombreCompleto());
                     usuario.setEmail(actualizado.getEmail());

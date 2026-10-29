@@ -65,7 +65,7 @@ public class Compra {
     @NotNull(message = "El usuario es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
-    private Usuario usuario;
+    private Empleado usuario;
 
     @OneToMany(mappedBy = "compra", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DetalleCompra> detalles = new ArrayList<>();

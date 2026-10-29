@@ -17,12 +17,12 @@ import org.springframework.stereotype.Component;
 import pe.edu.utp.Grupo06.model.Categoria;
 import pe.edu.utp.Grupo06.model.Proveedor;
 import pe.edu.utp.Grupo06.model.Rol;
-import pe.edu.utp.Grupo06.model.Usuario;
+import pe.edu.utp.Grupo06.model.Empleado;
 import pe.edu.utp.Grupo06.model.enums.RolNombre;
 import pe.edu.utp.Grupo06.repository.RolRepository;
 import pe.edu.utp.Grupo06.service.ICategoriaService;
+import pe.edu.utp.Grupo06.service.IEmpleadoService;
 import pe.edu.utp.Grupo06.service.IProveedorService;
-import pe.edu.utp.Grupo06.service.IUsuarioService;
 
 import java.util.List;
 
@@ -30,7 +30,7 @@ import java.util.List;
 public class AdminPanelViewController {
 
     @Autowired
-    private IUsuarioService usuarioService;
+    private IEmpleadoService empleadoService;
 
     @Autowired
     private ICategoriaService categoriaService;
@@ -41,29 +41,29 @@ public class AdminPanelViewController {
     @Autowired
     private RolRepository rolRepository;
 
-    // Tabla Usuarios
+    // Tabla Usuarios / Personal
     @FXML
     private TextField txtBuscarUsuario;
     @FXML
     private Label lblTotalUsuarios;
     @FXML
-    private TableView<Usuario> tblUsuarios;
+    private TableView<Empleado> tblUsuarios;
     @FXML
-    private TableColumn<Usuario, Long> colUsuId;
+    private TableColumn<Empleado, Long> colUsuId;
     @FXML
-    private TableColumn<Usuario, String> colUsuNombre;
+    private TableColumn<Empleado, String> colUsuNombre;
     @FXML
-    private TableColumn<Usuario, String> colUsuUsername;
+    private TableColumn<Empleado, String> colUsuUsername;
     @FXML
-    private TableColumn<Usuario, String> colUsuEmail;
+    private TableColumn<Empleado, String> colUsuEmail;
     @FXML
-    private TableColumn<Usuario, String> colUsuTelefono;
+    private TableColumn<Empleado, String> colUsuTelefono;
     @FXML
-    private TableColumn<Usuario, String> colUsuRol;
+    private TableColumn<Empleado, String> colUsuRol;
     @FXML
-    private TableColumn<Usuario, Boolean> colUsuEstado;
+    private TableColumn<Empleado, Boolean> colUsuEstado;
     @FXML
-    private TableColumn<Usuario, Void> colUsuAcciones;
+    private TableColumn<Empleado, Void> colUsuAcciones;
 
     // Tabla Categorias
     @FXML
@@ -105,8 +105,8 @@ public class AdminPanelViewController {
     @FXML
     private TableColumn<Proveedor, Void> colProvAcciones;
 
-    private ObservableList<Usuario> listaUsuarios = FXCollections.observableArrayList();
-    private FilteredList<Usuario> filteredUsuarios;
+    private ObservableList<Empleado> listaUsuarios = FXCollections.observableArrayList();
+    private FilteredList<Empleado> filteredUsuarios;
 
     private ObservableList<Categoria> listaCategorias = FXCollections.observableArrayList();
     private FilteredList<Categoria> filteredCategorias;
@@ -129,7 +129,7 @@ public class AdminPanelViewController {
         colUsuEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
         colUsuTelefono.setCellValueFactory(new PropertyValueFactory<>("telefono"));
         colUsuRol.setCellValueFactory(c ->
-                new SimpleStringProperty(c.getValue().getRol() != null ? c.getValue().getRol().getNombre().name() : "N/A"));
+                new SimpleStringProperty(c.getValue().getRol() != null ? c.getValue().getRol().name() : "N/A"));
         
         colUsuEstado.setCellValueFactory(c -> new SimpleObjectProperty<>(c.getValue().getActivo()));
         colUsuEstado.setCellFactory(col -> new TableCell<>() {
@@ -160,7 +160,7 @@ public class AdminPanelViewController {
                 box.setAlignment(Pos.CENTER);
                 btnEditar.setStyle("-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-size: 11px; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 4;");
                 btnEditar.setOnAction(e -> {
-                    Usuario u = getTableView().getItems().get(getIndex());
+                    Empleado u = getTableView().getItems().get(getIndex());
                     handleEditarUsuario(u);
                 });
             }
@@ -171,7 +171,7 @@ public class AdminPanelViewController {
                 if (empty || getIndex() >= getTableView().getItems().size()) {
                     setGraphic(null);
                 } else {
-                    Usuario u = getTableView().getItems().get(getIndex());
+                    Empleado u = getTableView().getItems().get(getIndex());
                     boolean activo = Boolean.TRUE.equals(u.getActivo());
                     btnToggle.setText(activo ? "Desactivar" : "Activar");
                     btnToggle.setStyle(activo
@@ -192,14 +192,14 @@ public class AdminPanelViewController {
                     boolean mNom = u.getNombreCompleto() != null && u.getNombreCompleto().toLowerCase().contains(term);
                     boolean mUser = u.getUsername() != null && u.getUsername().toLowerCase().contains(term);
                     boolean mEmail = u.getEmail() != null && u.getEmail().toLowerCase().contains(term);
-                    boolean mRol = u.getRol() != null && u.getRol().getNombre().name().toLowerCase().contains(term);
+                    boolean mRol = u.getRol() != null && u.getRol().name().toLowerCase().contains(term);
                     return mNom || mUser || mEmail || mRol;
                 });
                 actualizarConteoUsuarios();
             });
         }
 
-        SortedList<Usuario> sorted = new SortedList<>(filteredUsuarios);
+        SortedList<Empleado> sorted = new SortedList<>(filteredUsuarios);
         sorted.comparatorProperty().bind(tblUsuarios.comparatorProperty());
         tblUsuarios.setItems(sorted);
     }
@@ -363,7 +363,7 @@ public class AdminPanelViewController {
     @FXML
     public void handleRefrescarTodo() {
         try {
-            listaUsuarios.setAll(usuarioService.listarTodos());
+            listaUsuarios.setAll(empleadoService.listarTodos());
             listaCategorias.setAll(categoriaService.listarTodas());
             listaProveedores.setAll(proveedorService.listarTodos());
 
@@ -403,11 +403,11 @@ public class AdminPanelViewController {
 
     @FXML
     public void handleNuevoUsuario() {
-        Dialog<Usuario> dialog = new Dialog<>();
-        dialog.setTitle("Crear Nuevo Usuario / Empleado");
-        dialog.setHeaderText("Registro de cuenta de acceso al sistema");
+        Dialog<Empleado> dialog = new Dialog<>();
+        dialog.setTitle("Crear Nuevo Empleado");
+        dialog.setHeaderText("Registro de cuenta de acceso para el personal");
 
-        ButtonType btnGuardar = new ButtonType("Guardar Usuario", ButtonBar.ButtonData.OK_DONE);
+        ButtonType btnGuardar = new ButtonType("Guardar Empleado", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, ButtonType.CANCEL);
 
         VBox form = new VBox(8);
@@ -439,17 +439,14 @@ public class AdminPanelViewController {
         dialog.setResultConverter(btn -> {
             if (btn == btnGuardar) {
                 try {
-                    Usuario u = new Usuario();
+                    Empleado u = new Empleado();
                     u.setNombreCompleto(txtNombre.getText().trim());
                     u.setUsername(txtUser.getText().trim());
                     u.setPassword(txtPass.getText());
                     u.setEmail(txtEmail.getText().trim());
                     u.setTelefono(txtTel.getText().trim());
                     u.setActivo(true);
-
-                    Rol rol = rolRepository.findByNombre(cbRol.getValue())
-                            .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
-                    u.setRol(rol);
+                    u.setRol(cbRol.getValue());
                     return u;
                 } catch (Exception ex) {
                     mostrarAlerta("Datos Inválidos", "Complete todos los campos obligatorios.");
@@ -461,19 +458,19 @@ public class AdminPanelViewController {
 
         dialog.showAndWait().ifPresent(u -> {
             try {
-                usuarioService.registrar(u);
+                empleadoService.registrar(u);
                 handleRefrescarTodo();
-                mostrarAlerta("Usuario Creado", "La cuenta fue registrada con éxito.");
+                mostrarAlerta("Empleado Creado", "La cuenta fue registrada con éxito.");
             } catch (Exception ex) {
                 mostrarAlertaError("Error al registrar", ex.getMessage());
             }
         });
     }
 
-    private void handleEditarUsuario(Usuario u) {
-        Dialog<Usuario> dialog = new Dialog<>();
-        dialog.setTitle("Editar Usuario");
-        dialog.setHeaderText("Modificar datos de la cuenta: @" + u.getUsername());
+    private void handleEditarUsuario(Empleado u) {
+        Dialog<Empleado> dialog = new Dialog<>();
+        dialog.setTitle("Editar Empleado");
+        dialog.setHeaderText("Modificar datos del colaborador: @" + u.getUsername());
 
         ButtonType btnGuardar = new ButtonType("Guardar Cambios", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnGuardar, ButtonType.CANCEL);
@@ -486,7 +483,7 @@ public class AdminPanelViewController {
         ComboBox<RolNombre> cbRol = new ComboBox<>();
         cbRol.getItems().addAll(RolNombre.VENDEDOR, RolNombre.ADMINISTRADOR);
         if (u.getRol() != null) {
-            cbRol.setValue(u.getRol().getNombre());
+            cbRol.setValue(u.getRol());
         }
 
         CheckBox chkCambiarPass = new CheckBox("Restablecer / Asignar nueva contraseña");
@@ -513,14 +510,12 @@ public class AdminPanelViewController {
         dialog.setResultConverter(btn -> {
             if (btn == btnGuardar) {
                 try {
-                    Usuario editado = new Usuario();
+                    Empleado editado = new Empleado();
+                    editado.setUsername(u.getUsername());
                     editado.setNombreCompleto(txtNombre.getText().trim());
                     editado.setEmail(txtEmail.getText().trim());
                     editado.setTelefono(txtTel.getText().trim());
-
-                    Rol rol = rolRepository.findByNombre(cbRol.getValue())
-                            .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
-                    editado.setRol(rol);
+                    editado.setRol(cbRol.getValue());
 
                     if (chkCambiarPass.isSelected()) {
                         editado.setPassword(txtNuevaPass.getText());
@@ -538,17 +533,17 @@ public class AdminPanelViewController {
 
         dialog.showAndWait().ifPresent(editado -> {
             try {
-                usuarioService.actualizar(u.getId(), editado);
+                empleadoService.actualizar(u.getId(), editado);
                 handleRefrescarTodo();
-                mostrarAlerta("Usuario Actualizado", "Los datos de @" + u.getUsername() + " han sido actualizados.");
+                mostrarAlerta("Empleado Actualizado", "Los datos de @" + u.getUsername() + " han sido actualizados.");
             } catch (Exception ex) {
                 mostrarAlertaError("Error al actualizar", ex.getMessage());
             }
         });
     }
 
-    private void handleToggleEstadoUsuario(Usuario u) {
-        Usuario usuarioSesion = LoginViewController.getUsuarioSesion();
+    private void handleToggleEstadoUsuario(Empleado u) {
+        Empleado usuarioSesion = LoginViewController.getUsuarioSesion();
         if (usuarioSesion != null && usuarioSesion.getId().equals(u.getId())) {
             mostrarAlertaError("Acción denegada", "No puedes desactivar tu propia cuenta mientras estás en sesión.");
             return;
@@ -559,17 +554,17 @@ public class AdminPanelViewController {
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Confirmar cambio de estado");
-        confirm.setHeaderText("¿Seguro que desea " + accion + " al usuario @" + u.getUsername() + "?");
+        confirm.setHeaderText("¿Seguro que desea " + accion + " al colaborador @" + u.getUsername() + "?");
         confirm.setContentText(nuevoEstado
-                ? "El usuario podrá volver a ingresar al sistema con sus credenciales."
-                : "El usuario ya no podrá iniciar sesión en el sistema.");
+                ? "El colaborador podrá volver a ingresar al sistema con sus credenciales."
+                : "El colaborador ya no podrá iniciar sesión en el sistema.");
 
         confirm.showAndWait().ifPresent(resp -> {
             if (resp == ButtonType.OK) {
                 try {
-                    usuarioService.cambiarEstado(u.getId(), nuevoEstado);
+                    empleadoService.cambiarEstado(u.getId(), nuevoEstado);
                     handleRefrescarTodo();
-                    mostrarAlerta("Estado actualizado", "El usuario @" + u.getUsername() + " ahora está " + (nuevoEstado ? "ACTIVO" : "INACTIVO") + ".");
+                    mostrarAlerta("Estado actualizado", "El colaborador @" + u.getUsername() + " ahora está " + (nuevoEstado ? "ACTIVO" : "INACTIVO") + ".");
                 } catch (Exception ex) {
                     mostrarAlertaError("Error al cambiar estado", ex.getMessage());
                 }

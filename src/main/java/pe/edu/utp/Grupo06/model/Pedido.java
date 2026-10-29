@@ -9,7 +9,7 @@ import pe.edu.utp.Grupo06.model.enums.EstadoPedido;
 @Getter @Setter @NoArgsConstructor
 public class Pedido {
  @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
- @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="cliente_id",nullable=false) private Usuario cliente;
+ @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="cliente_id",nullable=false) private Cliente cliente;
  @Column(nullable=false,length=36) private String clave;
  @Column(nullable=false,length=64) private String huella;
  @Column(nullable=false,unique=true,length=30) private String numero;
@@ -28,4 +28,3 @@ public class Pedido {
  @OneToMany(mappedBy="pedido",cascade=CascadeType.ALL,orphanRemoval=true) @OrderBy("id asc") private List<LineaPedido> lineas=new ArrayList<>();
  @Version private Long version;
 }
-

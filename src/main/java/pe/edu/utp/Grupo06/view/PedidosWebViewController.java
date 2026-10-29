@@ -51,7 +51,7 @@ public class PedidosWebViewController {
  private void actualizarBotones(){var p=tabla.getSelectionModel().getSelectedItem();String s=p==null?"":p.estado();
   aprobar.setDisable(ocupado||!s.equals("PENDIENTE_VERIFICACION"));rechazar.setDisable(aprobar.isDisabled());
   preparar.setDisable(ocupado||!s.equals("PAGADO"));listo.setDisable(ocupado||!s.equals("EN_PREPARACION"));
-  boolean admin=LoginViewController.getUsuarioSesion()!=null&&LoginViewController.getUsuarioSesion().getRol().getNombre().name().equals("ADMINISTRADOR");
+  boolean admin=LoginViewController.getUsuarioSesion()!=null&&LoginViewController.getUsuarioSesion().getRol().name().equals("ADMINISTRADOR");
   reembolsar.setDisable(ocupado||!admin||!java.util.List.of("PAGADO","EN_PREPARACION","LISTO_PARA_RECOJO").contains(s));
  }
  private void accion(Function<Long,PedidoDTO> trabajo){var p=tabla.getSelectionModel().getSelectedItem();if(p==null)return;tarea(()->trabajo.apply(p.id()),actual->{int i=tabla.getItems().indexOf(p);tabla.getItems().set(i,actual);tabla.getSelectionModel().select(actual);});}
