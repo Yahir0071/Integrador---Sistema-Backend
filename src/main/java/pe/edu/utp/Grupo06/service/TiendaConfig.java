@@ -8,8 +8,8 @@ public class TiendaConfig {
  public TiendaConfig(@Value("${app.tienda.demo:true}") boolean demo,
  @Value("${app.tienda.titular:Comercial Nova - DEMOSTRACION}") String titular,
  @Value("${app.tienda.yape:DEMO - no transferir}") String telefono,
- @Value("${app.tienda.direccion:Asociación de Vivienda La Planicie de la Era / Zona de La Era de Pando, Ate, Lima 15487. Referencia: Pista nueva-Santa Clara, al costado de Ceviche69.}") String direccion,
- @Value("${app.tienda.horario:Lunes a sabado, de 8:00 a. m. a 8:00 p. m.}") String horario,
+ @Value("${app.tienda.direccion:Asociaci\u00f3n de Vivienda La Planicie de la Era / Zona de La Era de Pando, Ate, Lima 15487. Referencia: Pista nueva-Santa Clara, al costado de Ceviche69.}") String direccion,
+ @Value("${app.tienda.horario:Lunes a s\u00e1bado, de 8:00 a. m. a 8:00 p. m.}") String horario,
  @Value("${app.tienda.mapa-url:https://maps.app.goo.gl/fYfcULhRuRgEEYhZ7}") String mapaUrl) {
   this.demo=demo;this.titular=titular;this.telefono=telefono;this.direccion=direccion;this.horario=horario;this.mapaUrl=mapaUrl;
   if(!demo && (!telefono.matches("9[0-9]{8}") || titular.contains("DEMOSTRACION") || direccion.contains("referencial") || horario.contains("referencial")))
