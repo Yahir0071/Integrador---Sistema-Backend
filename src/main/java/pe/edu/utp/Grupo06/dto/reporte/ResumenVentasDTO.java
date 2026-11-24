@@ -15,4 +15,10 @@ public class ResumenVentasDTO {
     private Long cantidadVentasEmitidas;
     private Long cantidadVentasAnuladas;
     private BigDecimal totalRecaudado;
+    private Long unidadesVendidas;
+    private BigDecimal ticketPromedio;
+
+    public ResumenVentasDTO(Long cantidadVentasEmitidas, Long cantidadVentasAnuladas, BigDecimal totalRecaudado) {
+        this(cantidadVentasEmitidas, cantidadVentasAnuladas, totalRecaudado, 0L, BigDecimal.ZERO);
+    }
 }
