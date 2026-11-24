@@ -78,7 +78,7 @@ public class PedidoService {
   if(solicitud==null||solicitud.clave()==null||!solicitud.clave().matches("[a-fA-F0-9-]{36}")||solicitud.items()==null||solicitud.items().isEmpty()||solicitud.items().size()>50) throw new IllegalArgumentException("Carrito inválido");
   SortedMap<Long,CrearPedido.Item> items=new TreeMap<>();
   for(var i:solicitud.items()) {
-   if(i.productoId()==null||i.productoId()<=0||i.cantidad()<1||i.cantidad()>999||i.precioEsperado()==null||i.precioEsperado().signum()<=0||items.put(i.productoId(),i)!=null) throw new IllegalArgumentException("Producto o cantidad inválidos o repetidos");
+   if(i==null||i.productoId()==null||i.productoId()<=0||i.cantidad()<1||i.cantidad()>999||i.precioEsperado()==null||i.precioEsperado().signum()<=0||items.put(i.productoId(),i)!=null) throw new IllegalArgumentException("Producto o cantidad inválidos o repetidos");
   }
   String huella=hash(items.values().stream().map(i->i.productoId()+":"+i.cantidad()+":"+i.precioEsperado().stripTrailingZeros().toPlainString()).reduce("",(a,b)->a+";"+b).getBytes(StandardCharsets.UTF_8));
   var anterior=pedidos.findByClienteIdAndClave(clienteId,solicitud.clave());
@@ -103,8 +103,8 @@ public class PedidoService {
   p.setTotal(total);p=pedidos.saveAndFlush(p);evento(p,clienteId,p.isDemo()?"Pedido de demostración creado. No realice transferencias.":"Pedido creado. Reserva de 10 minutos.");return dto(p);
  }
 
- @Transactional(readOnly=true) public List<PedidoDTO> mios(Long actor){cliente(actor);return pedidos.findTop100ByClienteIdOrderByCreadoDesc(actor).stream().map(this::dto).toList();}
- @Transactional(readOnly=true) public List<PedidoDTO> todos(Long actor){personal(actor);return pedidos.findTop200ByOrderByCreadoDesc().stream().map(this::dto).toList();}
+ @Transactional(readOnly=true) public List<PedidoDTO> mios(Long actor){cliente(actor);return dtos(pedidos.findTop100ByClienteIdOrderByCreadoDesc(actor));}
+ @Transactional(readOnly=true) public List<PedidoDTO> todos(Long actor){personal(actor);return dtos(pedidos.findTop200ByOrderByCreadoDesc());}
  @Transactional(readOnly=true) public PedidoDTO ver(Long id,Long actor){cliente(actor);var p=pedidos.findById(id).orElseThrow(()->new IllegalArgumentException("Pedido no encontrado"));propio(p,actor);return dto(p);}
  @Transactional(readOnly=true) public PedidoDTO verPersonal(Long id,Long actor){personal(actor);return dto(pedidos.findById(id).orElseThrow(()->new IllegalArgumentException("Pedido no encontrado")));}
  private void liberar(Pedido p){var ps=bloquearProductos(p);for(var l:p.getLineas()){var prod=ps.get(l.getProducto().getId());prod.setStockReservado(prod.getStockReservado()-l.getCantidad());}}
@@ -157,5 +157,18 @@ public class PedidoService {
   if(reponer)for(var l:p.getLineas())movimientos.registrarMovimiento(l.getProducto().getId(),actor,TipoMovimiento.ENTRADA,l.getCantidad(),"Devolución "+p.getNumero(),null,p.getVenta());
   p.getVenta().setEstado(EstadoVenta.ANULADA);p.setEstado(EstadoPedido.REEMBOLSADO);p.setObservacion(referencia);evento(p,actor,(p.isDemo()?"Reembolso simulado: ":"Reembolso externo confirmado: ")+referencia+(reponer?". Mercadería revisada y repuesta.":". Sin reposición de mercadería."));return dto(p);
  }
- private PedidoDTO dto(Pedido p){return new PedidoDTO(p.getId(),p.getNumero(),p.getEstado().name(),p.isDemo(),p.getCliente().getNombreCompleto(),p.getCreado(),p.getVence(),p.getTotal(),p.getCodigoRecojo(),p.getDireccion(),p.getHorario(),p.getTitular(),p.getTelefonoYape(),p.getObservacion(),comprobantes.existsById(p.getId()),p.getLineas().stream().map(l->new PedidoDTO.Linea(l.getProducto().getId(),l.getNombre(),l.getCantidad(),l.getPrecio())).toList(),eventos.findByPedidoIdOrderByFechaAscIdAsc(p.getId()).stream().map(e->new PedidoDTO.Evento(e.getFecha(),e.getEstado(),e.getMensaje())).toList());}
+ private List<PedidoDTO> dtos(List<Pedido> lista) {
+  if (lista.isEmpty()) return List.of();
+  List<Long> ids = lista.stream().map(Pedido::getId).toList();
+  Set<Long> conComprobante = comprobantes.findPedidoIdsByPedidoIdIn(ids);
+  Map<Long, List<EventoPedido>> eventosPorPedido = new HashMap<>();
+  for (var e : eventos.findByPedidoIdInOrderByFechaAscIdAsc(ids)) {
+   eventosPorPedido.computeIfAbsent(e.getPedidoId(), k -> new ArrayList<>()).add(e);
+  }
+  return lista.stream()
+   .map(p -> dto(p, conComprobante.contains(p.getId()), eventosPorPedido.getOrDefault(p.getId(), List.of())))
+   .toList();
+ }
+ private PedidoDTO dto(Pedido p){return dto(p,comprobantes.existsById(p.getId()),eventos.findByPedidoIdOrderByFechaAscIdAsc(p.getId()));}
+ private PedidoDTO dto(Pedido p,boolean tieneComprobante,List<EventoPedido> evs){return new PedidoDTO(p.getId(),p.getNumero(),p.getEstado().name(),p.isDemo(),p.getCliente().getNombreCompleto(),p.getCreado(),p.getVence(),p.getTotal(),p.getCodigoRecojo(),p.getDireccion(),p.getHorario(),p.getTitular(),p.getTelefonoYape(),p.getObservacion(),tieneComprobante,p.getLineas().stream().map(l->new PedidoDTO.Linea(l.getProducto().getId(),l.getNombre(),l.getCantidad(),l.getPrecio())).toList(),evs.stream().map(e->new PedidoDTO.Evento(e.getFecha(),e.getEstado(),e.getMensaje())).toList());}
 }

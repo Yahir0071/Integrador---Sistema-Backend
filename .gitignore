@@ -43,6 +43,7 @@ graphify-out/
 !.env.example
 /conexion-db.properties
 /configuracion-tienda.local.properties
+/application-local.properties
 *.log
 __pycache__/
 *.pyc
