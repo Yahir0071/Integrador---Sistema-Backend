@@ -40,11 +40,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Component
 public class ReportesViewController {
+    private static final ZoneId ZONA_LIMA = ZoneId.of("America/Lima");
 
     @Autowired
     private IReporteService reporteService;
@@ -138,6 +140,16 @@ public class ReportesViewController {
     @FXML
     private ComboBox<String> cbDashPeriodo;
     @FXML
+    private HBox boxDashDia;
+    @FXML
+    private DatePicker dpDashDia;
+    @FXML
+    private HBox boxDashRango;
+    @FXML
+    private DatePicker dpDashInicio;
+    @FXML
+    private DatePicker dpDashFin;
+    @FXML
     private HBox boxDashMesAnio;
     @FXML
     private ComboBox<String> cbDashMes;
@@ -145,6 +157,8 @@ public class ReportesViewController {
     private ComboBox<Integer> cbDashAnio;
     @FXML
     private Label lblPeriodoActivo;
+    @FXML
+    private Label lblDashError;
 
     @FXML
     private Label lblKpiIngresos;
@@ -356,18 +370,19 @@ public class ReportesViewController {
             String texto = txtBuscarRotacion != null && txtBuscarRotacion.getText() != null
                     ? txtBuscarRotacion.getText().trim().toLowerCase() : "";
 
+            LocalDate hoy = LocalDate.now(ZONA_LIMA);
             LocalDateTime inicio;
-            LocalDateTime fin = LocalDateTime.now();
+            LocalDateTime fin = hoy.plusDays(1).atStartOfDay();
 
             switch (periodo) {
                 case "Hoy":
-                    inicio = LocalDate.now().atStartOfDay();
+                    inicio = hoy.atStartOfDay();
                     break;
                 case "Últimos 7 Días":
-                    inicio = LocalDate.now().minusDays(6).atStartOfDay();
+                    inicio = hoy.minusDays(6).atStartOfDay();
                     break;
                 case "Este Mes":
-                    inicio = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+                    inicio = hoy.withDayOfMonth(1).atStartOfDay();
                     break;
                 default:
                     inicio = LocalDate.of(2000, 1, 1).atStartOfDay();
@@ -526,6 +541,14 @@ public class ReportesViewController {
         LocalDate fechaFin = dpFechaFin != null ? dpFechaFin.getValue() : null;
         String cajeroSel = cbFiltroVendedor != null ? cbFiltroVendedor.getValue() : null;
 
+        if (fechaInicio != null && fechaFin != null && fechaInicio.isAfter(fechaFin)) {
+            filteredHistorial.setPredicate(v -> false);
+            if (lblTotalFiltrado != null) {
+                lblTotalFiltrado.setText("⚠ Rango inválido: Desde no puede ser posterior a Hasta");
+            }
+            return;
+        }
+
         filteredHistorial.setPredicate(v -> {
             if (v == null) return false;
 
@@ -565,32 +588,49 @@ public class ReportesViewController {
     // ==================== PESTAÑA 3: DASHBOARD & GRÁFICOS ====================
 
     private void configurarControlesDashboard() {
-        cbDashPeriodo.getItems().setAll("Hoy", "Últimos 7 Días", "Este Mes", "Mes Específico");
+        cbDashPeriodo.getItems().setAll(
+                "Hoy", "Ayer", "Últimos 7 Días", "Este Mes",
+                "Día Específico", "Rango de Fechas", "Mes Específico"
+        );
         cbDashPeriodo.setValue("Hoy");
+
+        LocalDate hoyLima = LocalDate.now(ZONA_LIMA);
+        if (dpDashDia != null) dpDashDia.setValue(hoyLima);
+        if (dpDashInicio != null) dpDashInicio.setValue(hoyLima.minusDays(6));
+        if (dpDashFin != null) dpDashFin.setValue(hoyLima);
 
         List<String> meses = Arrays.asList(
                 "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
                 "Julio", "Agosto", "Setiembre", "Octubre", "Noviembre", "Diciembre"
         );
         cbDashMes.getItems().setAll(meses);
-        cbDashMes.setValue(meses.get(LocalDate.now().getMonthValue() - 1));
+        cbDashMes.setValue(meses.get(hoyLima.getMonthValue() - 1));
 
-        int anioActual = LocalDate.now().getYear();
+        int anioActual = hoyLima.getYear();
         cbDashAnio.getItems().setAll(anioActual, anioActual - 1, anioActual - 2);
         cbDashAnio.setValue(anioActual);
 
-        boxDashMesAnio.setVisible(false);
-        boxDashMesAnio.setManaged(false);
+        actualizarVisibilidadFiltrosDashboard("Hoy");
 
         cbDashPeriodo.setOnAction(e -> {
-            boolean esMesEspecifico = "Mes Específico".equals(cbDashPeriodo.getValue());
-            boxDashMesAnio.setVisible(esMesEspecifico);
-            boxDashMesAnio.setManaged(esMesEspecifico);
+            actualizarVisibilidadFiltrosDashboard(cbDashPeriodo.getValue());
             handleActualizarDashboard();
         });
 
+        if (dpDashDia != null) dpDashDia.setOnAction(e -> handleActualizarDashboard());
+        if (dpDashInicio != null) dpDashInicio.setOnAction(e -> handleActualizarDashboard());
+        if (dpDashFin != null) dpDashFin.setOnAction(e -> handleActualizarDashboard());
         cbDashMes.setOnAction(e -> handleActualizarDashboard());
         cbDashAnio.setOnAction(e -> handleActualizarDashboard());
+    }
+
+    private void actualizarVisibilidadFiltrosDashboard(String opcion) {
+        boolean esDia = "Día Específico".equals(opcion);
+        boolean esRango = "Rango de Fechas".equals(opcion);
+        boolean esMes = "Mes Específico".equals(opcion);
+        if (boxDashDia != null) { boxDashDia.setVisible(esDia); boxDashDia.setManaged(esDia); }
+        if (boxDashRango != null) { boxDashRango.setVisible(esRango); boxDashRango.setManaged(esRango); }
+        if (boxDashMesAnio != null) { boxDashMesAnio.setVisible(esMes); boxDashMesAnio.setManaged(esMes); }
     }
 
     private void configurarTablaVentasVendedor() {
@@ -602,57 +642,122 @@ public class ReportesViewController {
         }
     }
 
-    @FXML
-    public void handleActualizarDashboard() {
-        String opcion = cbDashPeriodo.getValue();
-        if (opcion == null) opcion = "Hoy";
+    private record RangoPeriodo(LocalDate desde, LocalDate hasta, LocalDateTime inicio, LocalDateTime finExclusivo,
+                                String textoPeriodo, boolean unSoloDia, String error) {}
 
-        LocalDateTime inicio;
-        LocalDateTime fin = LocalDateTime.now();
+    private RangoPeriodo resolverRangoDashboard() {
+        String opcion = cbDashPeriodo != null && cbDashPeriodo.getValue() != null ? cbDashPeriodo.getValue() : "Hoy";
+        LocalDate hoy = LocalDate.now(ZONA_LIMA);
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        LocalDate desde;
+        LocalDate hasta;
         String textoPeriodo;
+        boolean unSoloDia = false;
 
         switch (opcion) {
             case "Hoy":
-                inicio = LocalDate.now().atStartOfDay();
-                textoPeriodo = "Visualizando: Hoy (" + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")";
+                desde = hoy;
+                hasta = hoy;
+                unSoloDia = true;
+                textoPeriodo = "Visualizando: Hoy (" + hoy.format(fmt) + ")";
                 break;
-
+            case "Ayer":
+                desde = hoy.minusDays(1);
+                hasta = desde;
+                unSoloDia = true;
+                textoPeriodo = "Visualizando: Ayer (" + desde.format(fmt) + ")";
+                break;
             case "Últimos 7 Días":
-                inicio = LocalDate.now().minusDays(6).atStartOfDay();
-                textoPeriodo = "Visualizando: Últimos 7 Días (" + inicio.format(DateTimeFormatter.ofPattern("dd/MM")) + " al " + fin.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")";
+                desde = hoy.minusDays(6);
+                hasta = hoy;
+                textoPeriodo = "Visualizando: Últimos 7 Días (" + desde.format(DateTimeFormatter.ofPattern("dd/MM")) + " al " + hasta.format(fmt) + ")";
                 break;
-
             case "Este Mes":
-                inicio = LocalDate.now().withDayOfMonth(1).atStartOfDay();
-                textoPeriodo = "Visualizando: Mes Actual (" + YearMonth.now().format(DateTimeFormatter.ofPattern("MMMM yyyy")) + ")";
+                desde = hoy.withDayOfMonth(1);
+                hasta = hoy;
+                textoPeriodo = "Visualizando: Mes Actual (" + YearMonth.from(hoy).format(DateTimeFormatter.ofPattern("MMMM yyyy")) + ")";
                 break;
-
+            case "Día Específico":
+                LocalDate dia = dpDashDia != null ? dpDashDia.getValue() : null;
+                if (dia == null) {
+                    return new RangoPeriodo(null, null, null, null, "Periodo incompleto", true, "Seleccione una fecha válida.");
+                }
+                desde = dia;
+                hasta = dia;
+                unSoloDia = true;
+                textoPeriodo = "Visualizando: " + dia.format(fmt);
+                break;
+            case "Rango de Fechas":
+                LocalDate fIni = dpDashInicio != null ? dpDashInicio.getValue() : null;
+                LocalDate fFin = dpDashFin != null ? dpDashFin.getValue() : null;
+                if (fIni == null || fFin == null) {
+                    return new RangoPeriodo(null, null, null, null, "Periodo incompleto", false, "Seleccione fecha inicial y final.");
+                }
+                if (fIni.isAfter(fFin)) {
+                    return new RangoPeriodo(null, null, null, null, "Rango inválido", false, "La fecha Desde no puede ser posterior a Hasta.");
+                }
+                desde = fIni;
+                hasta = fFin;
+                unSoloDia = fIni.equals(fFin);
+                textoPeriodo = "Visualizando: " + fIni.format(fmt) + " al " + fFin.format(fmt);
+                break;
             case "Mes Específico":
-                int mesIdx = cbDashMes.getSelectionModel().getSelectedIndex() + 1;
-                if (mesIdx <= 0) mesIdx = LocalDate.now().getMonthValue();
-                Integer anioSel = cbDashAnio.getValue();
-                if (anioSel == null) anioSel = LocalDate.now().getYear();
-
+                int mesIdx = cbDashMes != null ? cbDashMes.getSelectionModel().getSelectedIndex() + 1 : hoy.getMonthValue();
+                if (mesIdx <= 0) mesIdx = hoy.getMonthValue();
+                Integer anioSel = cbDashAnio != null && cbDashAnio.getValue() != null ? cbDashAnio.getValue() : hoy.getYear();
                 YearMonth ym = YearMonth.of(anioSel, mesIdx);
-                inicio = ym.atDay(1).atStartOfDay();
-                fin = ym.atEndOfMonth().atTime(LocalTime.MAX);
-                textoPeriodo = "Visualizando: " + cbDashMes.getValue() + " " + anioSel;
+                desde = ym.atDay(1);
+                hasta = ym.atEndOfMonth();
+                textoPeriodo = "Visualizando: " + (cbDashMes != null ? cbDashMes.getValue() : mesIdx) + " " + anioSel;
                 break;
-
             default:
-                inicio = LocalDate.now().atStartOfDay();
-                textoPeriodo = "Visualizando: Hoy";
+                desde = hoy;
+                hasta = hoy;
+                unSoloDia = true;
+                textoPeriodo = "Visualizando: Hoy (" + hoy.format(fmt) + ")";
                 break;
         }
-
-        lblPeriodoActivo.setText(textoPeriodo);
-        actualizarMetricasPeriodo(inicio, fin, opcion);
+        return new RangoPeriodo(desde, hasta, desde.atStartOfDay(), hasta.plusDays(1).atStartOfDay(), textoPeriodo, unSoloDia, null);
     }
 
-    private void actualizarMetricasPeriodo(LocalDateTime inicio, LocalDateTime fin, String modoPeriodo) {
+    private void mostrarErrorDashboard(String mensaje) {
+        if (lblDashError != null) {
+            boolean hayError = mensaje != null && !mensaje.isBlank();
+            lblDashError.setText(hayError ? "⚠ " + mensaje : "");
+            lblDashError.setVisible(hayError);
+            lblDashError.setManaged(hayError);
+        }
+    }
+
+    private void limpiarMetricasDashboard() {
+        lblKpiIngresos.setText("S/ 0.00");
+        lblKpiVentas.setText("0");
+        lblKpiTicketPromedio.setText("S/ 0.00");
+        lblKpiProductoTop.setText("Sin datos");
+        lblKpiProductoTopCant.setText("0 unidades vendidas");
+        chartVentasTiempo.getData().clear();
+        chartMetodosPago.getData().clear();
+        chartTopProductos.getData().clear();
+        listaVentasVendedor.clear();
+    }
+
+    @FXML
+    public void handleActualizarDashboard() {
+        RangoPeriodo rango = resolverRangoDashboard();
+        lblPeriodoActivo.setText(rango.textoPeriodo());
+        if (rango.error() != null) {
+            mostrarErrorDashboard(rango.error());
+            limpiarMetricasDashboard();
+            return;
+        }
+        mostrarErrorDashboard(null);
+        actualizarMetricasPeriodo(rango.inicio(), rango.finExclusivo(), rango.unSoloDia());
+    }
+
+    private void actualizarMetricasPeriodo(LocalDateTime inicio, LocalDateTime finExclusivo, boolean unSoloDia) {
         try {
-            // 1. Obtener ventas emitidas del periodo
-            List<Venta> ventasPeriodo = ventaRepository.findVentasEntreFechas(inicio, fin);
+            // 1. Obtener ventas emitidas del periodo (excluye DEMO y ANULADA)
+            List<Venta> ventasPeriodo = ventaRepository.findVentasEntreFechas(inicio, finExclusivo);
 
             BigDecimal totalIngresos = BigDecimal.ZERO;
             for (Venta v : ventasPeriodo) {
@@ -672,7 +777,7 @@ public class ReportesViewController {
             chartVentasTiempo.getData().clear();
             XYChart.Series<String, Number> seriesTiempo = new XYChart.Series<>();
 
-            if ("Hoy".equals(modoPeriodo)) {
+            if (unSoloDia) {
                 Map<Integer, BigDecimal> porHora = new TreeMap<>();
                 for (int h = 7; h <= 22; h++) porHora.put(h, BigDecimal.ZERO);
                 for (Venta v : ventasPeriodo) {
@@ -683,7 +788,7 @@ public class ReportesViewController {
             } else {
                 Map<LocalDate, BigDecimal> porDia = new TreeMap<>();
                 LocalDate curr = inicio.toLocalDate();
-                LocalDate endD = fin.toLocalDate();
+                LocalDate endD = finExclusivo.toLocalDate().minusDays(1);
                 while (!curr.isAfter(endD)) {
                     porDia.put(curr, BigDecimal.ZERO);
                     curr = curr.plusDays(1);
@@ -698,7 +803,7 @@ public class ReportesViewController {
 
             // 3. Gráfico 2: Métodos de Pago
             chartMetodosPago.getData().clear();
-            List<Object[]> pagosAgrupados = pagoRepository.findMetodosPagoEntreFechas(inicio, fin);
+            List<Object[]> pagosAgrupados = pagoRepository.findMetodosPagoEntreFechas(inicio, finExclusivo);
             for (Object[] fila : pagosAgrupados) {
                 MetodoPago mp = (MetodoPago) fila[0];
                 BigDecimal suma = (BigDecimal) fila[1];
@@ -715,7 +820,7 @@ public class ReportesViewController {
             XYChart.Series<String, Number> seriesProductos = new XYChart.Series<>();
             List<String> categoriasVentas = new ArrayList<>();
 
-            List<Object[]> topProds = detalleVentaRepository.findTopProductosEntreFechas(inicio, fin);
+            List<Object[]> topProds = detalleVentaRepository.findTopProductosEntreFechas(inicio, finExclusivo);
             String prodTop = "Ninguno";
             int cantTop = 0;
             int count = 0;
@@ -756,7 +861,7 @@ public class ReportesViewController {
 
             // 5. Tabla de Ventas por Vendedor / Cajero
             if (tblVentasPorVendedor != null) {
-                List<Object[]> ventasPorVendedor = ventaRepository.findVentasPorVendedorEntreFechas(inicio, fin);
+                List<Object[]> ventasPorVendedor = ventaRepository.findVentasPorVendedorEntreFechas(inicio, finExclusivo);
                 List<VentaVendedorDTO> listaVend = new ArrayList<>();
                 for (Object[] fila : ventasPorVendedor) {
                     String vendNom = (String) fila[0];
@@ -1446,35 +1551,14 @@ public class ReportesViewController {
 
     @FXML
     public void handleExportarDashboardVentasExcel() {
-        String opcion = cbDashPeriodo != null && cbDashPeriodo.getValue() != null
-                ? cbDashPeriodo.getValue() : "Hoy";
-        LocalDateTime inicio;
-        LocalDateTime fin = LocalDateTime.now();
-
-        switch (opcion) {
-            case "Hoy":
-                inicio = LocalDate.now().atStartOfDay();
-                break;
-            case "Últimos 7 Días":
-                inicio = LocalDate.now().minusDays(6).atStartOfDay();
-                break;
-            case "Este Mes":
-                inicio = LocalDate.now().withDayOfMonth(1).atStartOfDay();
-                break;
-            case "Mes Específico":
-                int mesIdx = cbDashMes != null ? cbDashMes.getSelectionModel().getSelectedIndex() + 1 : LocalDate.now().getMonthValue();
-                if (mesIdx <= 0) mesIdx = LocalDate.now().getMonthValue();
-                Integer anioSel = cbDashAnio != null && cbDashAnio.getValue() != null ? cbDashAnio.getValue() : LocalDate.now().getYear();
-                YearMonth ym = YearMonth.of(anioSel, mesIdx);
-                inicio = ym.atDay(1).atStartOfDay();
-                fin = ym.atEndOfMonth().atTime(LocalTime.MAX);
-                break;
-            default:
-                inicio = LocalDate.now().atStartOfDay();
-                break;
+        RangoPeriodo rango = resolverRangoDashboard();
+        if (rango.error() != null) {
+            mostrarErrorDashboard(rango.error());
+            mostrarAlertaError("Rango inválido", rango.error());
+            return;
         }
 
-        List<Venta> ventas = ventaRepository.findVentasEntreFechas(inicio, fin);
+        List<Venta> ventas = ventaRepository.findVentasEntreFechas(rango.inicio(), rango.finExclusivo());
         if (ventas.isEmpty()) {
             mostrarAlertaError("Sin registros", "No se encontraron ventas registradas en el período seleccionado.");
             return;
@@ -1482,7 +1566,7 @@ public class ReportesViewController {
 
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Exportar Ventas del Período a Excel");
-        fileChooser.setInitialFileName("Reporte_Ventas_Periodo_" + LocalDate.now() + ".xlsx");
+        fileChooser.setInitialFileName("Reporte_Ventas_Periodo_" + LocalDate.now(ZONA_LIMA) + ".xlsx");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Libro de Excel (*.xlsx)", "*.xlsx"));
 
         Window window = cbDashPeriodo != null && cbDashPeriodo.getScene() != null
@@ -1490,7 +1574,7 @@ public class ReportesViewController {
         File file = fileChooser.showSaveDialog(window);
         if (file != null) {
             try {
-                exportacionService.exportarVentasExcel(file, ventas, inicio.toLocalDate(), fin.toLocalDate());
+                exportacionService.exportarVentasExcel(file, ventas, rango.desde(), rango.hasta());
                 mostrarAlertaExitoExportacion(file);
             } catch (Exception e) {
                 mostrarAlertaError("Error al exportar", e.getMessage());

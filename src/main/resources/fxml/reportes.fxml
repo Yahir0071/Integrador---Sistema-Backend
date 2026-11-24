@@ -48,22 +48,21 @@
                 </HBox>
 
                 <!-- Barra de Filtros para Ranking de Rotación -->
-                <HBox alignment="CENTER_LEFT" spacing="10">
+                <FlowPane alignment="CENTER_LEFT" hgap="10" vgap="8">
                     <Label text="Periodo:" style="-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 12px;"/>
-                    <ComboBox fx:id="cbPeriodoRotacion" prefWidth="140"/>
+                    <ComboBox fx:id="cbPeriodoRotacion" prefWidth="135"/>
 
                     <Label text="Categoría:" style="-fx-font-weight: bold; -fx-text-fill: #475569; -fx-font-size: 12px;"/>
-                    <ComboBox fx:id="cbCategoriaRotacion" prefWidth="160"/>
+                    <ComboBox fx:id="cbCategoriaRotacion" prefWidth="155"/>
 
-                    <TextField fx:id="txtBuscarRotacion" promptText="🔍 Buscar por código o nombre..." prefWidth="220" styleClass="text-field"/>
+                    <TextField fx:id="txtBuscarRotacion" promptText="🔍 Buscar por código o nombre..." prefWidth="200" styleClass="text-field"/>
 
                     <Button text="🔍 Filtrar" onAction="#handleFiltrarRotacion" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
                     <Button text="Limpiar" onAction="#handleLimpiarRotacion" style="-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
                     <Button text="📥 Exportar a Excel" onAction="#handleExportarRotacionExcel" style="-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
-                    
-                    <Region HBox.hgrow="ALWAYS"/>
+
                     <Label fx:id="lblTotalRotacion" text="Total Productos: 0" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #0284c7;"/>
-                </HBox>
+                </FlowPane>
 
                 <!-- Tabla de Mayor Rotación -->
                 <TableView fx:id="tblRotacion" VBox.vgrow="ALWAYS" styleClass="table-view">
@@ -83,10 +82,10 @@
         <!-- PESTAÑA 2: Historial Detallado de Ventas con Filtros (incluye Vendedor) -->
         <Tab text="🧾 Historial de Ventas Realizadas">
             <VBox spacing="14" style="-fx-padding: 15 0 0 0;">
-                <HBox alignment="CENTER_LEFT" spacing="10">
-                    <TextField fx:id="txtFiltroHistorial" promptText="Buscar por N° Ticket..." prefWidth="190" styleClass="text-field"/>
+                <FlowPane alignment="CENTER_LEFT" hgap="10" vgap="8">
+                    <TextField fx:id="txtFiltroHistorial" promptText="Buscar por N° Ticket..." prefWidth="175" styleClass="text-field"/>
                     
-                    <ComboBox fx:id="cbFiltroVendedor" promptText="Cajero / Vendedor" prefWidth="170"/>
+                    <ComboBox fx:id="cbFiltroVendedor" promptText="Cajero / Vendedor" prefWidth="165"/>
 
                     <Label text="Desde:" style="-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;"/>
                     <DatePicker fx:id="dpFechaInicio" prefWidth="125"/>
@@ -95,9 +94,8 @@
                     <Button text="🔍 Filtrar" onAction="#handleFiltrarHistorial" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
                     <Button text="Limpiar" onAction="#handleLimpiarFiltroHistorial" style="-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
                     <Button text="📥 Exportar a Excel" onAction="#handleExportarVentasExcel" style="-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
-                    <Region HBox.hgrow="ALWAYS"/>
                     <Label fx:id="lblTotalFiltrado" text="Total filtrado: S/ 0.00" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0284c7;"/>
-                </HBox>
+                </FlowPane>
 
                 <TableView fx:id="tblHistorialVentas" VBox.vgrow="ALWAYS" styleClass="table-view">
                     <columns>
@@ -120,9 +118,21 @@
             <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-padding: 10 0 0 0;">
                 <VBox spacing="16">
                     <!-- Barra de filtros del Dashboard -->
-                    <HBox alignment="CENTER_LEFT" spacing="12" styleClass="card-box" style="-fx-padding: 12 16;">
+                    <FlowPane alignment="CENTER_LEFT" hgap="10" vgap="8" styleClass="card-box" style="-fx-padding: 12 16;">
                         <Label text="Periodo:" style="-fx-font-weight: bold; -fx-text-fill: #1e293b;"/>
-                        <ComboBox fx:id="cbDashPeriodo" prefWidth="150"/>
+                        <ComboBox fx:id="cbDashPeriodo" prefWidth="155"/>
+
+                        <HBox fx:id="boxDashDia" spacing="8" alignment="CENTER_LEFT" visible="false" managed="false">
+                            <Label text="Fecha:" style="-fx-text-fill: #64748b;"/>
+                            <DatePicker fx:id="dpDashDia" prefWidth="130"/>
+                        </HBox>
+
+                        <HBox fx:id="boxDashRango" spacing="8" alignment="CENTER_LEFT" visible="false" managed="false">
+                            <Label text="Desde:" style="-fx-text-fill: #64748b;"/>
+                            <DatePicker fx:id="dpDashInicio" prefWidth="125"/>
+                            <Label text="Hasta:" style="-fx-text-fill: #64748b;"/>
+                            <DatePicker fx:id="dpDashFin" prefWidth="125"/>
+                        </HBox>
 
                         <HBox fx:id="boxDashMesAnio" spacing="8" alignment="CENTER_LEFT">
                             <Label text="Mes:" style="-fx-text-fill: #64748b;"/>
@@ -133,9 +143,9 @@
 
                         <Button text="🔄 Generar Métricas" onAction="#handleActualizarDashboard" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
                         <Button text="📥 Exportar a Excel" onAction="#handleExportarDashboardVentasExcel" style="-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
-                        <Region HBox.hgrow="ALWAYS"/>
                         <Label fx:id="lblPeriodoActivo" text="Visualizando: Hoy" style="-fx-text-fill: #0284c7; -fx-font-weight: bold;"/>
-                    </HBox>
+                        <Label fx:id="lblDashError" text="" visible="false" managed="false" style="-fx-text-fill: #dc2626; -fx-font-weight: bold; -fx-font-size: 12px;"/>
+                    </FlowPane>
 
                     <!-- Tarjetas KPI del Periodo -->
                     <HBox spacing="14">

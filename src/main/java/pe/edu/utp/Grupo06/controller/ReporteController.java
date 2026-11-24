@@ -9,6 +9,7 @@ import pe.edu.utp.Grupo06.dto.reporte.ResumenVentasDTO;
 import pe.edu.utp.Grupo06.dto.venta.ProductoRotacionDTO;
 import pe.edu.utp.Grupo06.service.IReporteService;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -29,6 +30,13 @@ public class ReporteController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin) {
         return ResponseEntity.ok(reporteService.obtenerResumenVentasPorPeriodo(inicio, fin));
+    }
+
+    @GetMapping("/ventas/rango")
+    public ResponseEntity<ResumenVentasDTO> obtenerResumenVentasPorRango(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta) {
+        return ResponseEntity.ok(reporteService.obtenerResumenVentasPorFechas(desde, hasta != null ? hasta : desde));
     }
 
     @GetMapping("/mayor-rotacion")
