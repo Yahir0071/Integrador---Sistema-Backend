@@ -52,14 +52,14 @@ public class UsuarioController {
     @PostMapping
     public ResponseEntity<UsuarioResponseDTO> registrar(@Valid @RequestBody UsuarioRequestDTO request) {
         Rol rol = rolRepository.findByNombre(request.getRol())
-                .orElseThrow(() -> new RuntimeException("Rol no encontrado: " + request.getRol()));
+                .orElseThrow(() -> new IllegalArgumentException("Rol no encontrado"));
 
         Usuario usuario = new Usuario();
         usuario.setUsername(request.getUsername());
         usuario.setPassword(request.getPassword());
-        usuario.setNombreCompleto(request.getNombreCompleto());
-        usuario.setEmail(request.getEmail());
-        usuario.setTelefono(request.getTelefono());
+        usuario.setNombreCompleto(request.getNombreCompletoNormalizado());
+        usuario.setEmail(request.getEmail() != null ? request.getEmail().trim() : null);
+        usuario.setTelefono(request.getTelefonoNormalizado());
         usuario.setRol(rol);
         usuario.setActivo(true);
 
@@ -70,12 +70,12 @@ public class UsuarioController {
     @PutMapping("/{id}")
     public ResponseEntity<UsuarioResponseDTO> actualizar(@PathVariable Long id, @Valid @RequestBody UsuarioRequestDTO request) {
         Rol rol = rolRepository.findByNombre(request.getRol())
-                .orElseThrow(() -> new RuntimeException("Rol no encontrado: " + request.getRol()));
+                .orElseThrow(() -> new IllegalArgumentException("Rol no encontrado"));
 
         Usuario usuario = new Usuario();
-        usuario.setNombreCompleto(request.getNombreCompleto());
-        usuario.setEmail(request.getEmail());
-        usuario.setTelefono(request.getTelefono());
+        usuario.setNombreCompleto(request.getNombreCompletoNormalizado());
+        usuario.setEmail(request.getEmail() != null ? request.getEmail().trim() : null);
+        usuario.setTelefono(request.getTelefonoNormalizado());
         usuario.setPassword(request.getPassword());
         usuario.setRol(rol);
 

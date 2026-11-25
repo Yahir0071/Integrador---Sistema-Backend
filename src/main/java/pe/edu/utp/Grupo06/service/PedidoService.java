@@ -102,7 +102,6 @@ public class PedidoService {
   if(total.compareTo(new BigDecimal("99999999.99"))>0) throw new IllegalArgumentException("Total fuera del límite");
   p.setTotal(total);p=pedidos.saveAndFlush(p);evento(p,clienteId,p.isDemo()?"Pedido de demostración creado. No realice transferencias.":"Pedido creado. Reserva de 10 minutos.");return dto(p);
  }
-
  @Transactional(readOnly=true) public List<PedidoDTO> mios(Long actor){cliente(actor);return dtos(pedidos.findTop100ByClienteIdOrderByCreadoDesc(actor));}
  @Transactional(readOnly=true) public List<PedidoDTO> todos(Long actor){personal(actor);return dtos(pedidos.findTop200ByOrderByCreadoDesc());}
  @Transactional(readOnly=true) public PedidoDTO ver(Long id,Long actor){cliente(actor);var p=pedidos.findById(id).orElseThrow(()->new IllegalArgumentException("Pedido no encontrado"));propio(p,actor);return dto(p);}

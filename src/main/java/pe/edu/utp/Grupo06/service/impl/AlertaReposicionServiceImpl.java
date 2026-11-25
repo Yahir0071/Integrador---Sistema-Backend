@@ -86,7 +86,7 @@ public class AlertaReposicionServiceImpl implements IAlertaReposicionService {
     @Transactional
     public AlertaReposicion atenderAlerta(Long alertaId, String observacion) {
         AlertaReposicion alerta = alertaRepository.findById(alertaId)
-                .orElseThrow(() -> new RuntimeException("Alerta no encontrada con ID: " + alertaId));
+                .orElseThrow(() -> new IllegalArgumentException("Alerta no encontrada con ID: " + alertaId));
         alerta.setEstado(EstadoAlerta.ATENDIDA);
         alerta.setObservacion(observacion != null ? observacion : "Alerta atendida correctamente");
         return alertaRepository.save(alerta);
@@ -96,7 +96,7 @@ public class AlertaReposicionServiceImpl implements IAlertaReposicionService {
     @Transactional
     public AlertaReposicion descartarAlerta(Long alertaId) {
         AlertaReposicion alerta = alertaRepository.findById(alertaId)
-                .orElseThrow(() -> new RuntimeException("Alerta no encontrada con ID: " + alertaId));
+                .orElseThrow(() -> new IllegalArgumentException("Alerta no encontrada con ID: " + alertaId));
         alerta.setEstado(EstadoAlerta.DESCARTADA);
         return alertaRepository.save(alerta);
     }

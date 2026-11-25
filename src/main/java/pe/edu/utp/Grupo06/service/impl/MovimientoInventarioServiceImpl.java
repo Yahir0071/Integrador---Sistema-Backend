@@ -36,18 +36,18 @@ public class MovimientoInventarioServiceImpl implements IMovimientoInventarioSer
     public MovimientoInventario registrarMovimiento(Long productoId, Long usuarioId, TipoMovimiento tipo, Integer cantidad, String motivo, pe.edu.utp.Grupo06.model.Compra compra, pe.edu.utp.Grupo06.model.Venta venta) {
 
         if (cantidad == null || cantidad < 0) {
-            throw new RuntimeException("La cantidad no puede ser negativa");
+            throw new IllegalArgumentException("La cantidad no puede ser negativa");
         }
 
         if (tipo != TipoMovimiento.AJUSTE && tipo != TipoMovimiento.ENTRADA_COMPRA && tipo != TipoMovimiento.ANULACION_COMPRA && cantidad == 0) {
-            throw new RuntimeException("La cantidad debe ser mayor a 0");
+            throw new IllegalArgumentException("La cantidad debe ser mayor a 0");
         }
 
         Producto producto = productoRepository.findLockedById(productoId)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productoId));
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con ID: " + productoId));
 
         Empleado usuario = empleadoRepository.findById(usuarioId)
-                .orElseThrow(() -> new RuntimeException("Empleado no encontrado con ID: " + usuarioId));
+                .orElseThrow(() -> new IllegalArgumentException("Empleado no encontrado con ID: " + usuarioId));
 
         int stockAnterior = producto.getStockActual();
         int stockPosterior = stockAnterior;
@@ -57,7 +57,7 @@ public class MovimientoInventarioServiceImpl implements IMovimientoInventarioSer
             stockPosterior = Math.addExact(stockAnterior, cantidad);
         } else if (tipo == TipoMovimiento.SALIDA || tipo == TipoMovimiento.MERMA || tipo == TipoMovimiento.ANULACION_COMPRA) {
             if (stockAnterior < cantidad) {
-                throw new RuntimeException("Stock insuficiente para realizar " + (tipo == TipoMovimiento.MERMA ? "la merma" : "la salida") + ". Stock actual: " + stockAnterior);
+                throw new IllegalStateException("Stock insuficiente para realizar " + (tipo == TipoMovimiento.MERMA ? "la merma" : "la salida") + ". Stock actual: " + stockAnterior);
             }
             stockPosterior -= cantidad;
         } else if (tipo == TipoMovimiento.AJUSTE) {

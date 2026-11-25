@@ -15,8 +15,10 @@ import javafx.scene.layout.VBox;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pe.edu.utp.Grupo06.dto.reporte.ResumenInventarioDTO;
+import pe.edu.utp.Grupo06.dto.reporte.ResumenVentasDTO;
 import pe.edu.utp.Grupo06.dto.venta.ProductoRotacionDTO;
 import pe.edu.utp.Grupo06.model.*;
+import pe.edu.utp.Grupo06.model.enums.EstadoVenta;
 import pe.edu.utp.Grupo06.model.enums.MetodoPago;
 import pe.edu.utp.Grupo06.repository.CompraRepository;
 import pe.edu.utp.Grupo06.repository.DetalleCompraRepository;
@@ -38,7 +40,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -167,6 +168,8 @@ public class ReportesViewController {
     @FXML
     private Label lblKpiTicketPromedio;
     @FXML
+    private Label lblKpiUnidadesVendidas;
+    @FXML
     private Label lblKpiProductoTop;
     @FXML
     private Label lblKpiProductoTopCant;
@@ -288,6 +291,7 @@ public class ReportesViewController {
     private final ObservableList<Merma> listaMermasBase = FXCollections.observableArrayList();
 
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+    private boolean actualizandoFiltrosProgramaticamente = false;
 
     @FXML
     public void initialize() {
@@ -320,7 +324,7 @@ public class ReportesViewController {
 
     private void configurarFiltrosRotacion() {
         if (cbPeriodoRotacion != null) {
-            cbPeriodoRotacion.getItems().setAll("Todo el Historial", "Hoy", "Últimos 7 Días", "Este Mes");
+            cbPeriodoRotacion.getItems().setAll("Todo el Historial", "Hoy", "Ayer", "Últimos 7 Días", "Este Mes");
             cbPeriodoRotacion.setValue("Todo el Historial");
         }
 
@@ -370,44 +374,39 @@ public class ReportesViewController {
             String texto = txtBuscarRotacion != null && txtBuscarRotacion.getText() != null
                     ? txtBuscarRotacion.getText().trim().toLowerCase() : "";
 
-            LocalDate hoy = LocalDate.now(ZONA_LIMA);
+            LocalDate hoyLima = LocalDate.now(ZONA_LIMA);
             LocalDateTime inicio;
-            LocalDateTime fin = hoy.plusDays(1).atStartOfDay();
+            LocalDateTime finExclusivo;
 
             switch (periodo) {
                 case "Hoy":
-                    inicio = hoy.atStartOfDay();
+                    inicio = hoyLima.atStartOfDay();
+                    finExclusivo = hoyLima.plusDays(1).atStartOfDay();
+                    break;
+                case "Ayer":
+                    inicio = hoyLima.minusDays(1).atStartOfDay();
+                    finExclusivo = hoyLima.atStartOfDay();
                     break;
                 case "Últimos 7 Días":
-                    inicio = hoy.minusDays(6).atStartOfDay();
+                    inicio = hoyLima.minusDays(6).atStartOfDay();
+                    finExclusivo = hoyLima.plusDays(1).atStartOfDay();
                     break;
                 case "Este Mes":
-                    inicio = hoy.withDayOfMonth(1).atStartOfDay();
+                    inicio = hoyLima.withDayOfMonth(1).atStartOfDay();
+                    finExclusivo = hoyLima.plusDays(1).atStartOfDay();
                     break;
                 default:
                     inicio = LocalDate.of(2000, 1, 1).atStartOfDay();
+                    finExclusivo = hoyLima.plusDays(1).atStartOfDay();
                     break;
             }
 
-            List<Object[]> resultados = detalleVentaRepository.findProductosMayorRotacionFiltrado(inicio, fin, catId);
-            List<ProductoRotacionDTO> ranking = new ArrayList<>();
-
-            for (Object[] fila : resultados) {
-                Number idNum = (Number) fila[0];
-                Long id = idNum != null ? idNum.longValue() : null;
-                String codigo = (String) fila[1];
-                String nombre = (String) fila[2];
-                Number cantNum = (Number) fila[3];
-                Long cantidadTotalVendida = cantNum != null ? cantNum.longValue() : 0L;
-                BigDecimal totalRecaudado = (BigDecimal) fila[4];
-
-                if (!texto.isEmpty()) {
-                    boolean matchNom = nombre != null && nombre.toLowerCase().contains(texto);
-                    boolean matchCod = codigo != null && codigo.toLowerCase().contains(texto);
-                    if (!matchNom && !matchCod) continue;
-                }
-
-                ranking.add(new ProductoRotacionDTO(id, nombre, codigo, cantidadTotalVendida, totalRecaudado));
+            List<ProductoRotacionDTO> ranking = reporteService.obtenerProductosMayorRotacion(inicio, finExclusivo, catId);
+            if (!texto.isEmpty()) {
+                ranking = ranking.stream()
+                        .filter(item -> (item.getNombre() != null && item.getNombre().toLowerCase().contains(texto))
+                                || (item.getCodigo() != null && item.getCodigo().toLowerCase().contains(texto)))
+                        .toList();
             }
 
             listaRotacion.setAll(ranking);
@@ -484,16 +483,20 @@ public class ReportesViewController {
 
     private void configurarFiltrosHistorial() {
         if (txtFiltroHistorial != null) {
-            txtFiltroHistorial.textProperty().addListener((obs, oldV, newV) -> aplicarFiltroHistorial());
+            txtFiltroHistorial.textProperty().addListener((obs, oldV, newV) -> aplicarFiltroHistorial(false));
         }
         if (dpFechaInicio != null) {
-            dpFechaInicio.valueProperty().addListener((obs, oldV, newV) -> aplicarFiltroHistorial());
+            dpFechaInicio.valueProperty().addListener((obs, oldV, newV) -> {
+                if (!actualizandoFiltrosProgramaticamente) aplicarFiltroHistorial(true);
+            });
         }
         if (dpFechaFin != null) {
-            dpFechaFin.valueProperty().addListener((obs, oldV, newV) -> aplicarFiltroHistorial());
+            dpFechaFin.valueProperty().addListener((obs, oldV, newV) -> {
+                if (!actualizandoFiltrosProgramaticamente) aplicarFiltroHistorial(true);
+            });
         }
         if (cbFiltroVendedor != null) {
-            cbFiltroVendedor.valueProperty().addListener((obs, oldV, newV) -> aplicarFiltroHistorial());
+            cbFiltroVendedor.valueProperty().addListener((obs, oldV, newV) -> aplicarFiltroHistorial(false));
         }
     }
 
@@ -522,19 +525,63 @@ public class ReportesViewController {
 
     @FXML
     public void handleFiltrarHistorial() {
-        aplicarFiltroHistorial();
+        aplicarFiltroHistorial(true);
     }
 
     @FXML
     public void handleLimpiarFiltroHistorial() {
-        if (txtFiltroHistorial != null) txtFiltroHistorial.clear();
-        if (dpFechaInicio != null) dpFechaInicio.setValue(null);
-        if (dpFechaFin != null) dpFechaFin.setValue(null);
-        if (cbFiltroVendedor != null) cbFiltroVendedor.setValue("Todos los Cajeros");
-        aplicarFiltroHistorial();
+        actualizandoFiltrosProgramaticamente = true;
+        try {
+            if (txtFiltroHistorial != null) txtFiltroHistorial.clear();
+            if (dpFechaInicio != null) dpFechaInicio.setValue(null);
+            if (dpFechaFin != null) dpFechaFin.setValue(null);
+            if (cbFiltroVendedor != null) cbFiltroVendedor.setValue("Todos los Cajeros");
+        } finally {
+            actualizandoFiltrosProgramaticamente = false;
+        }
+        aplicarFiltroHistorial(false);
+    }
+
+    @FXML
+    public void handleHistorialHoy() {
+        LocalDate hoy = LocalDate.now(ZONA_LIMA);
+        aplicarRangoHistorial(hoy, hoy);
+    }
+
+    @FXML
+    public void handleHistorialAyer() {
+        LocalDate ayer = LocalDate.now(ZONA_LIMA).minusDays(1);
+        aplicarRangoHistorial(ayer, ayer);
+    }
+
+    @FXML
+    public void handleHistorialUltimos7() {
+        LocalDate hoy = LocalDate.now(ZONA_LIMA);
+        aplicarRangoHistorial(hoy.minusDays(6), hoy);
+    }
+
+    @FXML
+    public void handleHistorialMesActual() {
+        LocalDate hoy = LocalDate.now(ZONA_LIMA);
+        aplicarRangoHistorial(hoy.withDayOfMonth(1), hoy);
+    }
+
+    private void aplicarRangoHistorial(LocalDate inicio, LocalDate fin) {
+        actualizandoFiltrosProgramaticamente = true;
+        try {
+            if (dpFechaInicio != null) dpFechaInicio.setValue(inicio);
+            if (dpFechaFin != null) dpFechaFin.setValue(fin);
+        } finally {
+            actualizandoFiltrosProgramaticamente = false;
+        }
+        aplicarFiltroHistorial(true);
     }
 
     private void aplicarFiltroHistorial() {
+        aplicarFiltroHistorial(false);
+    }
+
+    private void aplicarFiltroHistorial(boolean alertarRangoInvalido) {
         String texto = txtFiltroHistorial != null && txtFiltroHistorial.getText() != null
                 ? txtFiltroHistorial.getText().trim().toLowerCase() : "";
         LocalDate fechaInicio = dpFechaInicio != null ? dpFechaInicio.getValue() : null;
@@ -542,6 +589,9 @@ public class ReportesViewController {
         String cajeroSel = cbFiltroVendedor != null ? cbFiltroVendedor.getValue() : null;
 
         if (fechaInicio != null && fechaFin != null && fechaInicio.isAfter(fechaFin)) {
+            if (alertarRangoInvalido) {
+                mostrarAlertaError("Rango de fechas inválido", "La fecha de inicio no puede ser posterior a la fecha de fin.");
+            }
             filteredHistorial.setPredicate(v -> false);
             if (lblTotalFiltrado != null) {
                 lblTotalFiltrado.setText("⚠ Rango inválido: Desde no puede ser posterior a Hasta");
@@ -549,6 +599,8 @@ public class ReportesViewController {
             return;
         }
 
+        LocalDateTime inicioRango = fechaInicio != null ? fechaInicio.atStartOfDay() : null;
+        LocalDateTime finExclusivo = fechaFin != null ? fechaFin.plusDays(1).atStartOfDay() : null;
         filteredHistorial.setPredicate(v -> {
             if (v == null) return false;
 
@@ -566,26 +618,95 @@ public class ReportesViewController {
             }
 
             if (v.getFechaVenta() != null) {
-                LocalDate fechaV = v.getFechaVenta().toLocalDate();
-                if (fechaInicio != null && fechaV.isBefore(fechaInicio)) return false;
-                if (fechaFin != null && fechaV.isAfter(fechaFin)) return false;
+                if (inicioRango != null && v.getFechaVenta().isBefore(inicioRango)) return false;
+                if (finExclusivo != null && !v.getFechaVenta().isBefore(finExclusivo)) return false;
             }
 
             return true;
         });
 
         BigDecimal totalSum = filteredHistorial.stream()
+                .filter(v -> !v.isDemo() && v.getEstado() == EstadoVenta.EMITIDA)
                 .map(Venta::getTotal)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        long ticketsEmitidos = filteredHistorial.stream()
+                .filter(v -> !v.isDemo() && v.getEstado() == EstadoVenta.EMITIDA)
+                .count();
+
         if (lblTotalFiltrado != null) {
-            lblTotalFiltrado.setText(String.format("Total filtrado: S/ %.2f (%d tickets)",
-                    totalSum.doubleValue(), filteredHistorial.size()));
+            lblTotalFiltrado.setText(String.format("Total filtrado: S/ %.2f (%d tickets emitidos)",
+                    totalSum.doubleValue(), ticketsEmitidos));
         }
     }
 
     // ==================== PESTAÑA 3: DASHBOARD & GRÁFICOS ====================
+
+    private record RangoPeriodo(LocalDate desde, LocalDate hasta, LocalDateTime inicio, LocalDateTime finExclusivo,
+                                String textoPeriodo, boolean unSoloDia, String error) {
+        String descripcion() {
+            return textoPeriodo;
+        }
+    }
+
+    private RangoPeriodo calcularRangoPeriodo(String opcion, ComboBox<String> cbMes, ComboBox<Integer> cbAnio) {
+        LocalDate hoyLima = LocalDate.now(ZONA_LIMA);
+        String modo = opcion != null ? opcion : "Hoy";
+
+        return switch (modo) {
+            case "Hoy" -> new RangoPeriodo(
+                    hoyLima, hoyLima,
+                    hoyLima.atStartOfDay(),
+                    hoyLima.plusDays(1).atStartOfDay(),
+                    "Visualizando: Hoy (" + hoyLima.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")",
+                    true, null);
+            case "Ayer" -> {
+                LocalDate ayer = hoyLima.minusDays(1);
+                yield new RangoPeriodo(
+                        ayer, ayer,
+                        ayer.atStartOfDay(),
+                        hoyLima.atStartOfDay(),
+                        "Visualizando: Ayer (" + ayer.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")",
+                        true, null);
+            }
+            case "Últimos 7 Días" -> {
+                LocalDate inicioDia = hoyLima.minusDays(6);
+                yield new RangoPeriodo(
+                        inicioDia, hoyLima,
+                        inicioDia.atStartOfDay(),
+                        hoyLima.plusDays(1).atStartOfDay(),
+                        "Visualizando: Últimos 7 Días (" + inicioDia.format(DateTimeFormatter.ofPattern("dd/MM"))
+                                + " al " + hoyLima.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")",
+                        false, null);
+            }
+            case "Este Mes" -> new RangoPeriodo(
+                    hoyLima.withDayOfMonth(1), hoyLima,
+                    hoyLima.withDayOfMonth(1).atStartOfDay(),
+                    hoyLima.plusDays(1).atStartOfDay(),
+                    "Visualizando: Mes Actual (" + YearMonth.from(hoyLima).format(DateTimeFormatter.ofPattern("MMMM yyyy")) + ")",
+                    false, null);
+            case "Mes Específico" -> {
+                int mesIdx = cbMes != null ? cbMes.getSelectionModel().getSelectedIndex() + 1 : hoyLima.getMonthValue();
+                if (mesIdx <= 0) mesIdx = hoyLima.getMonthValue();
+                Integer anioSel = cbAnio != null && cbAnio.getValue() != null ? cbAnio.getValue() : hoyLima.getYear();
+                YearMonth ym = YearMonth.of(anioSel, mesIdx);
+                String mesNom = cbMes != null && cbMes.getValue() != null ? cbMes.getValue() : "";
+                yield new RangoPeriodo(
+                        ym.atDay(1), ym.atEndOfMonth(),
+                        ym.atDay(1).atStartOfDay(),
+                        ym.plusMonths(1).atDay(1).atStartOfDay(),
+                        "Visualizando: " + mesNom + " " + anioSel,
+                        false, null);
+            }
+            default -> new RangoPeriodo(
+                    hoyLima, hoyLima,
+                    hoyLima.atStartOfDay(),
+                    hoyLima.plusDays(1).atStartOfDay(),
+                    "Visualizando: Hoy",
+                    true, null);
+        };
+    }
 
     private void configurarControlesDashboard() {
         cbDashPeriodo.getItems().setAll(
@@ -633,6 +754,26 @@ public class ReportesViewController {
         if (boxDashMesAnio != null) { boxDashMesAnio.setVisible(esMes); boxDashMesAnio.setManaged(esMes); }
     }
 
+    @FXML
+    public void handleDashHoy() {
+        if (cbDashPeriodo != null) cbDashPeriodo.setValue("Hoy");
+    }
+
+    @FXML
+    public void handleDashAyer() {
+        if (cbDashPeriodo != null) cbDashPeriodo.setValue("Ayer");
+    }
+
+    @FXML
+    public void handleDashUltimos7() {
+        if (cbDashPeriodo != null) cbDashPeriodo.setValue("Últimos 7 Días");
+    }
+
+    @FXML
+    public void handleDashMesActual() {
+        if (cbDashPeriodo != null) cbDashPeriodo.setValue("Este Mes");
+    }
+
     private void configurarTablaVentasVendedor() {
         if (tblVentasPorVendedor != null) {
             colVendNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
@@ -641,9 +782,6 @@ public class ReportesViewController {
             tblVentasPorVendedor.setItems(listaVentasVendedor);
         }
     }
-
-    private record RangoPeriodo(LocalDate desde, LocalDate hasta, LocalDateTime inicio, LocalDateTime finExclusivo,
-                                String textoPeriodo, boolean unSoloDia, String error) {}
 
     private RangoPeriodo resolverRangoDashboard() {
         String opcion = cbDashPeriodo != null && cbDashPeriodo.getValue() != null ? cbDashPeriodo.getValue() : "Hoy";
@@ -733,6 +871,7 @@ public class ReportesViewController {
         lblKpiIngresos.setText("S/ 0.00");
         lblKpiVentas.setText("0");
         lblKpiTicketPromedio.setText("S/ 0.00");
+        if (lblKpiUnidadesVendidas != null) lblKpiUnidadesVendidas.setText("0");
         lblKpiProductoTop.setText("Sin datos");
         lblKpiProductoTopCant.setText("0 unidades vendidas");
         chartVentasTiempo.getData().clear();
@@ -756,15 +895,13 @@ public class ReportesViewController {
 
     private void actualizarMetricasPeriodo(LocalDateTime inicio, LocalDateTime finExclusivo, boolean unSoloDia) {
         try {
-            // 1. Obtener ventas emitidas del periodo (excluye DEMO y ANULADA)
+            // 1. Obtener ventas emitidas (no demo) y unidades vendidas del periodo
             List<Venta> ventasPeriodo = ventaRepository.findVentasEntreFechas(inicio, finExclusivo);
+            ResumenVentasDTO resumen = reporteService.obtenerResumenVentasPorPeriodo(inicio, finExclusivo);
 
-            BigDecimal totalIngresos = BigDecimal.ZERO;
-            for (Venta v : ventasPeriodo) {
-                totalIngresos = totalIngresos.add(v.getTotal() != null ? v.getTotal() : BigDecimal.ZERO);
-            }
-
-            int numTickets = ventasPeriodo.size();
+            BigDecimal totalIngresos = resumen.getTotalRecaudado() != null ? resumen.getTotalRecaudado() : BigDecimal.ZERO;
+            long numTickets = resumen.getCantidadVentasEmitidas() != null ? resumen.getCantidadVentasEmitidas() : 0L;
+            long unidadesVendidas = resumen.getUnidadesVendidas() != null ? resumen.getUnidadesVendidas() : 0L;
             BigDecimal ticketPromedio = numTickets > 0
                     ? totalIngresos.divide(BigDecimal.valueOf(numTickets), 2, RoundingMode.HALF_UP)
                     : BigDecimal.ZERO;
@@ -772,6 +909,9 @@ public class ReportesViewController {
             lblKpiIngresos.setText("S/ " + totalIngresos.setScale(2, RoundingMode.HALF_UP));
             lblKpiVentas.setText(String.valueOf(numTickets));
             lblKpiTicketPromedio.setText("S/ " + ticketPromedio);
+            if (lblKpiUnidadesVendidas != null) {
+                lblKpiUnidadesVendidas.setText(String.valueOf(unidadesVendidas));
+            }
 
             // 2. Gráfico 1: Área de Ingresos en el Tiempo
             chartVentasTiempo.getData().clear();
@@ -788,8 +928,8 @@ public class ReportesViewController {
             } else {
                 Map<LocalDate, BigDecimal> porDia = new TreeMap<>();
                 LocalDate curr = inicio.toLocalDate();
-                LocalDate endD = finExclusivo.toLocalDate().minusDays(1);
-                while (!curr.isAfter(endD)) {
+                LocalDate endInclusivo = finExclusivo.minusNanos(1).toLocalDate();
+                while (!curr.isAfter(endInclusivo)) {
                     porDia.put(curr, BigDecimal.ZERO);
                     curr = curr.plusDays(1);
                 }
@@ -886,19 +1026,20 @@ public class ReportesViewController {
     private void configurarControlesDashboardCompras() {
         if (cbDashCompPeriodo == null) return;
 
-        cbDashCompPeriodo.getItems().setAll("Hoy", "Últimos 7 Días", "Este Mes", "Mes Específico");
+        cbDashCompPeriodo.getItems().setAll("Hoy", "Ayer", "Últimos 7 Días", "Este Mes", "Mes Específico");
         cbDashCompPeriodo.setValue("Hoy");
 
+        LocalDate hoyLima = LocalDate.now(ZONA_LIMA);
         if (cbDashCompMes != null) {
             cbDashCompMes.getItems().setAll(
                     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
                     "Julio", "Agosto", "Setiembre", "Octubre", "Noviembre", "Diciembre"
             );
-            cbDashCompMes.getSelectionModel().select(LocalDate.now().getMonthValue() - 1);
+            cbDashCompMes.getSelectionModel().select(hoyLima.getMonthValue() - 1);
         }
 
         if (cbDashCompAnio != null) {
-            int currentYear = LocalDate.now().getYear();
+            int currentYear = hoyLima.getYear();
             for (int y = currentYear; y >= currentYear - 4; y--) {
                 cbDashCompAnio.getItems().add(y);
             }
@@ -955,55 +1096,19 @@ public class ReportesViewController {
         String opcion = cbDashCompPeriodo.getValue();
         if (opcion == null) opcion = "Hoy";
 
-        LocalDateTime inicio;
-        LocalDateTime fin = LocalDateTime.now();
-        String textoPeriodo;
-
-        switch (opcion) {
-            case "Hoy":
-                inicio = LocalDate.now().atStartOfDay();
-                textoPeriodo = "Visualizando: Hoy (" + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")";
-                break;
-
-            case "Últimos 7 Días":
-                inicio = LocalDate.now().minusDays(6).atStartOfDay();
-                textoPeriodo = "Visualizando: Últimos 7 Días (" + inicio.format(DateTimeFormatter.ofPattern("dd/MM")) + " al " + fin.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")";
-                break;
-
-            case "Este Mes":
-                inicio = LocalDate.now().withDayOfMonth(1).atStartOfDay();
-                textoPeriodo = "Visualizando: Mes Actual (" + YearMonth.now().format(DateTimeFormatter.ofPattern("MMMM yyyy")) + ")";
-                break;
-
-            case "Mes Específico":
-                int mesIdx = cbDashCompMes != null ? cbDashCompMes.getSelectionModel().getSelectedIndex() + 1 : LocalDate.now().getMonthValue();
-                if (mesIdx <= 0) mesIdx = LocalDate.now().getMonthValue();
-                Integer anioSel = cbDashCompAnio != null && cbDashCompAnio.getValue() != null ? cbDashCompAnio.getValue() : LocalDate.now().getYear();
-
-                YearMonth ym = YearMonth.of(anioSel, mesIdx);
-                inicio = ym.atDay(1).atStartOfDay();
-                fin = ym.atEndOfMonth().atTime(LocalTime.MAX);
-                String mesNom = cbDashCompMes != null && cbDashCompMes.getValue() != null ? cbDashCompMes.getValue() : "";
-                textoPeriodo = "Visualizando: " + mesNom + " " + anioSel;
-                break;
-
-            default:
-                inicio = LocalDate.now().atStartOfDay();
-                textoPeriodo = "Visualizando: Hoy";
-                break;
-        }
+        RangoPeriodo rango = calcularRangoPeriodo(opcion, cbDashCompMes, cbDashCompAnio);
 
         if (lblDashCompPeriodoActivo != null) {
-            lblDashCompPeriodoActivo.setText(textoPeriodo);
+            lblDashCompPeriodoActivo.setText(rango.descripcion());
         }
 
-        actualizarMetricasPeriodoCompras(inicio, fin, opcion);
+        actualizarMetricasPeriodoCompras(rango.inicio(), rango.finExclusivo(), opcion);
     }
 
-    private void actualizarMetricasPeriodoCompras(LocalDateTime inicio, LocalDateTime fin, String modoPeriodo) {
+    private void actualizarMetricasPeriodoCompras(LocalDateTime inicio, LocalDateTime finExclusivo, String modoPeriodo) {
         try {
             // 1. Obtener compras realizadas en el periodo
-            List<Compra> comprasPeriodo = compraRepository.findComprasRegistradasEntreFechas(inicio, fin);
+            List<Compra> comprasPeriodo = compraRepository.findComprasRegistradasEntreFechas(inicio, finExclusivo);
 
             BigDecimal totalGastado = BigDecimal.ZERO;
             for (Compra c : comprasPeriodo) {
@@ -1032,7 +1137,7 @@ public class ReportesViewController {
                 chartComprasTiempo.getData().clear();
                 XYChart.Series<String, Number> seriesTiempo = new XYChart.Series<>();
 
-                if ("Hoy".equals(modoPeriodo)) {
+                if ("Hoy".equals(modoPeriodo) || "Ayer".equals(modoPeriodo)) {
                     Map<Integer, BigDecimal> porHora = new TreeMap<>();
                     for (int h = 7; h <= 22; h++) porHora.put(h, BigDecimal.ZERO);
                     for (Compra c : comprasPeriodo) {
@@ -1045,8 +1150,8 @@ public class ReportesViewController {
                 } else {
                     Map<LocalDate, BigDecimal> porDia = new TreeMap<>();
                     LocalDate curr = inicio.toLocalDate();
-                    LocalDate endD = fin.toLocalDate();
-                    while (!curr.isAfter(endD)) {
+                    LocalDate endInclusivo = finExclusivo.minusNanos(1).toLocalDate();
+                    while (!curr.isAfter(endInclusivo)) {
                         porDia.put(curr, BigDecimal.ZERO);
                         curr = curr.plusDays(1);
                     }
@@ -1065,7 +1170,7 @@ public class ReportesViewController {
             if (chartComprasPorProveedor != null) {
                 chartComprasPorProveedor.getData().clear();
             }
-            List<Object[]> proveedores = compraRepository.findGastoPorProveedorEntreFechas(inicio, fin);
+            List<Object[]> proveedores = compraRepository.findGastoPorProveedorEntreFechas(inicio, finExclusivo);
             String provTop = "Ninguno";
             BigDecimal montoTop = BigDecimal.ZERO;
 
@@ -1103,7 +1208,7 @@ public class ReportesViewController {
                 XYChart.Series<String, Number> seriesProductos = new XYChart.Series<>();
                 List<String> categoriasCompras = new ArrayList<>();
 
-                List<Object[]> topProds = detalleCompraRepository.findTopProductosCompradosEntreFechas(inicio, fin);
+                List<Object[]> topProds = detalleCompraRepository.findTopProductosCompradosEntreFechas(inicio, finExclusivo);
                 int count = 0;
                 for (Object[] fila : topProds) {
                     if (count >= 5) break;
@@ -1134,7 +1239,7 @@ public class ReportesViewController {
 
             // 5. Tabla de Desglose de Mercadería Adquirida en el Período
             if (tblResumenProductosComprados != null) {
-                List<Object[]> resumenProds = detalleCompraRepository.findResumenProductosCompradosEntreFechas(inicio, fin);
+                List<Object[]> resumenProds = detalleCompraRepository.findResumenProductosCompradosEntreFechas(inicio, finExclusivo);
                 List<ResumenProductoCompradoDTO> lista = new ArrayList<>();
                 for (Object[] fila : resumenProds) {
                     String cod = (String) fila[0];
@@ -1357,7 +1462,7 @@ public class ReportesViewController {
 
     @FXML
     public void handleFiltrarMermas() {
-        aplicarFiltrosMermas();
+        aplicarFiltrosMermas(true);
     }
 
     @FXML
@@ -1366,10 +1471,14 @@ public class ReportesViewController {
         if (cbMermaFiltroMotivo != null) cbMermaFiltroMotivo.setValue("Todos los Motivos");
         if (dpMermaInicio != null) dpMermaInicio.setValue(null);
         if (dpMermaFin != null) dpMermaFin.setValue(null);
-        aplicarFiltrosMermas();
+        aplicarFiltrosMermas(false);
     }
 
     private void aplicarFiltrosMermas() {
+        aplicarFiltrosMermas(false);
+    }
+
+    private void aplicarFiltrosMermas(boolean alertarRangoInvalido) {
         if (tblMermas == null) return;
 
         LocalDate fInicio = dpMermaInicio != null ? dpMermaInicio.getValue() : null;
@@ -1378,17 +1487,31 @@ public class ReportesViewController {
         String busqueda = txtMermaBuscar != null && txtMermaBuscar.getText() != null ?
                 txtMermaBuscar.getText().trim().toLowerCase() : "";
 
+        if (fInicio != null && fFin != null && fInicio.isAfter(fFin)) {
+            if (alertarRangoInvalido) {
+                mostrarAlertaError("Rango de fechas inválido", "La fecha de inicio no puede ser posterior a la fecha de fin.");
+            }
+            tblMermas.setItems(FXCollections.observableArrayList());
+            if (lblMermaTotalFiltrado != null) {
+                lblMermaTotalFiltrado.setText("Rango de fechas inválido");
+            }
+            return;
+        }
+
+        LocalDateTime inicioRango = fInicio != null ? fInicio.atStartOfDay() : null;
+        LocalDateTime finExclusivo = fFin != null ? fFin.plusDays(1).atStartOfDay() : null;
+
         List<Merma> filtradas = new ArrayList<>();
         BigDecimal totalPerdida = BigDecimal.ZERO;
         long totalUnidades = 0;
         Map<String, Long> conteoMotivos = new HashMap<>();
 
         for (Merma m : listaMermasBase) {
-            // Filtro fecha
-            if (fInicio != null && m.getFechaMerma() != null && m.getFechaMerma().toLocalDate().isBefore(fInicio)) {
+            // Filtro fecha semiabierto [inicio, finExclusivo)
+            if (inicioRango != null && m.getFechaMerma() != null && m.getFechaMerma().isBefore(inicioRango)) {
                 continue;
             }
-            if (fFin != null && m.getFechaMerma() != null && m.getFechaMerma().toLocalDate().isAfter(fFin)) {
+            if (finExclusivo != null && m.getFechaMerma() != null && !m.getFechaMerma().isBefore(finExclusivo)) {
                 continue;
             }
 
@@ -1462,7 +1585,8 @@ public class ReportesViewController {
                 + "• Total Ingresos por Ventas: " + (lblKpiIngresos != null ? lblKpiIngresos.getText() : "S/ 0.00")
                 + "   |   Comprobantes Emitidos: " + (lblKpiVentas != null ? lblKpiVentas.getText() : "0") + "\n"
                 + "• Ticket Promedio: " + (lblKpiTicketPromedio != null ? lblKpiTicketPromedio.getText() : "S/ 0.00")
-                + "   |   Producto Estrella: " + (lblKpiProductoTop != null ? lblKpiProductoTop.getText() : "N/A")
+                + "   |   Unidades Vendidas: " + (lblKpiUnidadesVendidas != null ? lblKpiUnidadesVendidas.getText() : "0") + "\n"
+                + "• Producto Estrella: " + (lblKpiProductoTop != null ? lblKpiProductoTop.getText() : "N/A")
                 + " (" + (lblKpiProductoTopCant != null ? lblKpiProductoTopCant.getText() : "") + ")\n"
                 + "• Inversión en Abastecimiento / Compras: " + (lblKpiCompTotal != null ? lblKpiCompTotal.getText() : "S/ 0.00")
                 + " (" + (lblKpiCompFacturas != null ? lblKpiCompFacturas.getText() : "0") + " facturas procesadas)\n"
@@ -1522,18 +1646,24 @@ public class ReportesViewController {
 
     @FXML
     public void handleExportarVentasExcel() {
-        List<Venta> datos = new ArrayList<>(filteredHistorial);
-        if (datos.isEmpty()) {
-            mostrarAlertaError("Sin registros", "No hay ventas que coincidan con los filtros aplicados para exportar.");
+        LocalDate inicio = dpFechaInicio != null ? dpFechaInicio.getValue() : null;
+        LocalDate fin = dpFechaFin != null ? dpFechaFin.getValue() : null;
+        if (inicio != null && fin != null && inicio.isAfter(fin)) {
+            mostrarAlertaError("Rango de fechas inválido", "La fecha de inicio no puede ser posterior a la fecha de fin.");
             return;
         }
 
-        LocalDate inicio = dpFechaInicio != null ? dpFechaInicio.getValue() : null;
-        LocalDate fin = dpFechaFin != null ? dpFechaFin.getValue() : null;
+        List<Venta> datos = filteredHistorial.stream()
+                .filter(v -> v != null && !v.isDemo())
+                .toList();
+        if (datos.isEmpty()) {
+            mostrarAlertaError("Sin registros", "No hay ventas reales que coincidan con los filtros aplicados para exportar.");
+            return;
+        }
 
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Exportar Reporte de Ventas a Excel");
-        fileChooser.setInitialFileName("Reporte_Ventas_" + LocalDate.now() + ".xlsx");
+        fileChooser.setInitialFileName("Reporte_Ventas_" + LocalDate.now(ZONA_LIMA) + ".xlsx");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Libro de Excel (*.xlsx)", "*.xlsx"));
 
         Window window = tblHistorialVentas != null && tblHistorialVentas.getScene() != null
@@ -1597,7 +1727,7 @@ public class ReportesViewController {
 
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Exportar Ranking de Rotación a Excel");
-        fileChooser.setInitialFileName("Reporte_Rotacion_Productos_" + LocalDate.now() + ".xlsx");
+        fileChooser.setInitialFileName("Reporte_Rotacion_Productos_" + LocalDate.now(ZONA_LIMA) + ".xlsx");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Libro de Excel (*.xlsx)", "*.xlsx"));
 
         Window window = tblRotacion != null && tblRotacion.getScene() != null
@@ -1617,33 +1747,9 @@ public class ReportesViewController {
     public void handleExportarComprasExcel() {
         String opcion = cbDashCompPeriodo != null && cbDashCompPeriodo.getValue() != null
                 ? cbDashCompPeriodo.getValue() : "Hoy";
-        LocalDateTime inicio;
-        LocalDateTime fin = LocalDateTime.now();
+        RangoPeriodo rango = calcularRangoPeriodo(opcion, cbDashCompMes, cbDashCompAnio);
 
-        switch (opcion) {
-            case "Hoy":
-                inicio = LocalDate.now().atStartOfDay();
-                break;
-            case "Últimos 7 Días":
-                inicio = LocalDate.now().minusDays(6).atStartOfDay();
-                break;
-            case "Este Mes":
-                inicio = LocalDate.now().withDayOfMonth(1).atStartOfDay();
-                break;
-            case "Mes Específico":
-                int mesIdx = cbDashCompMes != null ? cbDashCompMes.getSelectionModel().getSelectedIndex() + 1 : LocalDate.now().getMonthValue();
-                if (mesIdx <= 0) mesIdx = LocalDate.now().getMonthValue();
-                Integer anioSel = cbDashCompAnio != null && cbDashCompAnio.getValue() != null ? cbDashCompAnio.getValue() : LocalDate.now().getYear();
-                YearMonth ym = YearMonth.of(anioSel, mesIdx);
-                inicio = ym.atDay(1).atStartOfDay();
-                fin = ym.atEndOfMonth().atTime(LocalTime.MAX);
-                break;
-            default:
-                inicio = LocalDate.now().atStartOfDay();
-                break;
-        }
-
-        List<Compra> compras = compraRepository.findComprasEntreFechas(inicio, fin);
+        List<Compra> compras = compraRepository.findComprasEntreFechas(rango.inicio(), rango.finExclusivo());
         if (compras.isEmpty()) {
             mostrarAlertaError("Sin registros", "No se encontraron compras registradas en el período seleccionado.");
             return;
@@ -1651,7 +1757,7 @@ public class ReportesViewController {
 
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Exportar Reporte de Compras a Excel");
-        fileChooser.setInitialFileName("Reporte_Compras_" + LocalDate.now() + ".xlsx");
+        fileChooser.setInitialFileName("Reporte_Compras_" + LocalDate.now(ZONA_LIMA) + ".xlsx");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Libro de Excel (*.xlsx)", "*.xlsx"));
 
         Window window = cbDashCompPeriodo != null && cbDashCompPeriodo.getScene() != null
@@ -1659,7 +1765,8 @@ public class ReportesViewController {
         File file = fileChooser.showSaveDialog(window);
         if (file != null) {
             try {
-                exportacionService.exportarComprasExcel(file, compras, inicio.toLocalDate(), fin.toLocalDate());
+                LocalDate finInclusivo = rango.finExclusivo().minusNanos(1).toLocalDate();
+                exportacionService.exportarComprasExcel(file, compras, rango.inicio().toLocalDate(), finInclusivo);
                 mostrarAlertaExitoExportacion(file);
             } catch (Exception e) {
                 mostrarAlertaError("Error al exportar", e.getMessage());
@@ -1669,6 +1776,13 @@ public class ReportesViewController {
 
     @FXML
     public void handleExportarMermasExcel() {
+        LocalDate inicio = dpMermaInicio != null ? dpMermaInicio.getValue() : null;
+        LocalDate fin = dpMermaFin != null ? dpMermaFin.getValue() : null;
+        if (inicio != null && fin != null && inicio.isAfter(fin)) {
+            mostrarAlertaError("Rango de fechas inválido", "La fecha de inicio no puede ser posterior a la fecha de fin.");
+            return;
+        }
+
         List<Merma> mermas = tblMermas != null && tblMermas.getItems() != null
                 ? new ArrayList<>(tblMermas.getItems()) : Collections.emptyList();
         if (mermas.isEmpty()) {
@@ -1676,12 +1790,9 @@ public class ReportesViewController {
             return;
         }
 
-        LocalDate inicio = dpMermaInicio != null ? dpMermaInicio.getValue() : null;
-        LocalDate fin = dpMermaFin != null ? dpMermaFin.getValue() : null;
-
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Exportar Reporte de Mermas a Excel");
-        fileChooser.setInitialFileName("Reporte_Mermas_" + LocalDate.now() + ".xlsx");
+        fileChooser.setInitialFileName("Reporte_Mermas_" + LocalDate.now(ZONA_LIMA) + ".xlsx");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Libro de Excel (*.xlsx)", "*.xlsx"));
 
         Window window = tblMermas != null && tblMermas.getScene() != null

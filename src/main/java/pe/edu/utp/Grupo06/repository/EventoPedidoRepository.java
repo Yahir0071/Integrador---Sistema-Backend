@@ -6,4 +6,5 @@ import java.util.List;
 public interface EventoPedidoRepository extends JpaRepository<EventoPedido,Long> {
  List<EventoPedido> findByPedidoIdOrderByFechaAscIdAsc(Long id);
  List<EventoPedido> findByPedidoIdInOrderByFechaAscIdAsc(Collection<Long> ids);
+ List<EventoPedido> findByPedidoIdInOrderByPedidoIdAscFechaAscIdAsc(Collection<Long> pedidoIds);
 }

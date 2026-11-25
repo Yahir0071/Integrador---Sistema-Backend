@@ -24,10 +24,8 @@ public class VentaRequestDTO {
     private Long usuarioId;
 
     @NotEmpty(message = "La venta debe incluir al menos un producto")
-    @Valid
-    private List<DetalleVentaRequestDTO> detalles;
+    private List<@NotNull(message = "El detalle de venta no puede ser nulo") @Valid DetalleVentaRequestDTO> detalles;
 
     @NotEmpty(message = "La venta debe incluir al menos un método de pago")
-    @Valid
-    private List<PagoRequestDTO> pagos;
+    private List<@NotNull(message = "El pago no puede ser nulo") @Valid PagoRequestDTO> pagos;
 }

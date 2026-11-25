@@ -38,21 +38,21 @@ public class MermaServiceImpl implements IMermaService {
     @Transactional
     public Merma registrarMerma(Long productoId, Long usuarioId, Integer cantidad, MotivoMerma motivo, LocalDate fechaVencimiento, String observacion) {
         if (cantidad == null || cantidad <= 0) {
-            throw new RuntimeException("La cantidad a dar de baja debe ser mayor a 0");
+            throw new IllegalArgumentException("La cantidad a dar de baja debe ser mayor a 0");
         }
 
         if (motivo == null) {
-            throw new RuntimeException("El motivo de la merma es obligatorio");
+            throw new IllegalArgumentException("El motivo de la merma es obligatorio");
         }
 
         Producto producto = productoRepository.findById(productoId)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + productoId));
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con ID: " + productoId));
 
         Empleado usuario = empleadoRepository.findById(usuarioId)
-                .orElseThrow(() -> new RuntimeException("Empleado no encontrado con ID: " + usuarioId));
+                .orElseThrow(() -> new IllegalArgumentException("Empleado no encontrado con ID: " + usuarioId));
 
         if (producto.getStockActual() < cantidad) {
-            throw new RuntimeException("Stock insuficiente para dar de baja. Stock actual: " +
+            throw new IllegalStateException("Stock insuficiente para dar de baja. Stock actual: " +
                     producto.getStockActual() + ", cantidad solicitada: " + cantidad);
         }
 

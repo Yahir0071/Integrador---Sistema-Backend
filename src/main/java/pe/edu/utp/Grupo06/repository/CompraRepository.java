@@ -30,18 +30,18 @@ public interface CompraRepository extends JpaRepository<Compra, Long> {
     List<Compra> findAllConProveedorYUsuario();
 
     @EntityGraph(attributePaths = {"proveedor", "usuario"})
-    @Query("SELECT c FROM Compra c WHERE c.fechaCompra BETWEEN :inicio AND :fin ORDER BY c.fechaCompra ASC")
+    @Query("SELECT c FROM Compra c WHERE c.fechaCompra >= :inicio AND c.fechaCompra < :fin ORDER BY c.fechaCompra ASC")
     List<Compra> findComprasEntreFechas(@org.springframework.data.repository.query.Param("inicio") LocalDateTime inicio,
                                        @org.springframework.data.repository.query.Param("fin") LocalDateTime fin);
 
     @EntityGraph(attributePaths = {"proveedor", "usuario"})
-    @Query("SELECT c FROM Compra c WHERE c.fechaCompra BETWEEN :inicio AND :fin AND c.estadoCompra = pe.edu.utp.Grupo06.model.enums.EstadoCompra.REGISTRADA ORDER BY c.fechaCompra ASC")
+    @Query("SELECT c FROM Compra c WHERE c.fechaCompra >= :inicio AND c.fechaCompra < :fin AND c.estadoCompra = pe.edu.utp.Grupo06.model.enums.EstadoCompra.REGISTRADA ORDER BY c.fechaCompra ASC")
     List<Compra> findComprasRegistradasEntreFechas(@org.springframework.data.repository.query.Param("inicio") LocalDateTime inicio,
                                                    @org.springframework.data.repository.query.Param("fin") LocalDateTime fin);
 
     @Query("SELECT c.proveedor.razonSocial, SUM(c.total) " +
            "FROM Compra c " +
-           "WHERE c.fechaCompra BETWEEN :inicio AND :fin AND c.estadoCompra = pe.edu.utp.Grupo06.model.enums.EstadoCompra.REGISTRADA " +
+           "WHERE c.fechaCompra >= :inicio AND c.fechaCompra < :fin AND c.estadoCompra = pe.edu.utp.Grupo06.model.enums.EstadoCompra.REGISTRADA " +
            "GROUP BY c.proveedor.razonSocial " +
            "ORDER BY SUM(c.total) DESC")
     List<Object[]> findGastoPorProveedorEntreFechas(@org.springframework.data.repository.query.Param("inicio") LocalDateTime inicio,

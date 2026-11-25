@@ -38,7 +38,7 @@ public class CategoriaServiceImpl implements ICategoriaService {
     @Transactional(readOnly = true)
     public Categoria buscarPorId(Long id) {
         return categoriaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada con ID: " + id));
     }
 
     @Override
@@ -55,7 +55,7 @@ public class CategoriaServiceImpl implements ICategoriaService {
         if (Boolean.FALSE.equals(categoria.getEstado()) && Boolean.TRUE.equals(existente.getEstado())) {
             long activos = productoRepository.countByCategoriaIdAndEstadoTrue(id);
             if (activos > 0) {
-                throw new RuntimeException("No se puede desactivar la categoría porque tiene " + activos + " producto(s) activo(s) asociado(s). Reasigne o desactive primero los productos.");
+                throw new IllegalStateException("No se puede desactivar la categoría porque tiene " + activos + " producto(s) activo(s) asociado(s). Reasigne o desactive primero los productos.");
             }
         }
         existente.setNombre(categoria.getNombre());
@@ -70,7 +70,7 @@ public class CategoriaServiceImpl implements ICategoriaService {
     public void eliminar(Long id) {
         long activos = productoRepository.countByCategoriaIdAndEstadoTrue(id);
         if (activos > 0) {
-            throw new RuntimeException("No se puede dar de baja la categoría porque tiene " + activos + " producto(s) activo(s) asociado(s). Reasigne o desactive primero los productos.");
+            throw new IllegalStateException("No se puede dar de baja la categoría porque tiene " + activos + " producto(s) activo(s) asociado(s). Reasigne o desactive primero los productos.");
         }
         Categoria categoria = buscarPorId(id);
         categoria.setEstado(false); // Eliminación lógica

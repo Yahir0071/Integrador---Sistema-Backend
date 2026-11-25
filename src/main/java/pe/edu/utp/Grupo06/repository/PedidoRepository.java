@@ -8,7 +8,9 @@ import java.time.LocalDateTime;
 public interface PedidoRepository extends JpaRepository<Pedido,Long> {
  @Lock(LockModeType.PESSIMISTIC_WRITE) @Query("select p from Pedido p where p.id=:id") Optional<Pedido> locked(Long id);
  Optional<Pedido> findByClienteIdAndClave(Long clienteId,String clave);
+ @EntityGraph(attributePaths = {"cliente", "lineas"})
  List<Pedido> findTop100ByClienteIdOrderByCreadoDesc(Long id);
+ @EntityGraph(attributePaths = {"cliente", "lineas"})
  List<Pedido> findTop200ByOrderByCreadoDesc();
  List<Pedido> findByEstadoAndVenceBefore(EstadoPedido estado,LocalDateTime fecha);
  boolean existsByClienteIdAndEstadoIn(Long id,Collection<EstadoPedido> estados);

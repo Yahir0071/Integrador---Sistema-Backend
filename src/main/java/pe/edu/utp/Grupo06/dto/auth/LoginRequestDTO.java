@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import pe.edu.utp.Grupo06.util.MaxUtf8Bytes;
 
 @Getter
 @Setter
@@ -19,5 +20,6 @@ public class LoginRequestDTO {
 
     @NotBlank(message = "La contraseña es obligatoria")
     @Size(max = 72, message = "La contraseña no puede superar los 72 caracteres")
+    @MaxUtf8Bytes(value = 72, message = "La contraseña no puede superar los 72 bytes UTF-8")
     private String password;
 }

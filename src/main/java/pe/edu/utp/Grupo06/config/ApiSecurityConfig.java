@@ -39,7 +39,7 @@ public class ApiSecurityConfig {
         if (configured.isBlank()) {
             bytes = new byte[32];
             new SecureRandom().nextBytes(bytes);
-            LoggerFactory.getLogger(getClass()).warn("JWT_SECRET no definido: clave aleatoria. Los tokens caducan al reiniciar la API.");
+            LoggerFactory.getLogger(getClass()).warn("JWT_SECRET no definido – clave aleatoria generada. Los tokens emitidos serán inválidos tras reiniciar. Configure JWT_SECRET en su archivo .env para persistir sesiones entre reinicios.");
         } else {
             bytes = Base64.getDecoder().decode(configured);
             if (bytes.length < 32) throw new IllegalStateException("JWT_SECRET debe codificar al menos 32 bytes en Base64");

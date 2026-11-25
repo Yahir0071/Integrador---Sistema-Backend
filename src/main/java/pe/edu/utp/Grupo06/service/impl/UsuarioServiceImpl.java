@@ -41,21 +41,21 @@ public class UsuarioServiceImpl implements IUsuarioService {
     @Transactional(readOnly = true)
     public Usuario buscarPorId(Long id) {
         return usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Usuario buscarPorUsername(String username) {
         return usuarioRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con username: " + username));
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
     }
 
     @Override
     @Transactional
     public Usuario registrar(Usuario usuario) {
         if (usuarioRepository.existsByUsername(usuario.getUsername())) {
-            throw new RuntimeException("El nombre de usuario ya se encuentra registrado: " + usuario.getUsername());
+            throw new IllegalArgumentException("El nombre de usuario ya se encuentra registrado");
         }
 
         validarPasswordEnTextoPlano(usuario.getPassword());
@@ -91,7 +91,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
                     );
 
             if (administradoresActivos <= 1) {
-                throw new RuntimeException(
+                throw new IllegalStateException(
                         "No se puede cambiar el rol del único administrador activo"
                 );
             }
@@ -117,7 +117,7 @@ public class UsuarioServiceImpl implements IUsuarioService {
             if (usuario.getRol() != null && usuario.getRol().getNombre() == pe.edu.utp.Grupo06.model.enums.RolNombre.ADMINISTRADOR) {
                 long adminsActivos = usuarioRepository.countByRolNombreAndActivoTrue(pe.edu.utp.Grupo06.model.enums.RolNombre.ADMINISTRADOR);
                 if (adminsActivos <= 1) {
-                    throw new RuntimeException("No se puede desactivar al único Administrador activo del sistema. Debe existir al menos un administrador habilitado.");
+                    throw new IllegalStateException("No se puede desactivar al único Administrador activo del sistema. Debe existir al menos un administrador habilitado.");
                 }
             }
         }
@@ -142,10 +142,10 @@ public class UsuarioServiceImpl implements IUsuarioService {
 
         if (nuevaPassword != null && !nuevaPassword.isBlank()) {
             if (passwordActual == null || passwordActual.isBlank()) {
-                throw new RuntimeException("Debe ingresar su contraseña actual para establecer una nueva.");
+                throw new IllegalArgumentException("Debe ingresar su contraseña actual para establecer una nueva.");
             }
             if (!passwordEncoder.matches(passwordActual, usuario.getPassword())) {
-                throw new RuntimeException("La contraseña actual ingresada es incorrecta.");
+                throw new IllegalArgumentException("La contraseña actual ingresada es incorrecta.");
             }
             validarPasswordEnTextoPlano(nuevaPassword);
             usuario.setPassword(passwordEncoder.encode(nuevaPassword));
@@ -162,6 +162,10 @@ public class UsuarioServiceImpl implements IUsuarioService {
                 .orElseThrow(() -> new org.springframework.security.authentication.BadCredentialsException("Usuario o contraseña incorrectos"));
 
         if (!Boolean.TRUE.equals(usuario.getActivo())) {
+            throw new org.springframework.security.authentication.BadCredentialsException("Usuario o contraseña incorrectos");
+        }
+
+        if (password == null || password.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
             throw new org.springframework.security.authentication.BadCredentialsException("Usuario o contraseña incorrectos");
         }
 
@@ -184,10 +188,10 @@ public class UsuarioServiceImpl implements IUsuarioService {
 
     private void validarPasswordEnTextoPlano(String password) {
         if (password == null || password.isBlank()) {
-            throw new RuntimeException("La contraseña es obligatoria");
+            throw new IllegalArgumentException("La contraseña es obligatoria");
         }
         if (password.length() < PASSWORD_MIN_LENGTH) {
-            throw new RuntimeException("La contraseña debe tener al menos " + PASSWORD_MIN_LENGTH + " caracteres");
+            throw new IllegalArgumentException("La contraseña debe tener al menos " + PASSWORD_MIN_LENGTH + " caracteres");
         }
         if (password.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
             throw new IllegalArgumentException("La contraseña no puede superar 72 bytes en UTF-8");

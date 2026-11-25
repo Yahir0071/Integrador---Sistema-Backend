@@ -6,43 +6,44 @@
 
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="pe.edu.utp.Grupo06.view.ComprasViewController"
-      spacing="16" alignment="TOP_LEFT" maxWidth="Infinity" maxHeight="Infinity">
+      spacing="14" alignment="TOP_LEFT" maxWidth="Infinity" maxHeight="Infinity">
 
     <!-- Encabezado -->
-    <HBox alignment="CENTER_LEFT" spacing="15">
-        <VBox spacing="2">
-            <Label text="Compras y Abastecimiento de Mercadería" styleClass="main-title"/>
-            <Label text="Registro de facturas/boletas de compra a proveedores (Aumenta stock automáticamente)" styleClass="sub-title"/>
+    <HBox alignment="CENTER_LEFT" spacing="12">
+        <VBox spacing="2" HBox.hgrow="ALWAYS" minWidth="0">
+            <Label text="Compras y Abastecimiento de Mercadería" styleClass="main-title" wrapText="true"/>
+            <Label text="Registro de facturas/boletas de compra a proveedores (Aumenta stock automáticamente)"
+                   styleClass="sub-title" wrapText="true"/>
         </VBox>
-        <Region HBox.hgrow="ALWAYS"/>
-        <Button text="🔄 Refrescar" onAction="#cargarCompras"
-                styleClass="btn, btn-default" style="-fx-cursor: hand;"/>
-        <Button text="➕ Registrar Nueva Compra" onAction="#handleNuevaCompra"
-                styleClass="btn, btn-primary" style="-fx-font-weight: bold; -fx-cursor: hand;"/>
+        <HBox spacing="8" alignment="CENTER_RIGHT" minWidth="-Infinity">
+            <Button text="🔄 Refrescar" onAction="#cargarCompras" minWidth="-Infinity"
+                    styleClass="btn, btn-default" style="-fx-cursor: hand;"/>
+            <Button text="➕ Registrar Nueva Compra" onAction="#handleNuevaCompra" minWidth="-Infinity"
+                    styleClass="btn, btn-primary" style="-fx-font-weight: bold; -fx-cursor: hand;"/>
+        </HBox>
     </HBox>
 
-    <!-- Barra de Filtros y Búsqueda -->
-    <HBox alignment="CENTER_LEFT" spacing="10">
-        <TextField fx:id="txtFiltroCompra" promptText="Buscar por N° Comprobante o Proveedor..." prefWidth="280" styleClass="text-field"/>
+    <!-- Barra de Filtros y Búsqueda (responsiva con FlowPane) -->
+    <FlowPane alignment="CENTER_LEFT" hgap="8" vgap="8" styleClass="card-box" style="-fx-padding: 10 14;">
+        <TextField fx:id="txtFiltroCompra" promptText="Buscar por N° Comprobante o Proveedor..." prefWidth="230" styleClass="text-field"/>
         <Label text="Desde:" style="-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;"/>
-        <DatePicker fx:id="dpFechaInicio" prefWidth="135"/>
+        <DatePicker fx:id="dpFechaInicio" prefWidth="120"/>
         <Label text="Hasta:" style="-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;"/>
-        <DatePicker fx:id="dpFechaFin" prefWidth="135"/>
+        <DatePicker fx:id="dpFechaFin" prefWidth="120"/>
         <Button text="🔍 Filtrar" onAction="#handleFiltrarCompras" style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
         <Button text="Limpiar" onAction="#handleLimpiarFiltroCompras" style="-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
-        <Region HBox.hgrow="ALWAYS"/>
-        <Label fx:id="lblTotalCompras" text="Total Compras: S/ 0.00" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0284c7;"/>
-    </HBox>
+        <Label fx:id="lblTotalCompras" text="Total Compras: S/ 0.00" style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #0284c7;"/>
+    </FlowPane>
 
-    <!-- Tabla de Compras Realizadas -->
+    <!-- Tabla de Compras Realizadas (anchos proporcionales a ~890px) -->
     <TableView fx:id="tblCompras" VBox.vgrow="ALWAYS" styleClass="table-view">
         <columns>
-            <TableColumn fx:id="colComprobante" text="N° Comprobante" prefWidth="150"/>
-            <TableColumn fx:id="colProveedor" text="Proveedor" prefWidth="250"/>
-            <TableColumn fx:id="colFecha" text="Fecha de Compra" prefWidth="160"/>
-            <TableColumn fx:id="colUsuario" text="Registrado Por" prefWidth="160"/>
-            <TableColumn fx:id="colTotal" text="Total Compra (S/)" prefWidth="130"/>
-            <TableColumn fx:id="colEstadoCompra" text="Estado" prefWidth="110"/>
+            <TableColumn fx:id="colComprobante" text="N° Comprobante" prefWidth="115"/>
+            <TableColumn fx:id="colProveedor" text="Proveedor" prefWidth="195"/>
+            <TableColumn fx:id="colFecha" text="Fecha de Compra" prefWidth="125"/>
+            <TableColumn fx:id="colUsuario" text="Registrado Por" prefWidth="130"/>
+            <TableColumn fx:id="colTotal" text="Total Compra (S/)" prefWidth="105"/>
+            <TableColumn fx:id="colEstadoCompra" text="Estado" prefWidth="95"/>
             <TableColumn fx:id="colAcciones" text="Acción" prefWidth="120"/>
         </columns>
         <columnResizePolicy>

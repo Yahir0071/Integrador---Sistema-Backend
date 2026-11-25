@@ -63,11 +63,14 @@ public class ReporteServiceImpl implements IReporteService {
     @Override
     @Transactional(readOnly = true)
     public ResumenVentasDTO obtenerResumenVentasPorPeriodo(LocalDateTime inicio, LocalDateTime fin) {
-        if (inicio == null || fin == null || inicio.isAfter(fin)) {
-            throw new IllegalArgumentException("Rango de fechas inválido: la fecha de inicio no puede ser posterior a la fecha fin");
+        if (inicio == null || fin == null) {
+            throw new IllegalArgumentException("Las fechas de inicio y fin son obligatorias");
         }
-        List<Venta> ventas = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(inicio, fin);
-        return calcularResumen(ventas, inicio, fin.plusNanos(1));
+        if (inicio.isAfter(fin)) {
+            throw new IllegalArgumentException("La fecha de inicio no puede ser posterior a la fecha de fin");
+        }
+        List<Venta> ventas = ventaRepository.findByRangoSemiabiertoOrderByFechaVentaDesc(inicio, fin);
+        return calcularResumen(ventas, inicio, fin);
     }
 
     @Override
@@ -78,7 +81,7 @@ public class ReporteServiceImpl implements IReporteService {
         }
         LocalDateTime inicio = desde.atStartOfDay();
         LocalDateTime finExclusivo = hasta.plusDays(1).atStartOfDay();
-        List<Venta> ventas = ventaRepository.findByFechaVentaRangoExclusivo(inicio, finExclusivo);
+        List<Venta> ventas = ventaRepository.findByRangoSemiabiertoOrderByFechaVentaDesc(inicio, finExclusivo);
         return calcularResumen(ventas, inicio, finExclusivo);
     }
 
@@ -102,13 +105,33 @@ public class ReporteServiceImpl implements IReporteService {
     @Override
     @Transactional(readOnly = true)
     public List<ProductoRotacionDTO> obtenerProductosMayorRotacion() {
-        List<Object[]> resultados = detalleVentaRepository.findProductosMayorRotacion();
+        return mapearRotacion(detalleVentaRepository.findProductosMayorRotacion());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductoRotacionDTO> obtenerProductosMayorRotacion(LocalDateTime inicio, LocalDateTime fin, Long categoriaId) {
+        if (inicio == null && fin == null && categoriaId == null) {
+            return obtenerProductosMayorRotacion();
+        }
+        LocalDate hoyLima = LocalDate.now(ZONA_LIMA);
+        LocalDateTime inicioEfectivo = inicio != null ? inicio : LocalDate.of(2000, 1, 1).atStartOfDay();
+        LocalDateTime finEfectivo = fin != null ? fin : hoyLima.plusDays(1).atStartOfDay();
+        if (inicioEfectivo.isAfter(finEfectivo)) {
+            throw new IllegalArgumentException("La fecha de inicio no puede ser posterior a la fecha de fin");
+        }
+        return mapearRotacion(detalleVentaRepository.findProductosMayorRotacionFiltrado(inicioEfectivo, finEfectivo, categoriaId));
+    }
+
+    private List<ProductoRotacionDTO> mapearRotacion(List<Object[]> resultados) {
         return resultados.stream().map(fila -> {
-            Long productoId = ((Number) fila[0]).longValue();
+            Number idNum = (Number) fila[0];
+            Long productoId = idNum != null ? idNum.longValue() : null;
             String codigo = (String) fila[1];
             String nombre = (String) fila[2];
-            Long totalCantidad = ((Number) fila[3]).longValue();
-            BigDecimal totalRecaudado = (BigDecimal) fila[4];
+            Number cantNum = (Number) fila[3];
+            Long totalCantidad = cantNum != null ? cantNum.longValue() : 0L;
+            BigDecimal totalRecaudado = fila[4] instanceof BigDecimal ? (BigDecimal) fila[4] : BigDecimal.ZERO;
             return new ProductoRotacionDTO(
                     productoId,
                     nombre,

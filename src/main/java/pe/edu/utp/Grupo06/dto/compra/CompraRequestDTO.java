@@ -29,6 +29,5 @@ public class CompraRequestDTO {
     private Long usuarioId;
 
     @NotEmpty(message = "La compra debe incluir al menos un detalle")
-    @Valid
-    private List<DetalleCompraRequestDTO> detalles;
+    private List<@NotNull(message = "El detalle de compra no puede ser nulo") @Valid DetalleCompraRequestDTO> detalles;
 }

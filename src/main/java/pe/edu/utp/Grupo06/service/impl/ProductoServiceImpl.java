@@ -56,14 +56,14 @@ public class ProductoServiceImpl implements IProductoService {
     @Transactional(readOnly = true)
     public Producto buscarPorId(Long id) {
         return productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con ID: " + id));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Producto buscarPorCodigo(String codigo) {
         return productoRepository.findByCodigo(codigo)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con código: " + codigo));
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con código: " + codigo));
     }
 
     @Override
@@ -117,7 +117,7 @@ public class ProductoServiceImpl implements IProductoService {
     public void eliminar(Long id) {
         Producto producto = buscarPorId(id);
         if (producto.getStockActual() != null && producto.getStockActual() > 0) {
-            throw new RuntimeException("No se puede dar de baja el producto '" + producto.getNombre()
+            throw new IllegalStateException("No se puede dar de baja el producto '" + producto.getNombre()
                     + "' porque cuenta con " + producto.getStockActual()
                     + " unidades en stock. Primero debe liquidar o ajustar el stock a 0.");
         }

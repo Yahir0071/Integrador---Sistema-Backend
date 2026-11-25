@@ -13,4 +13,5 @@ public interface IReporteService {
     ResumenVentasDTO obtenerResumenVentasPorPeriodo(LocalDateTime inicio, LocalDateTime fin);
     ResumenVentasDTO obtenerResumenVentasPorFechas(LocalDate desde, LocalDate hasta);
     List<ProductoRotacionDTO> obtenerProductosMayorRotacion();
+    List<ProductoRotacionDTO> obtenerProductosMayorRotacion(LocalDateTime inicio, LocalDateTime fin, Long categoriaId);
 }

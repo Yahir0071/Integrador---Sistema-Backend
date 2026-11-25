@@ -35,14 +35,14 @@ public class ProveedorServiceImpl implements IProveedorService {
     @Transactional(readOnly = true)
     public Proveedor buscarPorId(Long id) {
         return proveedorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Proveedor no encontrado con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Proveedor no encontrado con ID: " + id));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Proveedor buscarPorRuc(String ruc) {
         return proveedorRepository.findByRuc(ruc)
-                .orElseThrow(() -> new RuntimeException("Proveedor no encontrado con RUC: " + ruc));
+                .orElseThrow(() -> new IllegalArgumentException("Proveedor no encontrado con RUC: " + ruc));
     }
 
     @Override
@@ -68,7 +68,7 @@ public class ProveedorServiceImpl implements IProveedorService {
         if (Boolean.FALSE.equals(proveedor.getEstado()) && Boolean.TRUE.equals(existente.getEstado())) {
             long activos = productoRepository.countByProveedorIdAndEstadoTrue(id);
             if (activos > 0) {
-                throw new RuntimeException("No se puede desactivar el proveedor porque tiene " + activos + " producto(s) activo(s) vinculado(s).");
+                throw new IllegalStateException("No se puede desactivar el proveedor porque tiene " + activos + " producto(s) activo(s) vinculado(s).");
             }
         }
         existente.setRazonSocial(proveedor.getRazonSocial());
@@ -86,7 +86,7 @@ public class ProveedorServiceImpl implements IProveedorService {
     public void eliminar(Long id) {
         long activos = productoRepository.countByProveedorIdAndEstadoTrue(id);
         if (activos > 0) {
-            throw new RuntimeException("No se puede dar de baja el proveedor porque tiene " + activos + " producto(s) activo(s) vinculado(s).");
+            throw new IllegalStateException("No se puede dar de baja el proveedor porque tiene " + activos + " producto(s) activo(s) vinculado(s).");
         }
         Proveedor proveedor = buscarPorId(id);
         proveedor.setEstado(false);

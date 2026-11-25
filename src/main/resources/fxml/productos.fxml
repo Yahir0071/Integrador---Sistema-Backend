@@ -6,57 +6,54 @@
 
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="pe.edu.utp.Grupo06.view.ProductosViewController"
-      spacing="16" alignment="TOP_LEFT" maxWidth="Infinity" maxHeight="Infinity">
+      spacing="14" alignment="TOP_LEFT" maxWidth="Infinity" maxHeight="Infinity">
 
     <!-- Encabezado de la Sección -->
-    <HBox alignment="CENTER_LEFT" spacing="15">
-        <VBox spacing="2">
-            <Label text="Inventario &amp; Catálogo de Productos" styleClass="main-title"/>
-            <Label text="Control de existencias, precios y stock de seguridad" styleClass="sub-title"/>
+    <HBox alignment="CENTER_LEFT" spacing="12">
+        <VBox spacing="2" HBox.hgrow="ALWAYS" minWidth="0">
+            <Label text="Inventario &amp; Catálogo de Productos" styleClass="main-title" wrapText="true"/>
+            <Label text="Control de existencias, precios y stock de seguridad" styleClass="sub-title" wrapText="true"/>
         </VBox>
-        <Region HBox.hgrow="ALWAYS"/>
-        
-        <HBox spacing="10" alignment="CENTER_RIGHT">
-            <Button text="⚠️ Registrar Merma / Baja" onAction="#handleRegistrarMerma"
-                    style="-fx-background-color: #dc2626; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6px; -fx-padding: 8 14;"/>
-            <Button text="➕ Nuevo Producto" onAction="#handleNuevoProducto"
-                    styleClass="btn, btn-primary" style="-fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6px; -fx-padding: 8 14;"/>
+
+        <HBox spacing="8" alignment="CENTER_RIGHT" minWidth="-Infinity">
+            <Button text="⚠️ Registrar Merma / Baja" onAction="#handleRegistrarMerma" minWidth="-Infinity"
+                    style="-fx-background-color: #dc2626; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6px; -fx-padding: 8 12;"/>
+            <Button text="➕ Nuevo Producto" onAction="#handleNuevoProducto" minWidth="-Infinity"
+                    styleClass="btn, btn-primary" style="-fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6px; -fx-padding: 8 12;"/>
         </HBox>
     </HBox>
 
-    <!-- Filtros y Búsqueda -->
-    <HBox spacing="12" alignment="CENTER_LEFT" styleClass="card-box" style="-fx-padding: 12px 18px;">
+    <!-- Filtros y Búsqueda (responsivo con FlowPane) -->
+    <FlowPane hgap="10" vgap="8" alignment="CENTER_LEFT" styleClass="card-box" style="-fx-padding: 10px 14px;">
         <Label text="🔍" style="-fx-font-size: 14px;"/>
-        <TextField fx:id="txtBuscar" promptText="Buscar producto por nombre o código..." prefWidth="300" prefHeight="35"
+        <TextField fx:id="txtBuscar" promptText="Buscar producto por nombre o código..." prefWidth="230" prefHeight="34"
                    style="-fx-background-radius: 6px; -fx-border-color: #cbd5e1; -fx-border-radius: 6px;"/>
-        
-        <ComboBox fx:id="cbCategoriaFiltro" promptText="Todas las Categorías" prefWidth="200" prefHeight="35"
+
+        <ComboBox fx:id="cbCategoriaFiltro" promptText="Todas las Categorías" prefWidth="170" prefHeight="34"
                   style="-fx-background-radius: 6px;"/>
 
         <CheckBox fx:id="chkSoloBajoStock" text="Solo Bajo Stock / Quiebre" onAction="#handleFiltroBajoStock"
                   style="-fx-text-fill: #b91c1c; -fx-font-weight: bold; -fx-cursor: hand;"/>
 
-        <Region HBox.hgrow="ALWAYS"/>
-        <HBox spacing="10" alignment="CENTER_RIGHT">
-            <Button text="📥 Exportar a Excel" onAction="#handleExportarInventarioExcel"
-                    style="-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6px; -fx-padding: 7 12;"/>
-            <Button text="🔄 Refrescar" onAction="#cargarProductos" styleClass="btn, btn-default" style="-fx-cursor: hand; -fx-padding: 7 12;"/>
-        </HBox>
-    </HBox>
+        <Button text="📥 Exportar a Excel" onAction="#handleExportarInventarioExcel" minWidth="-Infinity"
+                style="-fx-background-color: #10b981; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6px; -fx-padding: 7 12;"/>
+        <Button text="🔄 Refrescar" onAction="#cargarProductos" minWidth="-Infinity"
+                styleClass="btn, btn-default" style="-fx-cursor: hand; -fx-padding: 7 12;"/>
+    </FlowPane>
 
-    <!-- Tabla de Productos -->
+    <!-- Tabla de Productos (anchos proporcionales a ~890px) -->
     <TableView fx:id="tblProductos" VBox.vgrow="ALWAYS" styleClass="table-view">
         <columns>
-            <TableColumn fx:id="colCodigo" text="Código" prefWidth="110"/>
-            <TableColumn fx:id="colNombre" text="Nombre del Producto" prefWidth="210"/>
-            <TableColumn fx:id="colMarca" text="Marca" prefWidth="120"/>
-            <TableColumn fx:id="colCategoria" text="Categoría" prefWidth="130"/>
-            <TableColumn fx:id="colPrecioCompra" text="P. Compra (S/)" prefWidth="110"/>
-            <TableColumn fx:id="colPrecioVenta" text="P. Venta (S/)" prefWidth="110"/>
-            <TableColumn fx:id="colStockActual" text="Stock Actual" prefWidth="100"/>
-            <TableColumn fx:id="colStockMinimo" text="Stock Mín." prefWidth="90"/>
-            <TableColumn fx:id="colEstadoStock" text="Estado" prefWidth="120"/>
-            <TableColumn fx:id="colAcciones" text="Acciones" prefWidth="210"/>
+            <TableColumn fx:id="colCodigo" text="Código" prefWidth="75"/>
+            <TableColumn fx:id="colNombre" text="Nombre del Producto" prefWidth="155"/>
+            <TableColumn fx:id="colMarca" text="Marca" prefWidth="80"/>
+            <TableColumn fx:id="colCategoria" text="Categoría" prefWidth="95"/>
+            <TableColumn fx:id="colPrecioCompra" text="P. Compra" prefWidth="75"/>
+            <TableColumn fx:id="colPrecioVenta" text="P. Venta" prefWidth="75"/>
+            <TableColumn fx:id="colStockActual" text="Stock" prefWidth="65"/>
+            <TableColumn fx:id="colStockMinimo" text="Mín." prefWidth="55"/>
+            <TableColumn fx:id="colEstadoStock" text="Estado" prefWidth="85"/>
+            <TableColumn fx:id="colAcciones" text="Acciones" prefWidth="130"/>
         </columns>
         <columnResizePolicy>
             <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>

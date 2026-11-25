@@ -14,7 +14,7 @@ public interface DetalleCompraRepository extends JpaRepository<DetalleCompra, Lo
 
     @org.springframework.data.jpa.repository.Query("SELECT d.producto.nombre, SUM(d.unidadesIngresadas) AS totalComprado, SUM(d.subtotal) AS totalGastado " +
             "FROM DetalleCompra d " +
-            "WHERE d.compra.fechaCompra BETWEEN :inicio AND :fin AND d.compra.estadoCompra = pe.edu.utp.Grupo06.model.enums.EstadoCompra.REGISTRADA " +
+            "WHERE d.compra.fechaCompra >= :inicio AND d.compra.fechaCompra < :fin AND d.compra.estadoCompra = pe.edu.utp.Grupo06.model.enums.EstadoCompra.REGISTRADA " +
             "GROUP BY d.producto.id, d.producto.nombre " +
             "ORDER BY totalComprado DESC")
     List<Object[]> findTopProductosCompradosEntreFechas(@org.springframework.data.repository.query.Param("inicio") java.time.LocalDateTime inicio,
@@ -22,7 +22,7 @@ public interface DetalleCompraRepository extends JpaRepository<DetalleCompra, Lo
 
     @org.springframework.data.jpa.repository.Query("SELECT d.producto.codigo, d.producto.nombre, d.compra.proveedor.razonSocial, SUM(d.unidadesIngresadas), SUM(d.subtotal) " +
             "FROM DetalleCompra d " +
-            "WHERE d.compra.fechaCompra BETWEEN :inicio AND :fin AND d.compra.estadoCompra = pe.edu.utp.Grupo06.model.enums.EstadoCompra.REGISTRADA " +
+            "WHERE d.compra.fechaCompra >= :inicio AND d.compra.fechaCompra < :fin AND d.compra.estadoCompra = pe.edu.utp.Grupo06.model.enums.EstadoCompra.REGISTRADA " +
             "GROUP BY d.producto.codigo, d.producto.nombre, d.compra.proveedor.razonSocial " +
             "ORDER BY SUM(d.subtotal) DESC")
     List<Object[]> findResumenProductosCompradosEntreFechas(@org.springframework.data.repository.query.Param("inicio") java.time.LocalDateTime inicio,

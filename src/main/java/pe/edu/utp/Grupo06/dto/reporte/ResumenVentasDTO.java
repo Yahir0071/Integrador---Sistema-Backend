@@ -18,7 +18,13 @@ public class ResumenVentasDTO {
     private Long unidadesVendidas;
     private BigDecimal ticketPromedio;
 
+    /** Constructor de compatibilidad con 3 argumentos. */
     public ResumenVentasDTO(Long cantidadVentasEmitidas, Long cantidadVentasAnuladas, BigDecimal totalRecaudado) {
         this(cantidadVentasEmitidas, cantidadVentasAnuladas, totalRecaudado, 0L, BigDecimal.ZERO);
+    }
+
+    /** Constructor de compatibilidad con 4 argumentos. */
+    public ResumenVentasDTO(Long cantidadVentasEmitidas, Long cantidadVentasAnuladas, BigDecimal totalRecaudado, Long unidadesVendidas) {
+        this(cantidadVentasEmitidas, cantidadVentasAnuladas, totalRecaudado, unidadesVendidas, BigDecimal.ZERO);
     }
 }

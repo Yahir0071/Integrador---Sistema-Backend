@@ -67,7 +67,7 @@ public class CompraServiceImpl implements ICompraService {
                     detalle.getPresentacion() == null || detalle.getPresentacion().getId() == null)
                 throw new IllegalArgumentException("Producto y presentación son obligatorios");
             Producto producto = productoRepository.findById(detalle.getProducto().getId())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado ID: " + detalle.getProducto().getId()));
+                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado ID: " + detalle.getProducto().getId()));
             PresentacionProducto presentacion = presentacionRepository.findById(detalle.getPresentacion().getId())
                     .orElseThrow(() -> new IllegalArgumentException("Presentación no encontrada"));
             if (!presentacion.getProducto().getId().equals(producto.getId()) || !Boolean.TRUE.equals(presentacion.getEstado()))
@@ -160,6 +160,6 @@ public class CompraServiceImpl implements ICompraService {
     @Transactional(readOnly = true)
     public Compra buscarPorId(Long id) {
         return compraRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Compra no encontrada con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Compra no encontrada con ID: " + id));
     }
 }

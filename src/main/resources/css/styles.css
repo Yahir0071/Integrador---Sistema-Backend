@@ -5,6 +5,17 @@
     -fx-background-color: #f8f9fa;
 }
 
+/* ScrollPane transparente sin alterar el color base de texto en Modena */
+.scroll-pane,
+.scroll-pane:focused {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane > .viewport,
+.scroll-pane > .corner {
+    -fx-background-color: transparent;
+}
+
 /* Encabezados y títulos */
 .main-title {
     -fx-font-size: 20px;

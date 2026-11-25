@@ -22,9 +22,9 @@ public class RegistroClienteService {
         Usuario usuario = new Usuario();
         usuario.setUsername(datos.username());
         usuario.setPassword(datos.password());
-        usuario.setNombreCompleto(datos.nombreCompleto().trim());
+        usuario.setNombreCompleto(datos.nombreCompletoNormalizado());
         usuario.setEmail(datos.email().trim());
-        usuario.setTelefono(datos.telefono().trim());
+        usuario.setTelefono(datos.telefonoNormalizado());
         usuario.setActivo(true);
         usuario.setRol(roles.findByNombre(RolNombre.CLIENTE)
                 .orElseThrow(() -> new IllegalStateException("Debe aplicar la migración del rol CLIENTE")));

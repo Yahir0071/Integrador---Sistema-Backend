@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
 @Setter
@@ -17,7 +16,7 @@ public class ErrorResponse {
     private int status;
     private String error;
     private String mensaje;
-    private List<String> detalles;
+    private Object detalles;
 
     public ErrorResponse(int status, String error, String mensaje) {
         this.timestamp = LocalDateTime.now();
@@ -26,11 +25,8 @@ public class ErrorResponse {
         this.mensaje = mensaje;
     }
 
-    public ErrorResponse(int status, String error, String mensaje, List<String> detalles) {
-        this.timestamp = LocalDateTime.now();
-        this.status = status;
-        this.error = error;
-        this.mensaje = mensaje;
+    public ErrorResponse(int status, String error, String mensaje, Object detalles) {
+        this(status, error, mensaje);
         this.detalles = detalles;
     }
 }

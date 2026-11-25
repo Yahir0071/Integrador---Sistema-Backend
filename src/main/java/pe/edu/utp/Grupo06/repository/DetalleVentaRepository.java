@@ -21,6 +21,13 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long
             "ORDER BY totalVendido DESC")
     List<Object[]> findProductosMayorRotacion();
 
+    @Query("SELECT COALESCE(SUM(d.cantidad), 0) " +
+            "FROM DetalleVenta d " +
+            "WHERE d.venta.fechaVenta >= :inicio AND d.venta.fechaVenta < :fin " +
+            "  AND d.venta.demo = false AND d.venta.estado = pe.edu.utp.Grupo06.model.enums.EstadoVenta.EMITIDA")
+    Long sumUnidadesVendidasEntreFechas(@org.springframework.data.repository.query.Param("inicio") java.time.LocalDateTime inicio,
+                                        @org.springframework.data.repository.query.Param("fin") java.time.LocalDateTime fin);
+
     @Query("SELECT d.producto.nombre, SUM(d.cantidad) AS totalVendido " +
             "FROM DetalleVenta d " +
             "WHERE d.venta.fechaVenta >= :inicio AND d.venta.fechaVenta < :fin AND d.venta.demo = false AND d.venta.estado = pe.edu.utp.Grupo06.model.enums.EstadoVenta.EMITIDA " +
@@ -39,11 +46,4 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVenta, Long
     List<Object[]> findProductosMayorRotacionFiltrado(@org.springframework.data.repository.query.Param("inicio") java.time.LocalDateTime inicio,
                                                      @org.springframework.data.repository.query.Param("fin") java.time.LocalDateTime fin,
                                                      @org.springframework.data.repository.query.Param("categoriaId") Long categoriaId);
-
-    @Query("SELECT COALESCE(SUM(d.cantidad), 0) " +
-            "FROM DetalleVenta d " +
-            "WHERE d.venta.fechaVenta >= :inicio AND d.venta.fechaVenta < :fin " +
-            "  AND d.venta.demo = false AND d.venta.estado = pe.edu.utp.Grupo06.model.enums.EstadoVenta.EMITIDA")
-    Long sumUnidadesVendidasEntreFechas(@org.springframework.data.repository.query.Param("inicio") java.time.LocalDateTime inicio,
-                                        @org.springframework.data.repository.query.Param("fin") java.time.LocalDateTime fin);
 }

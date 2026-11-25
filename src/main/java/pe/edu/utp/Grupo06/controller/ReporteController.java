@@ -11,11 +11,14 @@ import pe.edu.utp.Grupo06.service.IReporteService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/reportes")
 public class ReporteController {
+
+    private static final ZoneId ZONA_LIMA = ZoneId.of("America/Lima");
 
     @Autowired
     private IReporteService reporteService;
@@ -29,6 +32,9 @@ public class ReporteController {
     public ResponseEntity<ResumenVentasDTO> obtenerResumenVentas(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin) {
+        if (inicio.isAfter(fin)) {
+            throw new IllegalArgumentException("La fecha de inicio no puede ser posterior a la fecha de fin");
+        }
         return ResponseEntity.ok(reporteService.obtenerResumenVentasPorPeriodo(inicio, fin));
     }
 
@@ -40,7 +46,19 @@ public class ReporteController {
     }
 
     @GetMapping("/mayor-rotacion")
-    public ResponseEntity<List<ProductoRotacionDTO>> obtenerProductosMayorRotacion() {
+    public ResponseEntity<List<ProductoRotacionDTO>> obtenerProductosMayorRotacion(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin,
+            @RequestParam(required = false) Long categoriaId) {
+        if (inicio != null || fin != null || categoriaId != null) {
+            LocalDate hoyLima = LocalDate.now(ZONA_LIMA);
+            LocalDateTime inicioEfectivo = inicio != null ? inicio : LocalDate.of(2000, 1, 1).atStartOfDay();
+            LocalDateTime finEfectivo = fin != null ? fin : hoyLima.plusDays(1).atStartOfDay();
+            if (inicioEfectivo.isAfter(finEfectivo)) {
+                throw new IllegalArgumentException("La fecha de inicio no puede ser posterior a la fecha de fin");
+            }
+            return ResponseEntity.ok(reporteService.obtenerProductosMayorRotacion(inicioEfectivo, finEfectivo, categoriaId));
+        }
         return ResponseEntity.ok(reporteService.obtenerProductosMayorRotacion());
     }
 }

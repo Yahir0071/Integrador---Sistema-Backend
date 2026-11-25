@@ -44,10 +44,10 @@ public class VentaServiceImpl implements IVentaService {
     @Transactional
     public Venta registrarVenta(Venta venta) {
         if (venta.getDetalles() == null || venta.getDetalles().isEmpty()) {
-            throw new RuntimeException("La venta debe contener al menos un detalle");
+            throw new IllegalArgumentException("La venta debe contener al menos un detalle");
         }
         if (venta.getPagos() == null || venta.getPagos().isEmpty()) {
-            throw new RuntimeException("La venta debe registrar al menos un método de pago");
+            throw new IllegalArgumentException("La venta debe registrar al menos un método de pago");
         }
 
         venta.setDemo(false);
@@ -61,10 +61,10 @@ public class VentaServiceImpl implements IVentaService {
             validador.validar(detalle);
 
             Producto producto = productoRepository.findById(detalle.getProducto().getId())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado ID: " + detalle.getProducto().getId()));
+                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado ID: " + detalle.getProducto().getId()));
 
             if (producto.getStockDisponible() < detalle.getCantidad()) {
-                throw new RuntimeException("Stock insuficiente para el producto: " + producto.getNombre() +
+                throw new IllegalStateException("Stock insuficiente para el producto: " + producto.getNombre() +
                         ". Disponible: " + producto.getStockDisponible() + ", Requerido: " + detalle.getCantidad());
             }
 
@@ -88,14 +88,14 @@ public class VentaServiceImpl implements IVentaService {
         BigDecimal totalPagado = BigDecimal.ZERO;
         for (Pago pago : venta.getPagos()) {
             if (pago.getMonto() == null || pago.getMonto().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new RuntimeException("Cada pago debe tener un monto mayor a 0");
+                throw new IllegalArgumentException("Cada pago debe tener un monto mayor a 0");
             }
             pago.setVenta(venta);
             totalPagado = totalPagado.add(pago.getMonto());
         }
 
         if (totalPagado.compareTo(totalCalculado) != 0) {
-            throw new RuntimeException("El total de los pagos (" + totalPagado +
+            throw new IllegalArgumentException("El total de los pagos (" + totalPagado +
                     ") no coincide con el total de la venta (" + totalCalculado + ")");
         }
 
@@ -134,14 +134,14 @@ public class VentaServiceImpl implements IVentaService {
     @Transactional(readOnly = true)
     public Venta buscarPorId(Long id) {
         return ventaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Venta no encontrada con ID: " + id));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Venta buscarPorTicket(String ticket) {
         return ventaRepository.findByNumeroTicket(ticket)
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ticket: " + ticket));
+                .orElseThrow(() -> new IllegalArgumentException("Venta no encontrada con ticket: " + ticket));
     }
 
     @Override
@@ -157,7 +157,7 @@ public class VentaServiceImpl implements IVentaService {
         Venta venta = ventaRepository.locked(ventaId).orElseThrow(() -> new IllegalArgumentException("Venta no encontrada"));
 
         if (venta.getEstado() == EstadoVenta.ANULADA) {
-            throw new RuntimeException("La venta con ticket " + venta.getNumeroTicket() + " ya se encuentra anulada");
+            throw new IllegalStateException("La venta con ticket " + venta.getNumeroTicket() + " ya se encuentra anulada");
         }
 
         // Devuelve al stock la cantidad de cada producto vendido.

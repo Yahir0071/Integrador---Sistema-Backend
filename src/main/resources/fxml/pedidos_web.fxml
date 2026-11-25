@@ -2,18 +2,65 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.image.ImageView?>
-<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="pe.edu.utp.Grupo06.view.PedidosWebViewController" spacing="10">
- <HBox spacing="15"><Label text="Pedidos de la tienda web" style="-fx-font-size:22;-fx-font-weight:bold;"/><Button text="Actualizar pedidos" onAction="#refrescar"/></HBox>
- <Label text="Los pedidos marcados DEMO son simulados. Para pagos reales, verifique el abono en Yape. Actualice para ver pedidos nuevos." wrapText="true"/>
- <TableView fx:id="tabla" prefHeight="220" VBox.vgrow="ALWAYS"><columns>
-  <TableColumn fx:id="numero" text="Pedido" prefWidth="270"/><TableColumn fx:id="cliente" text="Cliente" prefWidth="180"/>
-  <TableColumn fx:id="estado" text="Estado" prefWidth="220"/><TableColumn fx:id="total" text="Total" prefWidth="100"/>
- </columns></TableView>
- <HBox spacing="10"><TextArea fx:id="detalle" editable="false" wrapText="true" prefRowCount="7" HBox.hgrow="ALWAYS"/><ImageView fx:id="comprobante" fitWidth="200" fitHeight="180" preserveRatio="true"/></HBox>
- <HBox spacing="10"><Button text="Ver comprobante" onAction="#verComprobante"/><CheckBox fx:id="confirmado" text="Verifiqué el abono o la simulación DEMO"/></HBox>
- <FlowPane hgap="8" vgap="8"><Button fx:id="aprobar" text="Aprobar pago" onAction="#aprobar"/><Button fx:id="rechazar" text="Rechazar comprobante" onAction="#rechazar"/><Button fx:id="preparar" text="Preparar pedido" onAction="#preparar"/><Button fx:id="listo" text="Listo para recoger" onAction="#listo"/></FlowPane>
- <TextField fx:id="motivo" promptText="Motivo de rechazo o referencia del reembolso externo (obligatorio)"/>
- <HBox spacing="8"><CheckBox fx:id="reponer" text="Mercadería revisada, apta para reponer"/><Button fx:id="reembolsar" text="Confirmar reembolso total (admin)" onAction="#reembolsar"/></HBox>
- <HBox spacing="8"><TextField fx:id="codigo" promptText="Código NV-… o lector QR USB" onAction="#entregar" HBox.hgrow="ALWAYS"/><Button text="Registrar entrega" onAction="#entregar"/></HBox>
- <Label fx:id="mensaje" wrapText="true"/>
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="pe.edu.utp.Grupo06.view.PedidosWebViewController"
+      spacing="10" maxWidth="Infinity" maxHeight="Infinity">
+    <ScrollPane fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS"
+                style="-fx-background-color: transparent;">
+        <VBox spacing="12" maxWidth="Infinity" style="-fx-padding: 2 4 8 2;">
+            <HBox alignment="CENTER_LEFT" spacing="12">
+                <VBox spacing="2" HBox.hgrow="ALWAYS" minWidth="0">
+                    <Label text="Pedidos de la tienda web" styleClass="main-title" wrapText="true"/>
+                    <Label text="Los pedidos marcados DEMO son simulados. Para pagos reales, verifique el abono en Yape. Actualice para ver pedidos nuevos."
+                           styleClass="sub-title" wrapText="true"/>
+                </VBox>
+                <Button text="🔄 Actualizar pedidos" onAction="#refrescar" minWidth="-Infinity"
+                        styleClass="btn, btn-default" style="-fx-cursor: hand;"/>
+            </HBox>
+            <TableView fx:id="tabla" prefHeight="200" minHeight="160" styleClass="table-view">
+                <columns>
+                    <TableColumn fx:id="numero" text="Pedido" prefWidth="240"/>
+                    <TableColumn fx:id="cliente" text="Cliente" prefWidth="180"/>
+                    <TableColumn fx:id="estado" text="Estado" prefWidth="200"/>
+                    <TableColumn fx:id="total" text="Total" prefWidth="100"/>
+                </columns>
+                <columnResizePolicy>
+                    <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                </columnResizePolicy>
+            </TableView>
+            <HBox spacing="10" styleClass="card-box" style="-fx-padding: 12;">
+                <TextArea fx:id="detalle" editable="false" wrapText="true" prefRowCount="6" HBox.hgrow="ALWAYS" minWidth="0"/>
+                <ImageView fx:id="comprobante" fitWidth="180" fitHeight="160" preserveRatio="true"/>
+            </HBox>
+            <FlowPane hgap="12" vgap="8" alignment="CENTER_LEFT">
+                <Button text="Ver comprobante" onAction="#verComprobante" minWidth="-Infinity"
+                        styleClass="btn, btn-default" style="-fx-cursor: hand;"/>
+                <CheckBox fx:id="confirmado" text="Verifiqué el abono o la simulación DEMO"
+                          style="-fx-text-fill: #1e293b; -fx-font-weight: bold;"/>
+            </FlowPane>
+            <FlowPane hgap="8" vgap="8">
+                <Button fx:id="aprobar" text="Aprobar pago" onAction="#aprobar"
+                        style="-fx-background-color: #16a34a; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                <Button fx:id="rechazar" text="Rechazar comprobante" onAction="#rechazar"
+                        style="-fx-background-color: #dc2626; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                <Button fx:id="preparar" text="Preparar pedido" onAction="#preparar"
+                        style="-fx-background-color: #0284c7; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+                <Button fx:id="listo" text="Listo para recoger" onAction="#listo"
+                        style="-fx-background-color: #0d9488; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+            </FlowPane>
+            <TextField fx:id="motivo" promptText="Motivo de rechazo o referencia del reembolso externo (obligatorio)"/>
+            <FlowPane hgap="10" vgap="8" alignment="CENTER_LEFT">
+                <CheckBox fx:id="reponer" text="Mercadería revisada, apta para reponer"
+                          style="-fx-text-fill: #1e293b; -fx-font-weight: bold;"/>
+                <Button fx:id="reembolsar" text="Confirmar reembolso total (admin)" onAction="#reembolsar" minWidth="-Infinity"
+                        style="-fx-background-color: #b91c1c; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 6;"/>
+            </FlowPane>
+            <HBox spacing="8">
+                <TextField fx:id="codigo" promptText="Código NV-… o lector QR USB" onAction="#entregar" HBox.hgrow="ALWAYS" minWidth="0"/>
+                <Button text="Registrar entrega" onAction="#entregar" minWidth="-Infinity"
+                        styleClass="btn, btn-primary" style="-fx-font-weight: bold; -fx-cursor: hand;"/>
+            </HBox>
+            <Label fx:id="mensaje" wrapText="true" style="-fx-text-fill: #0f172a; -fx-font-weight: bold;"/>
+        </VBox>
+    </ScrollPane>
 </VBox>

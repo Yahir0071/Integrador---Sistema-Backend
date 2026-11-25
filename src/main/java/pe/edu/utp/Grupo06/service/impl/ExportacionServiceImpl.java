@@ -22,11 +22,15 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import pe.edu.utp.Grupo06.model.enums.EstadoVenta;
 
 @Service
 public class ExportacionServiceImpl implements IExportacionService {
+
+    private static final ZoneId ZONA_LIMA = ZoneId.of("America/Lima");
 
     @Autowired
     private DetalleCompraRepository detalleCompraRepository;
@@ -36,6 +40,10 @@ public class ExportacionServiceImpl implements IExportacionService {
 
     @Override
     public void exportarVentasExcel(File destino, List<Venta> ventas, LocalDate inicio, LocalDate fin) throws Exception {
+        List<Venta> ventasReales = ventas.stream()
+                .filter(v -> v != null && !v.isDemo())
+                .toList();
+
         try (XSSFWorkbook wb = new XSSFWorkbook()) {
             Sheet sheet = wb.createSheet("Reporte de Ventas");
             sheet.setDisplayGridlines(true);
@@ -57,7 +65,7 @@ public class ExportacionServiceImpl implements IExportacionService {
             String rangoTxt = (inicio != null && fin != null) ? "Del " + inicio.format(df) + " al " + fin.format(df) : "Historial Completo";
             Row r2 = sheet.createRow(rowIdx++);
             Cell c2 = r2.createCell(0);
-            c2.setCellValue("Período evaluado: " + rangoTxt + "  |  Fecha de emisión: " + LocalDateTime.now().format(dtf) + "  |  Registros: " + ventas.size());
+            c2.setCellValue("Período evaluado: " + rangoTxt + "  |  Fecha de emisión: " + LocalDateTime.now(ZONA_LIMA).format(dtf) + "  |  Registros: " + ventasReales.size());
             c2.setCellStyle(estilos.subtitulo);
 
             rowIdx++; // Fila en blanco
@@ -81,17 +89,21 @@ public class ExportacionServiceImpl implements IExportacionService {
             BigDecimal sumSubtotal = BigDecimal.ZERO;
             BigDecimal sumIgv = BigDecimal.ZERO;
             BigDecimal sumTotal = BigDecimal.ZERO;
+            long ventasVigentes = 0;
 
-            for (Venta v : ventas) {
+            for (Venta v : ventasReales) {
                 BigDecimal tot = v.getTotal() != null ? v.getTotal() : BigDecimal.ZERO;
                 BigDecimal sub = v.getSubtotal() != null && v.getSubtotal().compareTo(BigDecimal.ZERO) > 0 ?
                         v.getSubtotal() : tot.divide(BigDecimal.valueOf(1.18), 2, RoundingMode.HALF_UP);
                 BigDecimal igv = v.getIgv() != null && v.getIgv().compareTo(BigDecimal.ZERO) > 0 ?
                         v.getIgv() : tot.subtract(sub);
 
-                sumSubtotal = sumSubtotal.add(sub);
-                sumIgv = sumIgv.add(igv);
-                sumTotal = sumTotal.add(tot);
+                if (v.getEstado() == EstadoVenta.EMITIDA) {
+                    sumSubtotal = sumSubtotal.add(sub);
+                    sumIgv = sumIgv.add(igv);
+                    sumTotal = sumTotal.add(tot);
+                    ventasVigentes++;
+                }
 
                 String pagosStr = "";
                 if (v.getPagos() != null && org.hibernate.Hibernate.isInitialized(v.getPagos()) && !v.getPagos().isEmpty()) {
@@ -131,7 +143,7 @@ public class ExportacionServiceImpl implements IExportacionService {
                 cTot.setCellStyle(estilos.moneda);
 
                 Cell cEst = row.createCell(6);
-                cEst.setCellValue(v.getEstado() != null ? v.getEstado().name() : "COMPLETADA");
+                cEst.setCellValue(v.getEstado() != null ? v.getEstado().name() : "EMITIDA");
                 cEst.setCellStyle(estilos.centrado);
 
                 Cell cPag = row.createCell(7);
@@ -139,11 +151,11 @@ public class ExportacionServiceImpl implements IExportacionService {
                 cPag.setCellStyle(estilos.texto);
             }
 
-            // 4. Fila de Totales
+            // 4. Fila de Totales (solo ventas EMITIDA y no demo)
             Row totRow = sheet.createRow(rowIdx++);
             totRow.setHeightInPoints(22);
             Cell cTotLbl = totRow.createCell(0);
-            cTotLbl.setCellValue("TOTALES (" + ventas.size() + " Ventas)");
+            cTotLbl.setCellValue("TOTALES (" + ventasVigentes + " Ventas emitidas)");
             cTotLbl.setCellStyle(estilos.totalTexto);
 
             totRow.createCell(1).setCellStyle(estilos.totalTexto);
@@ -196,7 +208,7 @@ public class ExportacionServiceImpl implements IExportacionService {
             String rangoTxt = (inicio != null && fin != null) ? "Del " + inicio.format(df) + " al " + fin.format(df) : "Historial Completo";
             Row r2 = sheet.createRow(rowIdx++);
             Cell c2 = r2.createCell(0);
-            c2.setCellValue("Período evaluado: " + rangoTxt + "  |  Fecha de emisión: " + LocalDateTime.now().format(dtf) + "  |  Facturas: " + compras.size());
+            c2.setCellValue("Período evaluado: " + rangoTxt + "  |  Fecha de emisión: " + LocalDateTime.now(ZONA_LIMA).format(dtf) + "  |  Facturas: " + compras.size());
             c2.setCellStyle(estilos.subtitulo);
 
             rowIdx++;
@@ -350,7 +362,7 @@ public class ExportacionServiceImpl implements IExportacionService {
             String rangoTxt = (inicio != null && fin != null) ? "Del " + inicio.format(df) + " al " + fin.format(df) : "Historial Completo";
             Row r2 = sheet.createRow(rowIdx++);
             Cell c2 = r2.createCell(0);
-            c2.setCellValue("Período: " + rangoTxt + "  |  Fecha de emisión: " + LocalDateTime.now().format(dtf) + "  |  Total registros: " + mermas.size());
+            c2.setCellValue("Período: " + rangoTxt + "  |  Fecha de emisión: " + LocalDateTime.now(ZONA_LIMA).format(dtf) + "  |  Total registros: " + mermas.size());
             c2.setCellStyle(estilos.subtitulo);
 
             rowIdx++;
@@ -486,7 +498,7 @@ public class ExportacionServiceImpl implements IExportacionService {
 
             Row r2 = sheet.createRow(rowIdx++);
             Cell c2 = r2.createCell(0);
-            c2.setCellValue("Fecha de emisión: " + LocalDateTime.now().format(dtf) + "  |  Total productos activos: " + productos.size());
+            c2.setCellValue("Fecha de emisión: " + LocalDateTime.now(ZONA_LIMA).format(dtf) + "  |  Total productos activos: " + productos.size());
             c2.setCellStyle(estilos.subtitulo);
 
             rowIdx++;
@@ -627,7 +639,7 @@ public class ExportacionServiceImpl implements IExportacionService {
             Cell c2 = r2.createCell(0);
             c2.setCellValue("Período evaluado: " + (periodo != null ? periodo : "Historial") +
                     "  |  Categoría: " + (categoria != null ? categoria : "Todas") +
-                    "  |  Fecha de emisión: " + LocalDateTime.now().format(dtf) +
+                    "  |  Fecha de emisión: " + LocalDateTime.now(ZONA_LIMA).format(dtf) +
                     "  |  Total productos en ranking: " + rotacion.size());
             c2.setCellStyle(estilos.subtitulo);
 
