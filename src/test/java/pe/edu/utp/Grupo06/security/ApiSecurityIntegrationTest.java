@@ -8,7 +8,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import pe.edu.utp.Grupo06.config.ApiSecurityConfig;
-import pe.edu.utp.Grupo06.model.Usuario;
+import pe.edu.utp.Grupo06.dto.auth.RegistroClienteDTO;
+import pe.edu.utp.Grupo06.model.Cliente;
+import pe.edu.utp.Grupo06.model.Empleado;
 import pe.edu.utp.Grupo06.model.enums.RolNombre;
 import pe.edu.utp.Grupo06.repository.*;
 import pe.edu.utp.Grupo06.service.*;
@@ -24,9 +26,10 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class ApiSecurityIntegrationTest {
     @Autowired Environment env;
-    @Autowired UsuarioRepository usuarios;
-    @Autowired RolRepository roles;
-    @Autowired IUsuarioService servicio;
+    @Autowired ClienteRepository clientes;
+    @Autowired EmpleadoRepository empleados;
+    @Autowired IClienteService clienteService;
+    @Autowired IEmpleadoService empleadoService;
     @Autowired PasswordEncoder passwords;
     @Autowired JwtEncoder encoder;
     @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
@@ -39,7 +42,10 @@ class ApiSecurityIntegrationTest {
 
     @AfterEach
     void limpiar() {
-        creados.forEach(nombre -> usuarios.findByUsername(nombre).ifPresent(usuarios::delete));
+        creados.forEach(nombre -> {
+            clientes.findByUsername(nombre).ifPresent(clientes::delete);
+            empleados.findByUsername(nombre).ifPresent(empleados::delete);
+        });
     }
 
     private String nombre() {
@@ -48,12 +54,17 @@ class ApiSecurityIntegrationTest {
         return nombre;
     }
 
-    private Usuario cuenta(RolNombre rol) {
-        Usuario u = new Usuario();
-        u.setUsername(nombre()); u.setPassword(PASSWORD); u.setNombreCompleto("Prueba de seguridad");
-        u.setEmail(u.getUsername()+"@example.com"); u.setTelefono("999123456");
-        u.setRol(roles.findByNombre(rol).orElseThrow());
-        return servicio.registrar(u);
+    private Cliente cuentaCliente() {
+        String u = nombre();
+        return clienteService.registrar(new RegistroClienteDTO(u, PASSWORD, "Prueba de seguridad", u + "@example.com", "999123456"));
+    }
+
+    private Empleado cuentaEmpleado(RolNombre rol) {
+        Empleado e = new Empleado();
+        e.setUsername(nombre()); e.setPassword(PASSWORD); e.setNombreCompleto("Prueba de seguridad");
+        e.setEmail(e.getUsername() + "@example.com"); e.setTelefono("999123456");
+        e.setRol(rol); e.setActivo(true);
+        return empleadoService.registrar(e);
     }
 
     private HttpResponse<String> request(String method, String path, String body, String token) throws Exception {
@@ -64,9 +75,16 @@ class ApiSecurityIntegrationTest {
                 : HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.ofString());
     }
 
-    private String token(Usuario u) throws Exception {
+    private String tokenCliente(Cliente c) throws Exception {
         var response = request("POST", "/api/auth/login",
-                json.writeValueAsString(Map.of("username",u.getUsername(),"password",PASSWORD)), null);
+                json.writeValueAsString(Map.of("username", c.getUsername(), "password", PASSWORD)), null);
+        assertEquals(200, response.statusCode(), response.body());
+        return json.readTree(response.body()).path("accessToken").asText();
+    }
+
+    private String tokenEmpleado(Empleado e) throws Exception {
+        var response = request("POST", "/api/personal/auth/login",
+                json.writeValueAsString(Map.of("username", e.getUsername(), "password", PASSWORD)), null);
         assertEquals(200, response.statusCode(), response.body());
         return json.readTree(response.body()).path("accessToken").asText();
     }
@@ -110,14 +128,14 @@ class ApiSecurityIntegrationTest {
     }
 
     @Test void clienteNoAccedeAInformacionInterna() throws Exception {
-        String token = token(cuenta(RolNombre.CLIENTE));
+        String token = tokenCliente(cuentaCliente());
         for (String path : List.of("/api/usuarios", "/api/productos", "/api/ventas", "/api/reportes/inventario"))
             assertEquals(403, request("GET", path, null, token).statusCode(), path);
         assertEquals(403, request("POST", "/api/usuarios", "{}", token).statusCode());
     }
 
     @Test void vendedorAccedeAPosPeroNoAdministracion() throws Exception {
-        String token = token(cuenta(RolNombre.VENDEDOR));
+        String token = tokenEmpleado(cuentaEmpleado(RolNombre.VENDEDOR));
         assertEquals(200, request("GET", "/api/productos", null, token).statusCode());
         assertEquals(403, request("GET", "/api/usuarios", null, token).statusCode());
         assertEquals(403, request("GET", "/api/compras", null, token).statusCode());
@@ -125,7 +143,7 @@ class ApiSecurityIntegrationTest {
     }
 
     @Test void administradorAccedeSinExponerHashes() throws Exception {
-        String token = token(cuenta(RolNombre.ADMINISTRADOR));
+        String token = tokenEmpleado(cuentaEmpleado(RolNombre.ADMINISTRADOR));
         var response = request("GET", "/api/usuarios", null, token);
         assertEquals(200, response.statusCode(), response.body());
         assertFalse(response.body().contains("password"));
@@ -139,11 +157,10 @@ class ApiSecurityIntegrationTest {
                 "rol","ADMINISTRADOR","activo",false,"id",1));
         var response = request("POST", "/api/auth/registro", datos, null);
         assertEquals(201, response.statusCode(), response.body());
-        Usuario u = usuarios.findByUsername(nombre).orElseThrow();
-        assertEquals(RolNombre.CLIENTE, u.getRol().getNombre());
-        assertTrue(u.getActivo());
-        assertTrue(passwords.matches(PASSWORD, u.getPassword()));
-        assertNotEquals(PASSWORD, u.getPassword());
+        Cliente c = clientes.findByUsername(nombre).orElseThrow();
+        assertTrue(c.getActivo());
+        assertTrue(passwords.matches(PASSWORD, c.getPassword()));
+        assertNotEquals(PASSWORD, c.getPassword());
         assertFalse(response.body().contains("password"));
         String token = json.readTree(response.body()).path("accessToken").asText();
         assertEquals(200, request("GET", "/api/auth/me", null, token).statusCode());
@@ -156,29 +173,28 @@ class ApiSecurityIntegrationTest {
         var datos=Map.of("username",nombre,"password","corta","nombreCompleto","Prueba",
                 "email","correo-invalido","telefono","999123456");
         assertEquals(400,request("POST","/api/auth/registro",json.writeValueAsString(datos),null).statusCode());
-        assertTrue(usuarios.findByUsername(nombre).isEmpty());
+        assertTrue(clientes.findByUsername(nombre).isEmpty());
     }
 
     @Test void noPermiteRegistrarUsernameExistente() throws Exception {
-        Usuario u=cuenta(RolNombre.VENDEDOR);
-        var datos=Map.of("username",u.getUsername(),"password",PASSWORD,"nombreCompleto","Otro usuario",
-                "email","otro@example.com","telefono","999123456");
+        Cliente c=cuentaCliente();
+        var datos=Map.of("username",c.getUsername(),"password",PASSWORD,"nombreCompleto","Otro usuario",
+                "email","otro_"+c.getUsername()+"@example.com","telefono","999123456");
         var response=request("POST","/api/auth/registro",json.writeValueAsString(datos),null);
         assertEquals(400,response.statusCode());
-        assertEquals(RolNombre.VENDEDOR,usuarios.findById(u.getId()).orElseThrow().getRol().getNombre());
     }
 
     @Test void perfilSiempreCorrespondeAlToken() throws Exception {
-        Usuario cliente=cuenta(RolNombre.CLIENTE);
-        Usuario otro=cuenta(RolNombre.ADMINISTRADOR);
-        var response=request("GET","/api/auth/me?id="+otro.getId(),null,token(cliente));
+        Cliente cliente=cuentaCliente();
+        Empleado otro=cuentaEmpleado(RolNombre.ADMINISTRADOR);
+        var response=request("GET","/api/auth/me?id="+otro.getId(),null,tokenCliente(cliente));
         assertEquals(200,response.statusCode());
         assertEquals(cliente.getId().longValue(),json.readTree(response.body()).path("id").asLong());
     }
 
     @Test void auditoriaUsaUsuarioAutenticadoAunqueEnvienOtroId() throws Exception {
-        Usuario vendedor=cuenta(RolNombre.VENDEDOR);
-        Usuario otro=cuenta(RolNombre.ADMINISTRADOR);
+        Empleado vendedor=cuentaEmpleado(RolNombre.VENDEDOR);
+        Empleado otro=cuentaEmpleado(RolNombre.ADMINISTRADOR);
         var p=new pe.edu.utp.Grupo06.model.Producto();
         p.setCodigo(nombre()); p.setNombre("Producto prueba auditoria");
         p.setPrecioCompra(new java.math.BigDecimal("1.00")); p.setPrecioVenta(new java.math.BigDecimal("2.00"));
@@ -189,7 +205,7 @@ class ApiSecurityIntegrationTest {
             var datos=Map.of("productoId",productoId,"usuarioId",otro.getId(),"cantidad",1,
                     "motivo",pe.edu.utp.Grupo06.model.enums.MotivoMerma.ROTURA_DANO.toString(),
                     "observacion","Prueba de identidad");
-            var response=request("POST","/api/mermas",json.writeValueAsString(datos),token(vendedor));
+            var response=request("POST","/api/mermas",json.writeValueAsString(datos),tokenEmpleado(vendedor));
             assertEquals(201,response.statusCode(),response.body());
             assertEquals(vendedor.getId().longValue(),json.readTree(response.body()).path("usuarioId").asLong());
             assertEquals(vendedor.getId(),jdbc.queryForObject(
@@ -203,47 +219,47 @@ class ApiSecurityIntegrationTest {
     }
 
     @Test void loginIncorrectoDevuelve401() throws Exception {
-        Usuario u = cuenta(RolNombre.CLIENTE);
+        Cliente c = cuentaCliente();
         assertEquals(401,request("POST","/api/auth/login",json.writeValueAsString(
-                Map.of("username",u.getUsername(),"password","incorrecta")),null).statusCode());
+                Map.of("username",c.getUsername(),"password","incorrecta")),null).statusCode());
         assertEquals(401,request("POST","/api/auth/login",json.writeValueAsString(
                 Map.of("username",nombre(),"password",PASSWORD)),null).statusCode());
     }
 
     @Test void rechazaTokensManipuladosYVencidos() throws Exception {
-        Usuario u=cuenta(RolNombre.CLIENTE);
-        String valid=token(u);
+        Cliente c=cuentaCliente();
+        String valid=tokenCliente(c);
         String[] partes=valid.split("\\.");
         char primero=partes[2].charAt(0);
         String falso=partes[0]+"."+partes[1]+"."+(primero=='A'?'B':'A')+partes[2].substring(1);
         assertEquals(401,request("GET","/api/auth/me",null,falso).statusCode());
         Instant antes=Instant.now().minusSeconds(7200);
-        var claims=JwtClaimsSet.builder().issuer(ApiSecurityConfig.ISSUER).subject(u.getId().toString())
+        var claims=JwtClaimsSet.builder().issuer(ApiSecurityConfig.ISSUER).subject(c.getId().toString()).claim("tipo","CLIENTE")
                 .issuedAt(antes).expiresAt(antes.plusSeconds(60)).build();
         String vencido=encoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(),claims)).getTokenValue();
         assertEquals(401,request("GET","/api/auth/me",null,vencido).statusCode());
     }
 
     @Test void desactivarCuentaInvalidaTokenExistente() throws Exception {
-        Usuario u=cuenta(RolNombre.CLIENTE); String token=token(u);
-        servicio.cambiarEstado(u.getId(),false);
+        Cliente c=cuentaCliente(); String token=tokenCliente(c);
+        clienteService.cambiarEstado(c.getId(),false);
         assertEquals(401,request("GET","/api/auth/me",null,token).statusCode());
         assertEquals(401,request("POST","/api/auth/login",json.writeValueAsString(
-                Map.of("username",u.getUsername(),"password",PASSWORD)),null).statusCode());
+                Map.of("username",c.getUsername(),"password",PASSWORD)),null).statusCode());
     }
 
     @Test void cambiarRolActualizaPermisosDelToken() throws Exception {
-        Usuario u=cuenta(RolNombre.ADMINISTRADOR); String token=token(u);
-        u.setRol(roles.findByNombre(RolNombre.CLIENTE).orElseThrow()); usuarios.saveAndFlush(u);
+        Empleado e=cuentaEmpleado(RolNombre.ADMINISTRADOR); String token=tokenEmpleado(e);
+        e.setRol(RolNombre.VENDEDOR); empleados.saveAndFlush(e);
         assertEquals(403,request("GET","/api/usuarios",null,token).statusCode());
     }
 
     @Test void clienteNoPuedeIniciarSesionEnEscritorio() {
-        Usuario u=cuenta(RolNombre.CLIENTE);
-        assertThrows(org.springframework.security.access.AccessDeniedException.class,
-                () -> servicio.validarCredencialesPersonal(u.getUsername(),PASSWORD));
-        Usuario vendedor=cuenta(RolNombre.VENDEDOR);
-        assertEquals(vendedor.getId(),servicio.validarCredencialesPersonal(vendedor.getUsername(),PASSWORD).getId());
+        Cliente c=cuentaCliente();
+        assertThrows(org.springframework.security.authentication.BadCredentialsException.class,
+                () -> empleadoService.validarCredenciales(c.getUsername(),PASSWORD));
+        Empleado vendedor=cuentaEmpleado(RolNombre.VENDEDOR);
+        assertEquals(vendedor.getId(),empleadoService.validarCredenciales(vendedor.getUsername(),PASSWORD).getId());
     }
 
     @Test void corsPermiteSoloFrontendConfigurado() throws Exception {

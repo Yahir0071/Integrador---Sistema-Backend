@@ -6,17 +6,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import pe.edu.utp.Grupo06.model.Categoria;
+import pe.edu.utp.Grupo06.model.Empleado;
 import pe.edu.utp.Grupo06.model.Merma;
 import pe.edu.utp.Grupo06.model.MovimientoInventario;
 import pe.edu.utp.Grupo06.model.Producto;
-import pe.edu.utp.Grupo06.model.Usuario;
 import pe.edu.utp.Grupo06.model.enums.MotivoMerma;
+import pe.edu.utp.Grupo06.model.enums.RolNombre;
 import pe.edu.utp.Grupo06.model.enums.TipoMovimiento;
 import pe.edu.utp.Grupo06.model.enums.UnidadMedida;
 import pe.edu.utp.Grupo06.repository.CategoriaRepository;
+import pe.edu.utp.Grupo06.repository.EmpleadoRepository;
 import pe.edu.utp.Grupo06.repository.MovimientoInventarioRepository;
 import pe.edu.utp.Grupo06.repository.ProductoRepository;
-import pe.edu.utp.Grupo06.repository.UsuarioRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -35,7 +36,7 @@ class MermaIntegrationTest {
     private ProductoRepository productoRepository;
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
+    private EmpleadoRepository empleadoRepository;
 
     @Autowired
     private CategoriaRepository categoriaRepository;
@@ -43,15 +44,27 @@ class MermaIntegrationTest {
     @Autowired
     private MovimientoInventarioRepository movimientoRepository;
 
+    private Empleado obtenerOCrearEmpleado() {
+        return empleadoRepository.findAll().stream()
+                .filter(e -> Boolean.TRUE.equals(e.getActivo()))
+                .findFirst()
+                .orElseGet(() -> {
+                    Empleado e = new Empleado();
+                    e.setUsername("emp_merma_" + System.currentTimeMillis());
+                    e.setPassword("hash-prueba");
+                    e.setNombreCompleto("Empleado Merma Test");
+                    e.setRol(RolNombre.ADMINISTRADOR);
+                    e.setActivo(true);
+                    return empleadoRepository.saveAndFlush(e);
+                });
+    }
+
     @Test
     @DisplayName("Debe registrar merma, calcular pérdida valorizada, reducir stock y auditar en Kardex")
     void testRegistrarMermaExitosa() {
-        // Preparar usuario
-        Usuario usuario = usuarioRepository.findAll().stream()
-                .filter(u -> Boolean.TRUE.equals(u.getActivo()))
-                .findFirst()
-                .orElse(null);
-        assertNotNull(usuario, "Debe existir al menos un usuario activo");
+        // Preparar empleado
+        Empleado usuario = obtenerOCrearEmpleado();
+        assertNotNull(usuario, "Debe existir al menos un empleado activo");
 
         // Preparar categoría
         Categoria categoria = categoriaRepository.findAll().stream().findFirst().orElseGet(() -> {
@@ -116,7 +129,7 @@ class MermaIntegrationTest {
     @Test
     @DisplayName("Debe lanzar excepción si se intenta dar de baja una cantidad superior al stock disponible")
     void testRegistrarMermaStockInsuficiente() {
-        Usuario usuario = usuarioRepository.findAll().stream().findFirst().orElseThrow();
+        Empleado usuario = obtenerOCrearEmpleado();
         Categoria categoria = categoriaRepository.findAll().stream().findFirst().orElseThrow();
 
         Producto producto = new Producto();
