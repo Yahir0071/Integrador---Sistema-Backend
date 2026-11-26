@@ -40,7 +40,7 @@ WHERE nombre = 'Lacteos';
 -- ahí a los otros 3 integrantes (la app encripta automáticamente las contraseñas).
 -- Contraseña de ejemplo del hash BCrypt abajo: "Admin2026!"
 -- ============================================================================
-INSERT INTO public.empleados (username, password, nombre_completo, email, telefono, rol, activo)
+INSERT INTO public.empleados (username, password, nombre_completo, email, telefono, rol, activo, creado_en)
 VALUES (
     'admin',
     '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
@@ -48,7 +48,8 @@ VALUES (
     'admin@comercialnova.pe',
     '999000001',
     'ADMINISTRADOR',
-    true
+    true,
+    CURRENT_TIMESTAMP
 );
 
 COMMIT;
