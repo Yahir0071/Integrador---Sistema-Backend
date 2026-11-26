@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import pe.edu.utp.Grupo06.dto.auth.RegistroClienteDTO;
 import pe.edu.utp.Grupo06.model.Cliente;
 import pe.edu.utp.Grupo06.repository.ClienteRepository;
+import pe.edu.utp.Grupo06.repository.EmpleadoRepository;
 import pe.edu.utp.Grupo06.service.IClienteService;
 import pe.edu.utp.Grupo06.util.Validador;
 
@@ -21,6 +22,9 @@ public class ClienteServiceImpl implements IClienteService {
 
     @Autowired
     private ClienteRepository clienteRepository;
+
+    @Autowired
+    private EmpleadoRepository empleadoRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -51,7 +55,7 @@ public class ClienteServiceImpl implements IClienteService {
     @Override
     @Transactional
     public Cliente registrar(RegistroClienteDTO datos) {
-        if (clienteRepository.existsByUsername(datos.username())) {
+        if (clienteRepository.existsByUsername(datos.username()) || empleadoRepository.existsByUsername(datos.username())) {
             throw new RuntimeException("El nombre de usuario ya se encuentra registrado: " + datos.username());
         }
         if (clienteRepository.existsByEmail(datos.email().trim())) {

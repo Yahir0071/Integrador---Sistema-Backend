@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pe.edu.utp.Grupo06.model.Empleado;
 import pe.edu.utp.Grupo06.model.enums.RolNombre;
+import pe.edu.utp.Grupo06.repository.ClienteRepository;
 import pe.edu.utp.Grupo06.repository.EmpleadoRepository;
 import pe.edu.utp.Grupo06.service.IEmpleadoService;
 import pe.edu.utp.Grupo06.util.Validador;
@@ -21,6 +22,9 @@ public class EmpleadoServiceImpl implements IEmpleadoService {
 
     @Autowired
     private EmpleadoRepository empleadoRepository;
+
+    @Autowired
+    private ClienteRepository clienteRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -57,7 +61,7 @@ public class EmpleadoServiceImpl implements IEmpleadoService {
     @Override
     @Transactional
     public Empleado registrar(Empleado empleado) {
-        if (empleadoRepository.existsByUsername(empleado.getUsername())) {
+        if (empleadoRepository.existsByUsername(empleado.getUsername()) || clienteRepository.existsByUsername(empleado.getUsername())) {
             throw new RuntimeException("El nombre de usuario ya se encuentra registrado: " + empleado.getUsername());
         }
         if (empleado.getEmail() != null && !empleado.getEmail().isBlank()) {
