@@ -51,6 +51,14 @@ public class AuthController {
                 c.getTelefono(), c.getActivo(), RolNombre.CLIENTE);
     }
 
+    @PutMapping("/me")
+    public UsuarioResponseDTO actualizarPerfil(Authentication authentication,
+                                               @Valid @RequestBody ActualizarPerfilClienteDTO datos) {
+        Cliente c = clienteService.actualizarPerfil(Long.parseLong(authentication.getName()), datos);
+        return new UsuarioResponseDTO(c.getId(), c.getUsername(), c.getNombreCompleto(), c.getEmail(),
+                c.getTelefono(), c.getActivo(), RolNombre.CLIENTE);
+    }
+
     private LoginResponseDTO respuesta(Cliente c) {
         return new LoginResponseDTO(c.getId(), c.getUsername(), c.getNombreCompleto(), c.getEmail(),
                 RolNombre.CLIENTE, "Autenticación exitosa", tokens.emitirParaCliente(c), "Bearer", TokenService.DURACION_SEGUNDOS);

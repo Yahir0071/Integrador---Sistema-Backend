@@ -5,6 +5,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pe.edu.utp.Grupo06.dto.auth.ActualizarPerfilClienteDTO;
 import pe.edu.utp.Grupo06.dto.auth.RegistroClienteDTO;
 import pe.edu.utp.Grupo06.model.Cliente;
 import pe.edu.utp.Grupo06.repository.ClienteRepository;
@@ -72,6 +73,21 @@ public class ClienteServiceImpl implements IClienteService {
         cliente.setTelefono(datos.telefono().trim());
         cliente.setActivo(true);
 
+        validador.validar(cliente);
+        return clienteRepository.save(cliente);
+    }
+
+    @Override
+    @Transactional
+    public Cliente actualizarPerfil(Long id, ActualizarPerfilClienteDTO datos) {
+        Cliente cliente = buscarPorId(id);
+        String nuevoEmail = datos.email().trim();
+        if (!nuevoEmail.equalsIgnoreCase(cliente.getEmail()) && clienteRepository.existsByEmail(nuevoEmail)) {
+            throw new RuntimeException("El correo ya se encuentra registrado: " + nuevoEmail);
+        }
+        cliente.setNombreCompleto(datos.nombreCompleto().trim());
+        cliente.setEmail(nuevoEmail);
+        cliente.setTelefono(datos.telefono().trim());
         validador.validar(cliente);
         return clienteRepository.save(cliente);
     }
